@@ -1,10 +1,12 @@
 # bw-cli Go 微服务脚手架
 
-`bw-cli` 是一套面向企业项目的 Go 微服务脚手架，默认使用 Gin + gRPC + Gorm，按 DDD 思路组织代码，同时保持包名简单直观。仓库内置两个 demo 服务：`user-service` 和 `note-service`，可以直接本地启动，也可以通过 `bw-cli` 命令生成新的业务项目。
+`bw-cli` 是一套面向企业项目的 Go 微服务脚手架，默认使用 Gin + gRPC + Gorm，按 DDD 思路组织代码，同时保持包名简单直观。`bw-cli new` 默认生成不带业务 demo 的干净框架；如果需要演示项目，可以使用 `bw-cli demo` 生成带 `user-service` 和 `note-service` 的示例工程。
 
 ## 1. 你可以用它做什么
 
 - 快速生成 Gin + gRPC 微服务项目。
+- `bw-cli new <项目名> --module <module>` 一条命令生成干净框架。
+- `bw-cli demo <项目名> --module <module>` 单独生成带示例业务的演示项目。
 - 使用清晰的 DDD 分层：`model`、`service`、`repo`、`handler`。
 - 默认支持 Gorm，并内置 SQLite、MySQL、PostgreSQL。
 - 内置 MongoDB、Redis、Elasticsearch、Kafka 客户端封装。
@@ -181,15 +183,15 @@ go install github.com/BwCloudWeGo/bw-cli/cmd/bw-cli@latest
 bw-cli new -h
 ```
 
-### 4.2 从远程脚手架生成项目
+### 4.2 生成干净业务项目
 
 ```bash
 bw-cli new my-service \
   --module github.com/acme/my-service \
-  --repo https://github.com/BwCloudWeGo/bw-cli.git \
-  --branch main \
   --tidy
 ```
+
+`bw-cli new` 默认从 `https://github.com/BwCloudWeGo/bw-cli.git` 的 `main` 分支拉取脚手架，并自动清理 demo 代码。日常使用只需要指定项目目录和 module。
 
 参数说明：
 
@@ -197,8 +199,6 @@ bw-cli new my-service \
 | --- | --- |
 | `my-service` | 生成出来的新项目目录 |
 | `--module github.com/acme/my-service` | 新项目的 Go module |
-| `--repo https://github.com/BwCloudWeGo/bw-cli.git` | 脚手架仓库地址 |
-| `--branch main` | 使用脚手架仓库的分支或 tag |
 | `--tidy` | 生成后自动执行 `go mod tidy` |
 
 生成完成后：
@@ -210,9 +210,31 @@ make proto
 make test
 ```
 
-然后按第 3.6 节的方式启动三个服务。
+启动干净项目的 gateway：
 
-### 4.3 从本地脚手架源码生成项目
+```bash
+make run-gateway
+```
+
+验证：
+
+```bash
+curl http://localhost:8080/healthz
+```
+
+### 4.3 生成演示项目
+
+如果想先看完整 user/note 示例，用 `demo` 命令：
+
+```bash
+bw-cli demo demo-service \
+  --module github.com/acme/demo-service \
+  --tidy
+```
+
+生成后按第 3.6 节的方式启动三个服务。
+
+### 4.4 从本地脚手架源码生成项目
 
 如果你正在修改脚手架本身，可以直接用本地源码生成项目：
 
@@ -221,24 +243,35 @@ git clone https://github.com/BwCloudWeGo/bw-cli.git
 cd bw-cli
 go install ./cmd/bw-cli
 
-bw-cli new ../demo-app \
-  --module github.com/acme/demo-app \
+bw-cli new ../my-service \
+  --module github.com/acme/my-service \
+  --source . \
+  --tidy
+```
+
+如果要从本地源码生成带示例业务的演示项目：
+
+```bash
+bw-cli demo ../demo-service \
+  --module github.com/acme/demo-service \
   --source . \
   --tidy
 ```
 
 这适合调试模板变更，不需要每次都先推送到远程仓库。
 
-### 4.4 bw-cli 生成时做了什么
+### 4.5 bw-cli 生成时做了什么
 
 `bw-cli new` 会执行这些动作：
 
-1. 从 `--repo` 克隆脚手架，或从 `--source` 复制本地脚手架。
+1. 默认从官方仓库克隆脚手架；如果传了 `--source`，则复制本地脚手架。
 2. 跳过 `.git`、`.idea`、`logs`、`data`、`tmp` 等运行时目录。
 3. 把 `go.mod`、源码、配置和文档中的旧 module 路径替换成新项目 module。
 4. 跳过已生成的 `*.pb.go`，避免破坏 protobuf 原始描述符。
 5. 替换 `.proto` 文件中的 `go_package`。
-6. 如果指定 `--tidy`，自动执行 `go mod tidy`。
+6. `new` 会移除 user/note 示例服务、示例 proto、示例 gateway handler 和脚手架自身 CLI 代码。
+7. `demo` 会保留 user/note 示例服务，方便学习和演示。
+8. 如果指定 `--tidy`，自动执行 `go mod tidy`。
 
 生成后建议执行：
 
@@ -250,6 +283,8 @@ make test
 `make proto` 会基于新的 `go_package` 重新生成 `*.pb.go`。
 
 ## 5. 项目目录说明
+
+下面是脚手架仓库源码目录。通过 `bw-cli new` 生成的干净项目会移除 `cmd/bw-cli`、`cmd/user`、`cmd/note`、`internal/user`、`internal/note` 和示例 proto；通过 `bw-cli demo` 生成的演示项目会保留 user/note 示例。
 
 核心目录：
 

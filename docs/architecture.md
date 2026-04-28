@@ -10,8 +10,20 @@
 - DDD 思路组织业务边界，但包名保持直观。
 - 公共能力可独立沉淀到 Git 仓库，通过 `go get` 复用。
 - 命令行工具名固定为 `bw-cli`，通过 `go install <repo>/cmd/bw-cli@latest` 安装。
+- `bw-cli new` 生成干净框架，不带业务 demo；`bw-cli demo` 生成带 user/note 的演示项目。
 
 ## 总体架构
+
+干净项目默认只保留 Gateway 和公共能力：
+
+```text
+Client
+  -> Gin Gateway
+      -> /healthz
+      -> /api/v1      # 业务路由命名空间，按需扩展
+```
+
+演示项目额外包含 user/note 两个示例服务：
 
 ```text
 Client
@@ -30,9 +42,9 @@ Client
 
 放业务模型和最稳定的业务规则：
 
-- 实体：`User`、`Note`
-- 状态：`NoteStatusDraft`、`NoteStatusPublished`
-- 业务错误：`ErrUserNotFound`、`ErrInvalidNote`
+- 实体：例如 `User`、`Note`、`Order`
+- 状态：例如 `Draft`、`Published`、`Paid`
+- 业务错误：例如 `ErrUserNotFound`、`ErrInvalidOrder`
 - 仓储接口：`Repository`
 
 这一层不依赖框架和数据库。
@@ -42,9 +54,9 @@ Client
 放业务用例：
 
 - 注册用户
-- 用户登录
-- 创建笔记
-- 发布笔记
+- 创建订单
+- 发布内容
+- 审核资源
 
 这一层只依赖 `model` 中的接口和实体。事务、幂等、权限等业务编排也放在这里。
 
@@ -76,26 +88,30 @@ Gateway 不把所有路由放在一个文件里，也不把请求入参写在控
 
 ```text
 internal/gateway
-  ├── request
-  │   ├── user_request.go
-  │   └── note_request.go
-  ├── handler
-  │   ├── user_handler.go
-  │   └── note_handler.go
   └── router
       ├── router.go       # 创建 Gin engine 和全局中间件
       ├── health.go       # /healthz
-      ├── v1.go           # /api/v1
-      ├── user_routes.go  # /api/v1/users
-      └── note_routes.go  # /api/v1/notes
+      └── v1.go           # /api/v1
+```
+
+新增业务后再按需创建：
+
+```text
+internal/gateway
+  ├── request
+  │   └── product_request.go
+  ├── handler
+  │   └── product_handler.go
+  └── router
+      └── product_routes.go
 ```
 
 路由注册顺序固定为：
 
 ```text
 版本 -> 业务 -> 具体接口
-/api -> /v1 -> /users -> /register
-/api -> /v1 -> /notes -> /:id/publish
+/api -> /v1 -> /products -> /:id
+/api -> /v1 -> /orders -> /:id/pay
 ```
 
 Handler 只做协议适配：绑定 `request` 包中的 DTO、调用 gRPC client、输出统一响应。业务校验和状态变化放在下游服务的 `service/model` 中。

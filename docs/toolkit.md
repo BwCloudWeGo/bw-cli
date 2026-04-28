@@ -47,8 +47,14 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 ```bash
 bw-cli new test_cli \
   --module github.com/your-org/test_cli \
-  --repo https://github.com/BwCloudWeGo/bw-cli.git \
-  --branch main \
+  --tidy
+```
+
+`bw-cli new` 默认生成不带业务 demo 的干净框架；需要 user/note 演示项目时使用：
+
+```bash
+bw-cli demo demo_cli \
+  --module github.com/your-org/demo_cli \
   --tidy
 ```
 
@@ -302,7 +308,7 @@ db, err := postgresx.Open(cfg)
 client, err := mongox.NewClient(mongox.Config{
     URI:      os.Getenv("APP_MONGODB_URI"),
     Database: os.Getenv("APP_MONGODB_DATABASE"),
-    AppName:  "note-service",
+    AppName:  "app-service",
 })
 if err != nil {
     panic(err)
@@ -669,20 +675,20 @@ CLI 调用：
 ```bash
 bw-cli new demo-app \
   --module github.com/your-org/demo-app \
-  --repo https://github.com/BwCloudWeGo/bw-cli.git \
-  --branch main \
   --tidy
 ```
 
 内部流程：
 
-1. 如果传了 `--repo`，使用 `git clone --depth 1` 拉取脚手架。
+1. 默认使用 `git clone --depth 1` 从官方仓库拉取脚手架。
 2. 如果传了 `--source`，复制本地脚手架目录。
 3. 跳过 `.git`、`logs`、`data`、`tmp` 等运行时目录。
 4. 读取源项目 `go.mod` 的 module。
 5. 替换 `.go`、`.mod`、`.md`、`.yaml`、`.yml`、`.proto` 中的 module 路径。
 6. 跳过 `*.pb.go`，避免破坏 protobuf descriptor。
-7. 如果传了 `--tidy`，执行 `go mod tidy`。
+7. `new` 移除 user/note 示例业务和脚手架自身 CLI 代码。
+8. `demo` 保留 user/note 示例业务，方便学习和演示。
+9. 如果传了 `--tidy`，执行 `go mod tidy`。
 
 代码调用：
 
