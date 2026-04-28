@@ -1,22 +1,132 @@
-# bw-cli Go Microservice Scaffold
+# bw-cli Go 微服务脚手架
 
-这是一个企业级 Go 微服务脚手架，默认使用 Gin + gRPC + Gorm，按 DDD 思路组织代码，但包名保持通俗易懂。当前包含两个 demo 服务：`user-service` 和 `note-service`。
+`bw-cli` 是一套面向企业项目的 Go 微服务脚手架，默认使用 Gin + gRPC + Gorm，按 DDD 思路组织代码，同时保持包名简单直观。仓库内置两个 demo 服务：`user-service` 和 `note-service`，可以直接本地启动，也可以通过 `bw-cli` 命令生成新的业务项目。
 
-## 快速体验
+## 1. 你可以用它做什么
+
+- 快速生成 Gin + gRPC 微服务项目。
+- 使用清晰的 DDD 分层：`model`、`service`、`repo`、`handler`。
+- 默认支持 Gorm，并内置 SQLite、MySQL、PostgreSQL。
+- 内置 MongoDB、Redis、Elasticsearch、Kafka 客户端封装。
+- 内置 CORS、JWT、RequestID、请求日志等常用中间件。
+- 使用 Zap + Lumberjack 记录结构化日志，日志默认保留 7 天。
+- 通过 `make` 命令完成 proto 生成、测试和本地启动。
+
+## 2. 环境要求
+
+先确认本机环境：
+
+```bash
+go version
+protoc --version
+git --version
+make --version
+```
+
+要求：
+
+```text
+Go        1.25+
+protoc    3.x+
+Git       任意现代版本
+Make      macOS/Linux 默认可用
+```
+
+如果缺少 `protoc`，macOS 可以使用：
+
+```bash
+brew install protobuf
+```
+
+如果 `bw-cli` 安装后提示 `command not found`，检查 Go bin 目录：
+
+```bash
+go env GOPATH
+```
+
+然后把下面内容加入你的 shell 配置：
+
+```bash
+export PATH="$PATH:$(go env GOPATH)/bin"
+```
+
+## 3. 方式一：拉取脚手架后直接本地运行
+
+这个方式适合第一次体验脚手架，或者你要参与维护 `bw-cli` 本身。
+
+### 3.1 克隆仓库
+
+```bash
+git clone https://github.com/BwCloudWeGo/bw-cli.git
+cd bw-cli
+```
+
+### 3.2 安装 proto 插件
 
 ```bash
 make tools
+```
+
+它会安装：
+
+```text
+protoc-gen-go
+protoc-gen-go-grpc
+```
+
+### 3.3 生成 proto 代码
+
+```bash
 make proto
+```
+
+这一步会根据 `api/proto` 下的 proto 文件生成 `api/gen` 下的 Go 代码。
+
+### 3.4 整理依赖
+
+```bash
+make tidy
+```
+
+### 3.5 运行测试
+
+```bash
 make test
 ```
 
-分别启动三个进程：
+看到所有 package 都没有 `FAIL` 即可继续启动服务。
+
+### 3.6 启动 demo 服务
+
+建议开三个终端，按顺序启动。
+
+终端一：启动用户服务。
 
 ```bash
 make run-user
+```
+
+终端二：启动笔记服务。
+
+```bash
 make run-note
+```
+
+终端三：启动网关。
+
+```bash
 make run-gateway
 ```
+
+默认端口：
+
+```text
+gateway       http://localhost:8080
+user-service  grpc://localhost:9001
+note-service  grpc://localhost:9002
+```
+
+### 3.7 验证服务
 
 健康检查：
 
@@ -24,146 +134,20 @@ make run-gateway
 curl http://localhost:8080/healthz
 ```
 
-## 分层命名
-
-每个业务服务统一四层：
-
-```text
-internal/<service>
-  ├── model    # 实体、值对象、业务错误、仓储接口
-  ├── service  # 业务用例编排
-  ├── repo     # Gorm、Redis、外部依赖实现
-  └── handler  # gRPC/HTTP 入站适配
-```
-
-Gateway 额外拆出请求 DTO 和分层路由：
-
-```text
-internal/gateway
-  ├── request          # HTTP 入参结构体
-  ├── handler          # HTTP 控制器，只负责绑定、调用、响应
-  └── router
-      ├── v1.go        # /api/v1 版本分组
-      ├── user_routes.go
-      └── note_routes.go
-```
-
-依赖方向：
-
-```text
-handler -> service -> model
-repo -> model
-```
-
-`model` 不依赖 Gin、gRPC、Gorm、日志框架，方便单元测试和后续替换基础设施。
-
-## 日志
-
-日志默认使用 Zap + Lumberjack：
-
-- 默认保留 7 天
-- 单文件最大 128 MB
-- 最多保留 14 个备份
-- 历史日志压缩
-- 文件名按当前日期和服务名生成，例如 `logs/gateway-2026-04-28.log`
-
-记录维度覆盖：
-
-- HTTP：method、path、route、status、client_ip、user_agent、latency_ms、request_bytes、response_bytes、error_code
-- gRPC：full_method、peer、status_code、latency_ms、request_id、trace_id、error_code
-- 业务：service、env、request_id、user_id、aggregate_id、use_case
-- 仓储：repository、operation、rows_affected、latency_ms、error
-
-## 公共组件封装
-
-这些包设计成后续可以放到 Git 仓库里，通过 `go get` 单独引入：
-
-```text
-pkg/mysqlx   # Gorm MySQL 初始化和连接池配置
-pkg/postgresx # Gorm PostgreSQL 初始化和连接池配置
-pkg/mongox   # MongoDB 官方驱动客户端初始化和 ping
-pkg/redisx   # go-redis 客户端初始化和 ping
-pkg/esx      # Elasticsearch v8 客户端初始化
-pkg/kafkax   # Kafka writer/reader 初始化
-pkg/logger   # Zap + Lumberjack 日志
-pkg/middleware # CORS、JWT、RequestID、请求日志
-pkg/grpcx    # gRPC 拦截器和 metadata 透传
-pkg/errors   # 统一业务错误码和 HTTP/gRPC 映射
-```
-
-推到 Git 仓库后，其他项目可以这样引用：
-
-```bash
-go get github.com/BwCloudWeGo/bw-cli/pkg/mysqlx
-go get github.com/BwCloudWeGo/bw-cli/pkg/postgresx
-go get github.com/BwCloudWeGo/bw-cli/pkg/mongox
-go get github.com/BwCloudWeGo/bw-cli/pkg/redisx
-go get github.com/BwCloudWeGo/bw-cli/pkg/esx
-go get github.com/BwCloudWeGo/bw-cli/pkg/kafkax
-```
-
-如果希望更标准，建议后续把 `pkg/*x` 公共组件拆到独立仓库，例如 `github.com/your-org/go-kit`。
-
-## bw-cli 脚手架命令
-
-本仓库提供 `bw-cli` 命令，用来一键生成新项目。命令行工具推荐通过 `go install` 安装；公共基础包通过 `go get` 引入到其他项目。
-
-### 本地拉取脚手架后安装
-
-```bash
-git clone https://github.com/BwCloudWeGo/bw-cli.git
-cd bw-cli
-go install ./cmd/bw-cli
-```
-
-安装完成后，在脚手架仓库根目录直接生成项目：
-
-```bash
-bw-cli new ../demo-app --module github.com/acme/demo-app --source . --tidy
-```
-
-### 通过远程仓库安装并生成项目
-
-脚手架发布到 Git 仓库后，可以直接安装命令：
-
-```bash
-go install github.com/BwCloudWeGo/bw-cli/cmd/bw-cli@latest
-```
-
-当前 `go.mod` 的 `module` 已经是 `github.com/BwCloudWeGo/bw-cli`，可以直接远程安装。
-
-然后通过 `--repo` 指定脚手架仓库生成项目：
-
-```bash
-bw-cli new my-service \
-  --module github.com/acme/my-service \
-  --repo https://github.com/BwCloudWeGo/bw-cli.git \
-  --tidy
-```
-
-公共包引用方式：
-
-```bash
-go get github.com/BwCloudWeGo/bw-cli/pkg/logger
-go get github.com/BwCloudWeGo/bw-cli/pkg/mysqlx
-go get github.com/BwCloudWeGo/bw-cli/pkg/postgresx
-go get github.com/BwCloudWeGo/bw-cli/pkg/mongox
-```
-
-生成命令会做三件事：
-
-1. 从本地目录或 Git 仓库复制脚手架。
-2. 跳过 `.git`、`.idea`、`logs`、`data` 等运行时目录。
-3. 将 `go.mod` 和源码里的旧 module 路径替换为新项目 module。
-
-## Demo API
-
 注册用户：
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/users/register \
   -H 'Content-Type: application/json' \
   -d '{"email":"ada@example.com","display_name":"Ada","password":"secret123"}'
+```
+
+登录用户：
+
+```bash
+curl -X POST http://localhost:8080/api/v1/users/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"ada@example.com","password":"secret123"}'
 ```
 
 创建笔记：
@@ -180,8 +164,362 @@ curl -X POST http://localhost:8080/api/v1/notes \
 curl -X POST http://localhost:8080/api/v1/notes/<note_id>/publish
 ```
 
-## 更多文档
+## 4. 方式二：安装 bw-cli 并生成新项目
 
-- [架构说明](docs/architecture.md)：解释分层、路由、公共包和扩展方式。
-- [使用说明](docs/usage.md)：按步骤说明如何发布 `bw-cli`、安装命令、生成项目、初始化依赖、配置服务、启动验证和扩展业务。
-- [MongoDB 从 0 到 1 教学教程](docs/mongodb.md)：说明概念、本地启动、命令行 CRUD、Go 接入、仓储封装、索引、分页、事务、测试和排错。
+这个方式适合业务项目使用。你只需要安装一次 `bw-cli`，后续可以随时生成新项目。
+
+### 4.1 通过远程仓库安装
+
+```bash
+go install github.com/BwCloudWeGo/bw-cli/cmd/bw-cli@latest
+```
+
+验证命令是否可用：
+
+```bash
+bw-cli new -h
+```
+
+### 4.2 从远程脚手架生成项目
+
+```bash
+bw-cli new my-service \
+  --module github.com/acme/my-service \
+  --repo https://github.com/BwCloudWeGo/bw-cli.git \
+  --branch main \
+  --tidy
+```
+
+参数说明：
+
+| 参数 | 说明 |
+| --- | --- |
+| `my-service` | 生成出来的新项目目录 |
+| `--module github.com/acme/my-service` | 新项目的 Go module |
+| `--repo https://github.com/BwCloudWeGo/bw-cli.git` | 脚手架仓库地址 |
+| `--branch main` | 使用脚手架仓库的分支或 tag |
+| `--tidy` | 生成后自动执行 `go mod tidy` |
+
+生成完成后：
+
+```bash
+cd my-service
+make tools
+make proto
+make test
+```
+
+然后按第 3.6 节的方式启动三个服务。
+
+### 4.3 从本地脚手架源码生成项目
+
+如果你正在修改脚手架本身，可以直接用本地源码生成项目：
+
+```bash
+git clone https://github.com/BwCloudWeGo/bw-cli.git
+cd bw-cli
+go install ./cmd/bw-cli
+
+bw-cli new ../demo-app \
+  --module github.com/acme/demo-app \
+  --source . \
+  --tidy
+```
+
+这适合调试模板变更，不需要每次都先推送到远程仓库。
+
+### 4.4 bw-cli 生成时做了什么
+
+`bw-cli new` 会执行这些动作：
+
+1. 从 `--repo` 克隆脚手架，或从 `--source` 复制本地脚手架。
+2. 跳过 `.git`、`.idea`、`logs`、`data`、`tmp` 等运行时目录。
+3. 把 `go.mod`、源码、配置和文档中的旧 module 路径替换成新项目 module。
+4. 跳过已生成的 `*.pb.go`，避免破坏 protobuf 原始描述符。
+5. 替换 `.proto` 文件中的 `go_package`。
+6. 如果指定 `--tidy`，自动执行 `go mod tidy`。
+
+生成后建议执行：
+
+```bash
+make proto
+make test
+```
+
+`make proto` 会基于新的 `go_package` 重新生成 `*.pb.go`。
+
+## 5. 项目目录说明
+
+核心目录：
+
+```text
+.
+├── api
+│   ├── proto        # proto 源文件
+│   └── gen          # protoc 生成的 Go 代码
+├── cmd
+│   ├── bw-cli       # 脚手架命令入口
+│   ├── gateway      # HTTP 网关进程
+│   ├── user         # user-service 进程
+│   └── note         # note-service 进程
+├── configs          # 本地配置文件
+├── docs             # 架构和使用文档
+├── internal
+│   ├── gateway      # Gin 网关
+│   ├── user         # 用户服务
+│   └── note         # 笔记服务
+├── pkg              # 可复用基础包
+├── Makefile
+└── docker-compose.yml
+```
+
+业务服务统一四层：
+
+```text
+internal/<service>
+  ├── model    # 实体、值对象、业务错误、仓储接口
+  ├── service  # 业务用例编排
+  ├── repo     # Gorm、MongoDB、Redis、外部依赖实现
+  └── handler  # gRPC/HTTP 入站适配
+```
+
+Gateway 额外拆分：
+
+```text
+internal/gateway
+  ├── request          # HTTP 入参 DTO
+  ├── handler          # HTTP 控制器
+  └── router
+      ├── v1.go        # /api/v1 版本路由
+      ├── user_routes.go
+      └── note_routes.go
+```
+
+依赖方向：
+
+```text
+handler -> service -> model
+repo -> model
+```
+
+`model` 不依赖 Gin、gRPC、Gorm、MongoDB SDK 或日志框架，便于测试和替换基础设施。
+
+## 6. 常用 Make 命令
+
+| 命令 | 作用 |
+| --- | --- |
+| `make tools` | 安装 proto 生成插件 |
+| `make proto` | 生成 gRPC/protobuf Go 代码 |
+| `make tidy` | 执行 `go mod tidy` |
+| `make test` | 执行 `go test ./...` |
+| `make run-user` | 启动 user-service |
+| `make run-note` | 启动 note-service |
+| `make run-gateway` | 启动 HTTP gateway |
+| `make install-cli` | 本地安装 `bw-cli` |
+
+## 7. 配置说明
+
+默认配置文件：
+
+```text
+configs/config.yaml
+```
+
+配置支持环境变量覆盖，规则是：
+
+```text
+APP_ + 配置路径大写 + 下划线
+```
+
+示例：
+
+```bash
+export APP_HTTP_PORT=8081
+export APP_GRPC_USER_TARGET='127.0.0.1:9001'
+export APP_LOG_LEVEL=debug
+```
+
+### 7.1 默认数据库
+
+默认使用 SQLite，适合本地快速体验：
+
+```yaml
+database:
+  driver: sqlite
+  dsn: data/xiaolanshu.db
+```
+
+SQLite 文件会写入 `data/` 目录，该目录已被 `.gitignore` 忽略。
+
+### 7.2 切换 MySQL
+
+```bash
+export APP_DATABASE_DRIVER=mysql
+export APP_MYSQL_DSN='user:pass@tcp(mysql.example.com:3306)/app?charset=utf8mb4&parseTime=True&loc=Local'
+export APP_MYSQL_MAX_IDLE_CONNS=10
+export APP_MYSQL_MAX_OPEN_CONNS=100
+export APP_MYSQL_CONN_MAX_LIFETIME_SECONDS=3600
+```
+
+### 7.3 切换 PostgreSQL
+
+```bash
+export APP_DATABASE_DRIVER=postgres
+export APP_POSTGRESQL_DSN='host=postgres.example.com user=app password=replace-with-real-password dbname=app port=5432 sslmode=require TimeZone=Asia/Shanghai'
+export APP_POSTGRESQL_MAX_IDLE_CONNS=10
+export APP_POSTGRESQL_MAX_OPEN_CONNS=100
+export APP_POSTGRESQL_CONN_MAX_LIFETIME_SECONDS=3600
+```
+
+支持的关系型数据库 driver：
+
+```text
+sqlite
+mysql
+postgres
+postgresql
+pg
+```
+
+### 7.4 MongoDB
+
+默认配置：
+
+```yaml
+mongodb:
+  uri: mongodb://127.0.0.1:27017
+  database: xiaolanshu
+  app_name: bw-cli
+  min_pool_size: 0
+  max_pool_size: 100
+  connect_timeout_seconds: 10
+  server_selection_timeout_seconds: 5
+```
+
+如果使用 `docker-compose.yml` 里的 MongoDB：
+
+```bash
+docker compose up -d mongodb
+
+export APP_MONGODB_URI='mongodb://bw:bw-secret@127.0.0.1:27017/xiaolanshu?authSource=admin'
+export APP_MONGODB_DATABASE='xiaolanshu'
+```
+
+详细教学文档见 [MongoDB 从 0 到 1 教学教程](docs/mongodb.md)。
+
+## 8. 日志说明
+
+日志默认使用 Zap + Lumberjack：
+
+- 默认保留 7 天。
+- 单文件最大 128 MB。
+- 最多保留 14 个备份。
+- 历史日志压缩。
+- 文件名按服务名和当前日期生成，例如 `logs/gateway-2026-04-29.log`。
+
+日志覆盖维度：
+
+- HTTP：method、path、route、status、client_ip、user_agent、latency_ms、request_bytes、response_bytes、error_code。
+- gRPC：full_method、peer、status_code、latency_ms、request_id、trace_id、error_code。
+- 业务：service、env、request_id、user_id、aggregate_id、use_case。
+- 仓储：repository、operation、rows_affected、latency_ms、error。
+
+日志目录 `logs/` 已被 `.gitignore` 忽略。
+
+## 9. 公共组件
+
+这些包可以在其他项目中通过 `go get` 引入：
+
+```bash
+go get github.com/BwCloudWeGo/bw-cli/pkg/logger
+go get github.com/BwCloudWeGo/bw-cli/pkg/mysqlx
+go get github.com/BwCloudWeGo/bw-cli/pkg/postgresx
+go get github.com/BwCloudWeGo/bw-cli/pkg/mongox
+go get github.com/BwCloudWeGo/bw-cli/pkg/redisx
+go get github.com/BwCloudWeGo/bw-cli/pkg/esx
+go get github.com/BwCloudWeGo/bw-cli/pkg/kafkax
+go get github.com/BwCloudWeGo/bw-cli/pkg/middleware
+```
+
+包说明：
+
+| 包 | 说明 |
+| --- | --- |
+| `pkg/config` | Viper 配置加载和环境变量覆盖 |
+| `pkg/logger` | Zap + Lumberjack 结构化日志 |
+| `pkg/errors` | 统一业务错误码 |
+| `pkg/middleware` | CORS、JWT、RequestID、请求日志 |
+| `pkg/grpcx` | gRPC 拦截器和 metadata 透传 |
+| `pkg/httpx` | HTTP 响应封装 |
+| `pkg/mysqlx` | MySQL/Gorm 初始化 |
+| `pkg/postgresx` | PostgreSQL/Gorm 初始化 |
+| `pkg/mongox` | MongoDB 官方 driver 初始化 |
+| `pkg/redisx` | Redis 客户端初始化 |
+| `pkg/esx` | Elasticsearch 客户端初始化 |
+| `pkg/kafkax` | Kafka reader/writer 初始化 |
+| `pkg/scaffold` | 脚手架生成逻辑 |
+
+## 10. 常见问题
+
+### 10.1 bw-cli: command not found
+
+确认 Go bin 目录在 `PATH` 中：
+
+```bash
+export PATH="$PATH:$(go env GOPATH)/bin"
+```
+
+### 10.2 protoc-gen-go: program not found
+
+执行：
+
+```bash
+make tools
+```
+
+然后重新执行：
+
+```bash
+make proto
+```
+
+### 10.3 生成项目后还有旧 module 路径
+
+生成项目后执行：
+
+```bash
+make proto
+```
+
+原因是 `bw-cli` 会跳过 `*.pb.go` 的直接字符串替换，避免破坏 protobuf 原始描述符。`make proto` 会根据新的 `.proto go_package` 重新生成代码。
+
+### 10.4 端口被占用
+
+默认端口：
+
+```text
+8080 gateway
+9001 user-service
+9002 note-service
+```
+
+可以通过环境变量覆盖：
+
+```bash
+export APP_HTTP_PORT=8081
+export APP_GRPC_USER_PORT=9101
+export APP_GRPC_NOTE_PORT=9102
+```
+
+同时记得调整 gateway 连接下游服务的 target：
+
+```bash
+export APP_GRPC_USER_TARGET='127.0.0.1:9101'
+export APP_GRPC_NOTE_TARGET='127.0.0.1:9102'
+```
+
+## 11. 更多文档
+
+- [架构说明](docs/architecture.md)：分层、路由、公共包和扩展方式。
+- [详细使用说明](docs/usage.md)：发布 `bw-cli`、安装命令、生成项目、初始化依赖、配置服务、启动验证和扩展业务。
+- [MongoDB 从 0 到 1 教学教程](docs/mongodb.md)：概念、本地启动、命令行 CRUD、Go 接入、仓储封装、索引、分页、事务、测试和排错。
