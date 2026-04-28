@@ -47,3 +47,62 @@ mongodb:
 	require.Equal(t, 8, cfg.MongoDB.ConnectTimeoutSeconds)
 	require.Equal(t, 3, cfg.MongoDB.ServerSelectionTimeoutSeconds)
 }
+
+func TestLoadReadsFileStorageConfig(t *testing.T) {
+	tmp := t.TempDir()
+	path := filepath.Join(tmp, "config.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+file_storage:
+  provider: minio
+  max_size_mb: 20
+  object_prefix: uploads
+  public_base_url: https://cdn.example.com
+  allowed_extensions:
+    - .pdf
+    - .png
+  allowed_content_types:
+    - application/pdf
+    - image/png
+  minio:
+    endpoint: 127.0.0.1:9000
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    bucket: app-files
+    use_ssl: false
+  oss:
+    endpoint: https://oss-cn-hangzhou.aliyuncs.com
+    access_key_id: oss-ak
+    access_key_secret: oss-sk
+    bucket: app-oss
+  qiniu:
+    access_key: qiniu-ak
+    secret_key: qiniu-sk
+    bucket: app-qiniu
+    region: z0
+    use_https: true
+  cos:
+    secret_id: cos-id
+    secret_key: cos-key
+    bucket: app-cos-1250000000
+    region: ap-guangzhou
+`), 0o644))
+
+	cfg, err := config.Load(path)
+
+	require.NoError(t, err)
+	require.Equal(t, "minio", cfg.FileStorage.Provider)
+	require.Equal(t, int64(20), cfg.FileStorage.MaxSizeMB)
+	require.Equal(t, "uploads", cfg.FileStorage.ObjectPrefix)
+	require.Equal(t, "https://cdn.example.com", cfg.FileStorage.PublicBaseURL)
+	require.Equal(t, []string{".pdf", ".png"}, cfg.FileStorage.AllowedExtensions)
+	require.Equal(t, []string{"application/pdf", "image/png"}, cfg.FileStorage.AllowedContentTypes)
+	require.Equal(t, "127.0.0.1:9000", cfg.FileStorage.MinIO.Endpoint)
+	require.Equal(t, "app-files", cfg.FileStorage.MinIO.Bucket)
+	require.Equal(t, "https://oss-cn-hangzhou.aliyuncs.com", cfg.FileStorage.OSS.Endpoint)
+	require.Equal(t, "app-oss", cfg.FileStorage.OSS.Bucket)
+	require.Equal(t, "qiniu-ak", cfg.FileStorage.Qiniu.AccessKey)
+	require.Equal(t, "z0", cfg.FileStorage.Qiniu.Region)
+	require.True(t, cfg.FileStorage.Qiniu.UseHTTPS)
+	require.Equal(t, "cos-id", cfg.FileStorage.COS.SecretID)
+	require.Equal(t, "ap-guangzhou", cfg.FileStorage.COS.Region)
+}

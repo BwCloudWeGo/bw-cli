@@ -8,6 +8,7 @@
 - 使用清晰的 DDD 分层：`model`、`service`、`repo`、`handler`。
 - 默认支持 Gorm，并内置 SQLite、MySQL、PostgreSQL。
 - 内置 MongoDB、Redis、Elasticsearch、Kafka 客户端封装。
+- 内置文件上传封装，支持 MinIO、阿里云 OSS、七牛云 Kodo、腾讯云 COS。
 - 内置 CORS、JWT、RequestID、请求日志等常用中间件。
 - 使用 Zap + Lumberjack 记录结构化日志，日志默认保留 7 天。
 - 通过 `make` 命令完成 proto 生成、测试和本地启动。
@@ -407,6 +408,52 @@ export APP_MONGODB_DATABASE='xiaolanshu'
 
 详细教学文档见 [MongoDB 从 0 到 1 教学教程](docs/mongodb.md)。
 
+### 7.5 文件上传
+
+脚手架通过 `pkg/filex` 提供统一上传接口，默认最大文件大小是 100 MB，支持 Word、PDF、常见图片、视频和音频格式。存储方式通过配置选择：
+
+```yaml
+file_storage:
+  provider: minio
+  max_size_mb: 100
+  object_prefix: uploads
+  public_base_url: ""
+```
+
+支持的 provider：
+
+```text
+minio
+oss
+qiniu
+cos
+```
+
+常用环境变量：
+
+```bash
+export APP_FILE_STORAGE_PROVIDER=minio
+export APP_FILE_STORAGE_MAX_SIZE_MB=100
+export APP_FILE_STORAGE_MINIO_ENDPOINT='127.0.0.1:9000'
+export APP_FILE_STORAGE_MINIO_ACCESS_KEY_ID='replace-with-real-access-key'
+export APP_FILE_STORAGE_MINIO_SECRET_ACCESS_KEY='replace-with-real-secret-key'
+export APP_FILE_STORAGE_MINIO_BUCKET='app-files'
+```
+
+业务代码直接使用统一接口：
+
+```go
+uploader, err := filex.NewUploader(cfg.FileStorage)
+result, err := uploader.Upload(ctx, filex.UploadRequest{
+    Reader:      file,
+    Filename:    header.Filename,
+    ContentType: header.Header.Get("Content-Type"),
+    Size:        header.Size,
+})
+```
+
+完整配置和调用流程见 [工具组件总览与调用流程](docs/toolkit.md)。
+
 ## 8. 日志说明
 
 日志默认使用 Zap + Lumberjack：
@@ -439,6 +486,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/redisx
 go get github.com/BwCloudWeGo/bw-cli/pkg/esx
 go get github.com/BwCloudWeGo/bw-cli/pkg/kafkax
 go get github.com/BwCloudWeGo/bw-cli/pkg/middleware
+go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 ```
 
 包说明：
@@ -457,6 +505,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/middleware
 | `pkg/redisx` | Redis 客户端初始化 |
 | `pkg/esx` | Elasticsearch 客户端初始化 |
 | `pkg/kafkax` | Kafka reader/writer 初始化 |
+| `pkg/filex` | 文件上传校验和 MinIO/OSS/Qiniu/COS 存储适配 |
 | `pkg/scaffold` | 脚手架生成逻辑 |
 
 ## 10. 常见问题
@@ -522,4 +571,5 @@ export APP_GRPC_NOTE_TARGET='127.0.0.1:9102'
 
 - [架构说明](docs/architecture.md)：分层、路由、公共包和扩展方式。
 - [详细使用说明](docs/usage.md)：发布 `bw-cli`、安装命令、生成项目、初始化依赖、配置服务、启动验证和扩展业务。
+- [工具组件总览与调用流程](docs/toolkit.md)：配置、日志、中间件、数据库、MongoDB、Redis、ES、Kafka、文件上传等公共工具的调用方式。
 - [MongoDB 从 0 到 1 教学教程](docs/mongodb.md)：概念、本地启动、命令行 CRUD、Go 接入、仓储封装、索引、分页、事务、测试和排错。

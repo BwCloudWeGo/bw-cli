@@ -117,6 +117,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/logger
 go get github.com/BwCloudWeGo/bw-cli/pkg/mysqlx
 go get github.com/BwCloudWeGo/bw-cli/pkg/postgresx
 go get github.com/BwCloudWeGo/bw-cli/pkg/mongox
+go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 ```
 
 Go 1.17+ 推荐 `go install ...@latest` 安装命令行工具，`go get` 用来添加库依赖。
@@ -376,7 +377,115 @@ export APP_MONGODB_SERVER_SELECTION_TIMEOUT_SECONDS=5
 
 详细建模、索引、仓储和查询示例见 [MongoDB 使用教程](mongodb.md)。
 
-### 6.8 Redis 配置
+### 6.8 文件上传配置
+
+脚手架通过 `pkg/filex` 封装文件上传能力。业务代码只依赖统一的 `filex.Uploader` 接口，实际存储可以通过配置切换为 MinIO、阿里云 OSS、七牛云 Kodo 或腾讯云 COS。
+
+默认配置：
+
+```yaml
+file_storage:
+  provider: minio
+  max_size_mb: 100
+  object_prefix: uploads
+  public_base_url: ""
+  allowed_extensions:
+    - .doc
+    - .docx
+    - .pdf
+    - .jpg
+    - .jpeg
+    - .png
+    - .gif
+    - .webp
+    - .bmp
+    - .svg
+    - .mp4
+    - .mov
+    - .avi
+    - .mkv
+    - .webm
+    - .mp3
+    - .wav
+    - .ogg
+    - .m4a
+    - .flac
+    - .aac
+```
+
+支持的存储方式：
+
+```text
+minio
+oss
+qiniu
+cos
+```
+
+MinIO 环境变量示例：
+
+```bash
+export APP_FILE_STORAGE_PROVIDER=minio
+export APP_FILE_STORAGE_MAX_SIZE_MB=100
+export APP_FILE_STORAGE_OBJECT_PREFIX=uploads
+export APP_FILE_STORAGE_PUBLIC_BASE_URL='https://cdn.example.com'
+export APP_FILE_STORAGE_MINIO_ENDPOINT='127.0.0.1:9000'
+export APP_FILE_STORAGE_MINIO_ACCESS_KEY_ID='replace-with-real-access-key'
+export APP_FILE_STORAGE_MINIO_SECRET_ACCESS_KEY='replace-with-real-secret-key'
+export APP_FILE_STORAGE_MINIO_BUCKET='app-files'
+export APP_FILE_STORAGE_MINIO_USE_SSL=false
+```
+
+阿里云 OSS：
+
+```bash
+export APP_FILE_STORAGE_PROVIDER=oss
+export APP_FILE_STORAGE_OSS_ENDPOINT='https://oss-cn-hangzhou.aliyuncs.com'
+export APP_FILE_STORAGE_OSS_ACCESS_KEY_ID='replace-with-real-access-key'
+export APP_FILE_STORAGE_OSS_ACCESS_KEY_SECRET='replace-with-real-secret-key'
+export APP_FILE_STORAGE_OSS_BUCKET='app-files'
+```
+
+七牛云 Kodo：
+
+```bash
+export APP_FILE_STORAGE_PROVIDER=qiniu
+export APP_FILE_STORAGE_QINIU_ACCESS_KEY='replace-with-real-access-key'
+export APP_FILE_STORAGE_QINIU_SECRET_KEY='replace-with-real-secret-key'
+export APP_FILE_STORAGE_QINIU_BUCKET='app-files'
+export APP_FILE_STORAGE_QINIU_REGION='z0'
+export APP_FILE_STORAGE_QINIU_USE_HTTPS=true
+```
+
+腾讯云 COS：
+
+```bash
+export APP_FILE_STORAGE_PROVIDER=cos
+export APP_FILE_STORAGE_COS_SECRET_ID='replace-with-real-secret-id'
+export APP_FILE_STORAGE_COS_SECRET_KEY='replace-with-real-secret-key'
+export APP_FILE_STORAGE_COS_BUCKET='app-files-1250000000'
+export APP_FILE_STORAGE_COS_REGION='ap-guangzhou'
+```
+
+业务调用示例：
+
+```go
+uploader, err := filex.NewUploader(cfg.FileStorage)
+if err != nil {
+    return err
+}
+
+result, err := uploader.Upload(ctx, filex.UploadRequest{
+    Reader:      file,
+    Filename:    header.Filename,
+    ContentType: header.Header.Get("Content-Type"),
+    Size:        header.Size,
+})
+```
+
+完整上传接口、返回结构和 Gin handler 示例见 [工具组件总览与调用流程](toolkit.md)。
+
+### 6.9 Redis 配置
 
 ```yaml
 redis:
@@ -394,7 +503,7 @@ export APP_REDIS_ADDR='redis.example.com:6379'
 export APP_REDIS_PASSWORD='replace-with-real-password'
 ```
 
-### 6.9 Elasticsearch 配置
+### 6.10 Elasticsearch 配置
 
 ```yaml
 elasticsearch:
@@ -412,7 +521,7 @@ export APP_ELASTICSEARCH_USERNAME='elastic'
 export APP_ELASTICSEARCH_PASSWORD='replace-with-real-password'
 ```
 
-### 6.10 Kafka 配置
+### 6.11 Kafka 配置
 
 ```yaml
 kafka:
@@ -430,7 +539,7 @@ export APP_KAFKA_TOPIC='business-events'
 export APP_KAFKA_GROUP_ID='business-consumer'
 ```
 
-### 6.11 CORS 配置
+### 6.12 CORS 配置
 
 ```yaml
 middleware:
@@ -459,7 +568,7 @@ allow_origins:
   - https://console.example.com
 ```
 
-### 6.12 JWT 配置
+### 6.13 JWT 配置
 
 JWT 密钥默认不提供假值，必须配置：
 
@@ -811,6 +920,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/redisx
 go get github.com/BwCloudWeGo/bw-cli/pkg/esx
 go get github.com/BwCloudWeGo/bw-cli/pkg/kafkax
 go get github.com/BwCloudWeGo/bw-cli/pkg/middleware
+go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 ```
 
 示例：

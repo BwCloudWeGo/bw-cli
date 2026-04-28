@@ -43,6 +43,81 @@ mongodb:
   connect_timeout_seconds: 10
   server_selection_timeout_seconds: 5
 
+file_storage:
+  provider: minio
+  max_size_mb: 100
+  object_prefix: uploads
+  public_base_url: ""
+  allowed_extensions:
+    - .doc
+    - .docx
+    - .pdf
+    - .jpg
+    - .jpeg
+    - .png
+    - .gif
+    - .webp
+    - .bmp
+    - .svg
+    - .mp4
+    - .mov
+    - .avi
+    - .mkv
+    - .webm
+    - .mp3
+    - .wav
+    - .ogg
+    - .m4a
+    - .flac
+    - .aac
+  allowed_content_types:
+    - application/msword
+    - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+    - application/pdf
+    - image/jpeg
+    - image/png
+    - image/gif
+    - image/webp
+    - image/bmp
+    - image/svg+xml
+    - video/mp4
+    - video/quicktime
+    - video/x-msvideo
+    - video/x-matroska
+    - video/webm
+    - audio/mpeg
+    - audio/wav
+    - audio/x-wav
+    - audio/ogg
+    - audio/mp4
+    - audio/flac
+    - audio/aac
+  minio:
+    endpoint: ""
+    access_key_id: ""
+    secret_access_key: ""
+    bucket: ""
+    region: ""
+    use_ssl: false
+  oss:
+    endpoint: ""
+    access_key_id: ""
+    access_key_secret: ""
+    bucket: ""
+  qiniu:
+    access_key: ""
+    secret_key: ""
+    bucket: ""
+    region: ""
+    use_https: true
+    use_cdn_domains: false
+  cos:
+    secret_id: ""
+    secret_key: ""
+    bucket: ""
+    region: ""
+    bucket_url: ""
+
 redis:
   addr: 127.0.0.1:6379
   username: ""

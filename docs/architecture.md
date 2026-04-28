@@ -115,6 +115,7 @@ pkg/mongox       MongoDB 官方驱动封装
 pkg/redisx       Redis 封装
 pkg/esx          Elasticsearch 封装
 pkg/kafkax       Kafka 封装
+pkg/filex        文件上传校验和对象存储封装
 pkg/scaffold     脚手架生成逻辑
 ```
 
@@ -155,7 +156,7 @@ JWT token 可以通过 `middleware.GenerateToken` 生成。密钥必须来自 `c
 
 ## 外部组件封装
 
-MySQL、PostgreSQL、MongoDB、Redis、ES、Kafka 都在 `pkg` 下提供薄封装，目标不是隐藏原生 SDK，而是统一默认配置、连接初始化、连接池和调用入口。
+MySQL、PostgreSQL、MongoDB、Redis、ES、Kafka、文件上传都在 `pkg` 下提供薄封装，目标不是隐藏原生 SDK，而是统一默认配置、连接初始化、连接池、调用入口和可替换的 provider。
 
 关系型数据库统一通过 `pkg/database.Open` 进入，目前支持：
 
@@ -169,12 +170,30 @@ database.driver=pg
 
 MongoDB 是文档数据库，不走 Gorm 入口。业务服务需要 MongoDB 时，从 `config.MongoDB` 读取配置并调用 `mongox.NewClient` 创建客户端，再在 `repo` 层封装集合、索引和查询逻辑。
 
+文件上传通过 `pkg/filex` 进入，业务层只依赖 `filex.Uploader` 接口。上传前会校验文件大小、扩展名和 MIME 类型，默认最大 100 MB，默认支持 Word、PDF、常见图片、视频和音频格式。当前存储 provider 支持：
+
+```text
+file_storage.provider=minio
+file_storage.provider=oss
+file_storage.provider=qiniu
+file_storage.provider=cos
+```
+
+对象 key 默认按日期分区生成：
+
+```text
+uploads/YYYY/MM/DD/<uuid>.<ext>
+```
+
+如果配置 `file_storage.public_base_url`，上传结果会返回可访问 URL；如果没有配置，则返回空 URL，由业务根据私有桶签名下载策略自行处理。
+
 后续推到 Git 仓库后可以通过：
 
 ```bash
 go get github.com/BwCloudWeGo/bw-cli/pkg/mysqlx
 go get github.com/BwCloudWeGo/bw-cli/pkg/postgresx
 go get github.com/BwCloudWeGo/bw-cli/pkg/mongox
+go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 ```
 
 方式复用。若企业内多个项目长期共用，建议拆成独立基础库仓库。

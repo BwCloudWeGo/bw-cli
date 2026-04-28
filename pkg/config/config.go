@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/BwCloudWeGo/bw-cli/pkg/esx"
+	"github.com/BwCloudWeGo/bw-cli/pkg/filex"
 	"github.com/BwCloudWeGo/bw-cli/pkg/kafkax"
 	"github.com/BwCloudWeGo/bw-cli/pkg/logger"
 	"github.com/BwCloudWeGo/bw-cli/pkg/middleware"
@@ -110,6 +111,7 @@ type Config struct {
 	MySQL         MySQLConfig      `mapstructure:"mysql" yaml:"mysql"`
 	PostgreSQL    PostgreSQLConfig `mapstructure:"postgresql" yaml:"postgresql"`
 	MongoDB       MongoDBConfig    `mapstructure:"mongodb" yaml:"mongodb"`
+	FileStorage   filex.Config     `mapstructure:"file_storage" yaml:"file_storage"`
 	Redis         redisx.Config    `mapstructure:"redis" yaml:"redis"`
 	Elasticsearch esx.Config       `mapstructure:"elasticsearch" yaml:"elasticsearch"`
 	Kafka         kafkax.Config    `mapstructure:"kafka" yaml:"kafka"`
@@ -178,6 +180,12 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("mongodb.max_pool_size", mongox.DefaultConfig().MaxPoolSize)
 	v.SetDefault("mongodb.connect_timeout_seconds", int(mongox.DefaultConfig().ConnectTimeout/time.Second))
 	v.SetDefault("mongodb.server_selection_timeout_seconds", int(mongox.DefaultConfig().ServerSelectionTimeout/time.Second))
+	v.SetDefault("file_storage.provider", filex.DefaultConfig().Provider)
+	v.SetDefault("file_storage.max_size_mb", filex.DefaultConfig().MaxSizeMB)
+	v.SetDefault("file_storage.object_prefix", filex.DefaultConfig().ObjectPrefix)
+	v.SetDefault("file_storage.public_base_url", filex.DefaultConfig().PublicBaseURL)
+	v.SetDefault("file_storage.allowed_extensions", filex.DefaultConfig().AllowedExtensions)
+	v.SetDefault("file_storage.allowed_content_types", filex.DefaultConfig().AllowedContentTypes)
 	v.SetDefault("redis.addr", redisx.DefaultConfig().Addr)
 	v.SetDefault("redis.db", redisx.DefaultConfig().DB)
 	v.SetDefault("redis.pool_size", redisx.DefaultConfig().PoolSize)
