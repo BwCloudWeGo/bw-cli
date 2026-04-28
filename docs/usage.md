@@ -244,7 +244,8 @@ bw-cli demo ../demo-service \
 5. 替换 `.proto` 文件中的 `go_package`，后续可通过 `make proto` 重新生成代码。
 6. 移除脚手架自身 CLI 代码，生成项目不会继续携带 `cmd/bw-cli` 和 `pkg/scaffold`。
 7. `new` 会移除 user/note 示例业务；`demo` 会保留示例业务。
-8. 如果指定 `--tidy`，自动执行 `go mod tidy`。
+8. 重写生成项目内的 README、usage、architecture、toolkit、mongodb 文档，避免出现已被移除的 CLI 或示例目录说明。
+9. 如果指定 `--tidy`，自动执行 `go mod tidy`。
 
 ## 5. 初始化生成后的项目
 

@@ -271,7 +271,8 @@ bw-cli demo ../demo-service \
 5. 替换 `.proto` 文件中的 `go_package`。
 6. `new` 会移除 user/note 示例服务、示例 proto、示例 gateway handler 和脚手架自身 CLI 代码。
 7. `demo` 会保留 user/note 示例服务，方便学习和演示。
-8. 如果指定 `--tidy`，自动执行 `go mod tidy`。
+8. 重写生成项目内的 README、usage、architecture、toolkit、mongodb 文档，让文档和实际目录保持一致。
+9. 如果指定 `--tidy`，自动执行 `go mod tidy`。
 
 生成后建议执行：
 

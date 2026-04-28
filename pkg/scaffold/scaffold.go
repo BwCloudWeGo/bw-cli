@@ -54,7 +54,11 @@ func Init(opts InitOptions) error {
 	if err := removeScaffoldTooling(opts.TargetDir); err != nil {
 		return err
 	}
-	if !opts.IncludeDemo {
+	if opts.IncludeDemo {
+		if err := writeDemoDocs(opts.TargetDir, opts.ModulePath); err != nil {
+			return err
+		}
+	} else {
 		if err := stripDemo(opts.TargetDir, opts.ModulePath); err != nil {
 			return err
 		}
@@ -123,6 +127,9 @@ func copyDir(source string, target string) error {
 func shouldSkip(rel string, entry os.DirEntry) bool {
 	name := entry.Name()
 	if name == ".git" || name == ".idea" || name == "data" || name == "logs" || name == "tmp" || name == ".DS_Store" {
+		return true
+	}
+	if rel == filepath.Join("docs", "superpowers") {
 		return true
 	}
 	if strings.HasSuffix(name, ".log") {
@@ -226,7 +233,35 @@ func writeCleanDocs(root string, module string) error {
 	if err := os.WriteFile(filepath.Join(docsDir, "usage.md"), []byte(cleanUsageDoc(module)), 0o644); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(docsDir, "architecture.md"), []byte(cleanArchitectureDoc()), 0o644)
+	if err := os.WriteFile(filepath.Join(docsDir, "architecture.md"), []byte(cleanArchitectureDoc()), 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(docsDir, "toolkit.md"), []byte(generatedToolkitDoc(module)), 0o644); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(docsDir, "mongodb.md"), []byte(generatedMongoDBDoc(module)), 0o644)
+}
+
+func writeDemoDocs(root string, module string) error {
+	if exists(filepath.Join(root, "README.md")) {
+		if err := os.WriteFile(filepath.Join(root, "README.md"), []byte(demoREADME(module)), 0o644); err != nil {
+			return err
+		}
+	}
+	docsDir := filepath.Join(root, "docs")
+	if !exists(docsDir) {
+		return nil
+	}
+	if err := os.WriteFile(filepath.Join(docsDir, "usage.md"), []byte(demoUsageDoc(module)), 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(docsDir, "architecture.md"), []byte(demoArchitectureDoc()), 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(docsDir, "toolkit.md"), []byte(generatedToolkitDoc(module)), 0o644); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(docsDir, "mongodb.md"), []byte(generatedMongoDBDoc(module)), 0o644)
 }
 
 func exists(path string) bool {
@@ -770,6 +805,482 @@ pkg/filex
 pkg/validator
 ~~~
 `
+}
+
+func demoREADME(module string) string {
+	return fmt.Sprintf(`# Go 微服务演示项目
+
+本项目由 `+"`bw-cli demo`"+` 生成，保留 user/note 两个示例服务，用于学习 Gin + gRPC + Gorm + DDD 的完整调用链。当前 module：
+
+`+"```text"+`
+%s
+`+"```"+`
+
+## 快速启动
+
+初始化：
+
+`+"```bash"+`
+make tidy
+make proto
+make test
+`+"```"+`
+
+建议开三个终端启动：
+
+`+"```bash"+`
+make run-user
+make run-note
+make run-gateway
+`+"```"+`
+
+健康检查：
+
+`+"```bash"+`
+curl http://localhost:8080/healthz
+`+"```"+`
+
+示例接口：
+
+`+"```bash"+`
+curl -X POST http://localhost:8080/api/v1/users/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"ada@example.com","display_name":"Ada","password":"secret123"}'
+`+"```"+`
+
+## 目录结构
+
+`+"```text"+`
+api/proto      # user/note proto 源文件
+api/gen        # protoc 生成代码
+cmd/gateway    # Gin HTTP 网关入口
+cmd/user       # user-service gRPC 入口
+cmd/note       # note-service gRPC 入口
+configs        # YAML 配置
+internal       # user/note/gateway 业务代码
+pkg            # 公共工具包
+docs           # 使用和架构文档
+`+"```"+`
+`, module)
+}
+
+func demoUsageDoc(module string) string {
+	return fmt.Sprintf(`# 使用说明
+
+当前项目由 `+"`bw-cli demo`"+` 生成，包含 user-service、note-service 和 gateway，用于演示完整微服务调用链。
+
+## 1. 初始化
+
+`+"```bash"+`
+cd <project>
+make tidy
+make proto
+make test
+`+"```"+`
+
+当前 module：
+
+`+"```text"+`
+%s
+`+"```"+`
+
+## 2. 启动服务
+
+建议开三个终端：
+
+`+"```bash"+`
+make run-user
+make run-note
+make run-gateway
+`+"```"+`
+
+默认端口：
+
+`+"```text"+`
+gateway       http://localhost:8080
+user-service  grpc://localhost:9001
+note-service  grpc://localhost:9002
+`+"```"+`
+
+## 3. 调用接口
+
+健康检查：
+
+`+"```bash"+`
+curl http://localhost:8080/healthz
+`+"```"+`
+
+注册用户：
+
+`+"```bash"+`
+curl -X POST http://localhost:8080/api/v1/users/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"ada@example.com","display_name":"Ada","password":"secret123"}'
+`+"```"+`
+
+创建笔记：
+
+`+"```bash"+`
+curl -X POST http://localhost:8080/api/v1/notes \
+  -H 'Content-Type: application/json' \
+  -d '{"author_id":"<user_id>","title":"DDD scaffold","content":"Gin plus gRPC demo"}'
+`+"```"+`
+
+## 4. 配置
+
+主配置文件：
+
+`+"```text"+`
+configs/config.yaml
+`+"```"+`
+
+环境变量覆盖规则：
+
+`+"```text"+`
+APP_ + 配置路径大写 + 下划线
+`+"```"+`
+
+示例：
+
+`+"```bash"+`
+export APP_HTTP_PORT=8081
+export APP_GRPC_USER_TARGET='127.0.0.1:9001'
+export APP_GRPC_NOTE_TARGET='127.0.0.1:9002'
+`+"```"+`
+
+## 5. 公共工具
+
+公共工具调用流程见：
+
+`+"```text"+`
+docs/toolkit.md
+`+"```"+`
+`, module)
+}
+
+func demoArchitectureDoc() string {
+	return `# 架构说明
+
+本项目是 bw-cli 演示工程，保留 user/note 两个示例服务。
+
+## 总体调用链
+
+~~~text
+Client
+  -> Gin Gateway
+      -> UserService gRPC
+          -> handler -> service -> model
+                      -> repo -> Gorm
+      -> NoteService gRPC
+          -> handler -> service -> model
+                      -> repo -> Gorm
+~~~
+
+## 服务分层
+
+~~~text
+internal/<service>/model    # 实体、值对象、业务错误、仓储接口
+internal/<service>/service  # 业务用例编排
+internal/<service>/repo     # Gorm、MongoDB、Redis、外部依赖实现
+internal/<service>/handler  # gRPC/HTTP 入站适配
+~~~
+
+依赖方向：
+
+~~~text
+handler -> service -> model
+repo -> model
+~~~
+
+## Gateway
+
+~~~text
+internal/gateway
+  ├── client
+  ├── request
+  ├── handler
+  └── router
+~~~
+
+路由按“版本 -> 业务 -> 具体接口”拆分：
+
+~~~text
+/api/v1/users/register
+/api/v1/users/login
+/api/v1/notes
+/api/v1/notes/:id/publish
+~~~
+`
+}
+
+func generatedToolkitDoc(module string) string {
+	return fmt.Sprintf(`# 工具组件总览与调用流程
+
+当前项目由 bw-cli 生成，已移除脚手架命令源码。这里列出项目内可直接调用的公共工具包。
+
+当前 module：
+
+`+"```text"+`
+%s
+`+"```"+`
+
+## 1. 工具列表
+
+| 包 | 能力 |
+| --- | --- |
+| `+"`pkg/config`"+` | YAML 配置加载和环境变量覆盖 |
+| `+"`pkg/logger`"+` | Zap 结构化日志和文件轮转 |
+| `+"`pkg/errors`"+` | 统一业务错误码，HTTP/gRPC 状态映射 |
+| `+"`pkg/httpx`"+` | Gin HTTP 统一响应 |
+| `+"`pkg/middleware`"+` | CORS、JWT、RequestID、请求日志 |
+| `+"`pkg/grpcx`"+` | gRPC request_id 透传和日志拦截器 |
+| `+"`pkg/database`"+` | SQLite/MySQL/PostgreSQL Gorm 统一入口 |
+| `+"`pkg/mysqlx`"+` | MySQL Gorm 初始化 |
+| `+"`pkg/postgresx`"+` | PostgreSQL Gorm 初始化 |
+| `+"`pkg/mongox`"+` | MongoDB 官方 driver 初始化 |
+| `+"`pkg/redisx`"+` | Redis client 初始化 |
+| `+"`pkg/esx`"+` | Elasticsearch client 初始化 |
+| `+"`pkg/kafkax`"+` | Kafka reader/writer 初始化 |
+| `+"`pkg/filex`"+` | MinIO/OSS/Qiniu/COS 文件上传封装 |
+| `+"`pkg/validator`"+` | 轻量参数校验 |
+
+## 2. 推荐初始化顺序
+
+`+"```text"+`
+config.Load
+  -> logger.New
+  -> database.Open / mongox.NewClient / redisx.NewClient
+  -> filex.NewUploader
+  -> repo/service/handler
+  -> Gin 或 gRPC server
+`+"```"+`
+
+## 3. 配置加载
+
+`+"```go"+`
+cfg, err := config.Load("configs/config.yaml")
+if err != nil {
+    panic(err)
+}
+`+"```"+`
+
+环境变量覆盖规则：
+
+`+"```text"+`
+APP_ + 配置路径大写 + 下划线
+`+"```"+`
+
+## 4. 日志
+
+`+"```go"+`
+logCfg := logger.WithDailyFileName(cfg.Log, time.Now())
+log, err := logger.New(logCfg)
+if err != nil {
+    panic(err)
+}
+defer log.Sync()
+`+"```"+`
+
+默认日志保留 7 天，文件名按服务名和日期生成。
+
+## 5. Gorm 数据库
+
+`+"```go"+`
+db, err := database.Open(cfg.Database, cfg.MySQL, cfg.PostgreSQL, log)
+if err != nil {
+    log.Fatal("open database failed", zap.Error(err))
+}
+`+"```"+`
+
+支持：
+
+`+"```text"+`
+sqlite
+mysql
+postgres
+postgresql
+pg
+`+"```"+`
+
+## 6. MongoDB
+
+`+"```go"+`
+client, err := mongox.NewClient(cfg.MongoDB)
+if err != nil {
+    panic(err)
+}
+defer client.Disconnect(context.Background())
+
+db := mongox.Database(client, cfg.MongoDB.Database)
+collection := db.Collection("documents")
+`+"```"+`
+
+详细教程见 `+"`docs/mongodb.md`"+`。
+
+## 7. 文件上传
+
+`+"```go"+`
+uploader, err := filex.NewUploader(cfg.FileStorage)
+if err != nil {
+    panic(err)
+}
+
+result, err := uploader.Upload(ctx, filex.UploadRequest{
+    Reader:      file,
+    Filename:    header.Filename,
+    ContentType: header.Header.Get("Content-Type"),
+    Size:        header.Size,
+})
+`+"```"+`
+
+支持 provider：
+
+`+"```text"+`
+minio
+oss
+qiniu
+cos
+`+"```"+`
+`, module)
+}
+
+func generatedMongoDBDoc(module string) string {
+	return fmt.Sprintf(`# MongoDB 从 0 到 1 使用教程
+
+当前项目 module：
+
+`+"```text"+`
+%s
+`+"```"+`
+
+## 1. MongoDB 是什么
+
+MongoDB 是文档数据库，保存的是 BSON 文档。关系型数据库常见结构是 database/table/row/column，MongoDB 对应 database/collection/document/field。
+
+适合使用 MongoDB 的场景：
+
+- 内容草稿、富文本 JSON、扩展字段。
+- 用户偏好、第三方回调原始数据。
+- 操作日志、行为事件、审计记录。
+- 结构变化快、字段差异大的业务文档。
+
+不建议用 MongoDB 承担强事务账务、复杂 join 报表或必须依赖外键约束的核心关系模型。
+
+## 2. 本地启动
+
+项目内置 `+"`docker-compose.yml`"+`，可直接启动 MongoDB：
+
+`+"```bash"+`
+docker compose up -d mongodb
+docker compose ps mongodb
+`+"```"+`
+
+连接串：
+
+`+"```text"+`
+mongodb://bw:bw-secret@127.0.0.1:27017/xiaolanshu?authSource=admin
+`+"```"+`
+
+## 3. mongosh 入门
+
+进入容器：
+
+`+"```bash"+`
+docker compose exec mongodb mongosh \
+  'mongodb://bw:bw-secret@127.0.0.1:27017/xiaolanshu?authSource=admin'
+`+"```"+`
+
+基础命令：
+
+`+"```javascript"+`
+db.runCommand({ ping: 1 })
+db.getName()
+show collections
+db.documents.insertOne({ title: "hello", created_at: new Date() })
+db.documents.find()
+`+"```"+`
+
+## 4. 项目配置
+
+`+"```yaml"+`
+mongodb:
+  uri: mongodb://127.0.0.1:27017
+  database: app
+  app_name: app-service
+  min_pool_size: 0
+  max_pool_size: 100
+  connect_timeout_seconds: 10
+  server_selection_timeout_seconds: 5
+`+"```"+`
+
+本地环境变量：
+
+`+"```bash"+`
+export APP_MONGODB_URI='mongodb://bw:bw-secret@127.0.0.1:27017/xiaolanshu?authSource=admin'
+export APP_MONGODB_DATABASE='xiaolanshu'
+export APP_MONGODB_APP_NAME='app-service'
+`+"```"+`
+
+生产密码不要写进 YAML，应该使用环境变量、Kubernetes Secret 或配置中心。
+
+## 5. Go 初始化
+
+`+"```go"+`
+client, err := mongox.NewClient(cfg.MongoDB)
+if err != nil {
+    return err
+}
+defer client.Disconnect(context.Background())
+
+if err := mongox.Ping(context.Background(), client); err != nil {
+    return err
+}
+
+db := mongox.Database(client, cfg.MongoDB.Database)
+collection := db.Collection("documents")
+`+"```"+`
+
+## 6. Repo 层建议
+
+建议把 MongoDB 代码放在 `+"`internal/<service>/repo`"+`，不要在 handler 里直接操作集合：
+
+`+"```text"+`
+handler -> service -> model.Repository
+repo -> MongoDB collection
+`+"```"+`
+
+示例结构：
+
+`+"```text"+`
+internal/content/model/document.go
+internal/content/model/repository.go
+internal/content/repo/mongo_repository.go
+`+"```"+`
+
+## 7. 索引
+
+在 repo 初始化时创建索引：
+
+`+"```go"+`
+_, err := collection.Indexes().CreateOne(ctx, mongo.IndexModel{
+    Keys: bson.D{
+        {Key: "owner_id", Value: 1},
+        {Key: "created_at", Value: -1},
+    },
+})
+`+"```"+`
+
+常见索引策略：
+
+- 等值查询字段放前面，例如 `+"`owner_id`"+`。
+- 排序字段放后面，例如 `+"`created_at`"+`。
+- 唯一业务键使用 unique index。
+- 大集合分页优先使用游标条件，不要深页 skip。
+
+## 8. 测试建议
+
+轻量单元测试可以测 repo 的参数转换和错误处理；集成测试再连接真实 MongoDB。CI 中建议用 docker compose 或 testcontainers 启动临时 MongoDB。
+`, module)
 }
 
 func copyFile(source string, target string) error {

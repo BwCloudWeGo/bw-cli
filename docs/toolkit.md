@@ -688,7 +688,8 @@ bw-cli new demo-app \
 6. 跳过 `*.pb.go`，避免破坏 protobuf descriptor。
 7. `new` 移除 user/note 示例业务和脚手架自身 CLI 代码。
 8. `demo` 保留 user/note 示例业务，方便学习和演示。
-9. 如果传了 `--tidy`，执行 `go mod tidy`。
+9. 重写生成项目内的 README、usage、architecture、toolkit、mongodb 文档，让文档和实际目录保持一致。
+10. 如果传了 `--tidy`，执行 `go mod tidy`。
 
 代码调用：
 

@@ -124,8 +124,14 @@ go install github.com/BwCloudWeGo/bw-cli/cmd/bw-cli@latest
 ```bash
 bw-cli new test_cli \
   --module github.com/BwCloudWeGo/test_cli \
-  --repo https://github.com/BwCloudWeGo/bw-cli.git \
-  --branch main \
+  --tidy
+```
+
+这会生成一个不带 user/note demo 的干净项目。若你想基于演示项目学习完整 user/note 调用链，可以改用：
+
+```bash
+bw-cli demo test_cli_demo \
+  --module github.com/BwCloudWeGo/test_cli_demo \
   --tidy
 ```
 
@@ -422,7 +428,7 @@ mongodb:
 ```bash
 export APP_MONGODB_URI='mongodb://bw:bw-secret@127.0.0.1:27017/xiaolanshu?authSource=admin'
 export APP_MONGODB_DATABASE='xiaolanshu'
-export APP_MONGODB_APP_NAME='note-service'
+export APP_MONGODB_APP_NAME='app-service'
 ```
 
 生产环境示例：
@@ -430,7 +436,7 @@ export APP_MONGODB_APP_NAME='note-service'
 ```bash
 export APP_MONGODB_URI='mongodb://app:replace-with-real-password@mongo-1.example.com:27017,mongo-2.example.com:27017/app?replicaSet=rs0&authSource=admin'
 export APP_MONGODB_DATABASE='app'
-export APP_MONGODB_APP_NAME='note-service'
+export APP_MONGODB_APP_NAME='app-service'
 export APP_MONGODB_MIN_POOL_SIZE=2
 export APP_MONGODB_MAX_POOL_SIZE=100
 export APP_MONGODB_CONNECT_TIMEOUT_SECONDS=10

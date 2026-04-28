@@ -11,6 +11,7 @@
 - 公共能力可独立沉淀到 Git 仓库，通过 `go get` 复用。
 - 命令行工具名固定为 `bw-cli`，通过 `go install <repo>/cmd/bw-cli@latest` 安装。
 - `bw-cli new` 生成干净框架，不带业务 demo；`bw-cli demo` 生成带 user/note 的演示项目。
+- 生成项目会重写项目文档，确保 README、usage、architecture、toolkit、mongodb 与实际目录一致。
 
 ## 总体架构
 

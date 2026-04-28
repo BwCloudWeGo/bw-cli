@@ -110,6 +110,7 @@ func TestInitWithoutDemoRemovesDemoServicesAndWritesCleanGateway(t *testing.T) {
 	requireNoPath(t, filepath.Join(target, "api", "proto", "note"))
 	requireNoPath(t, filepath.Join(target, "api", "gen", "user"))
 	requireNoPath(t, filepath.Join(target, "api", "gen", "note"))
+	requireNoPath(t, filepath.Join(target, "docs", "superpowers"))
 
 	gatewayMain := readString(t, filepath.Join(target, "cmd", "gateway", "main.go"))
 	require.Contains(t, gatewayMain, "github.com/acme/clean/internal/gateway/router")
@@ -139,6 +140,17 @@ func TestInitWithoutDemoRemovesDemoServicesAndWritesCleanGateway(t *testing.T) {
 	require.Contains(t, readme, "github.com/acme/clean")
 	require.NotContains(t, readme, "user-service")
 	require.NotContains(t, readme, "note-service")
+
+	toolkit := readString(t, filepath.Join(target, "docs", "toolkit.md"))
+	require.Contains(t, toolkit, "github.com/acme/clean")
+	require.NotContains(t, toolkit, "cmd/bw-cli")
+	require.NotContains(t, toolkit, "pkg/scaffold")
+
+	mongodb := readString(t, filepath.Join(target, "docs", "mongodb.md"))
+	require.Contains(t, mongodb, "github.com/acme/clean")
+	require.NotContains(t, mongodb, "cmd/bw-cli")
+	require.NotContains(t, mongodb, "internal/note")
+	require.NotContains(t, mongodb, "note-service")
 }
 
 func TestInitWithDemoKeepsDemoServices(t *testing.T) {
@@ -157,10 +169,22 @@ func TestInitWithDemoKeepsDemoServices(t *testing.T) {
 	require.NoError(t, err)
 	require.FileExists(t, filepath.Join(target, "cmd", "user", "main.go"))
 	require.FileExists(t, filepath.Join(target, "cmd", "note", "main.go"))
+	requireNoPath(t, filepath.Join(target, "cmd", "bw-cli"))
 	require.FileExists(t, filepath.Join(target, "internal", "user", "model", "user.go"))
 	require.FileExists(t, filepath.Join(target, "internal", "note", "model", "note.go"))
+	requireNoPath(t, filepath.Join(target, "pkg", "scaffold"))
 	require.FileExists(t, filepath.Join(target, "api", "proto", "user", "v1", "user.proto"))
 	require.FileExists(t, filepath.Join(target, "api", "proto", "note", "v1", "note.proto"))
+
+	readme := readString(t, filepath.Join(target, "README.md"))
+	require.Contains(t, readme, "bw-cli demo")
+	require.Contains(t, readme, "github.com/acme/demo")
+	require.NotContains(t, readme, "cmd/bw-cli")
+
+	toolkit := readString(t, filepath.Join(target, "docs", "toolkit.md"))
+	require.Contains(t, toolkit, "github.com/acme/demo")
+	require.NotContains(t, toolkit, "cmd/bw-cli")
+	require.NotContains(t, toolkit, "pkg/scaffold")
 }
 
 func writeMinimalScaffold(t *testing.T, root string) {
@@ -176,7 +200,11 @@ run-note:
 run-gateway:
 	go run ./cmd/gateway
 `,
-		"README.md": "old/module demo with user-service and note-service\n",
+		"README.md":                              "old/module demo with user-service, note-service, and cmd/bw-cli\n",
+		"docs/toolkit.md":                        "old/module toolkit with cmd/bw-cli and pkg/scaffold\n",
+		"docs/mongodb.md":                        "old/module mongodb with internal/note and note-service\n",
+		"docs/superpowers/plans/stale-plan.md":   "old note-service plan\n",
+		"docs/superpowers/specs/stale-design.md": "old note-service design\n",
 		"configs/config.yaml": `app:
   name: xiaolanshu
   gateway_service_name: gateway
