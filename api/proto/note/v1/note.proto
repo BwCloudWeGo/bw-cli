@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package note.v1;
+
+option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/note/v1;notev1";
+
+service NoteService {
+  rpc CreateNote(CreateNoteRequest) returns (NoteResponse);
+  rpc GetNote(GetNoteRequest) returns (NoteResponse);
+  rpc PublishNote(PublishNoteRequest) returns (NoteResponse);
+}
+
+message CreateNoteRequest {
+  string author_id = 1;
+  string title = 2;
+  string content = 3;
+}
+
+message GetNoteRequest {
+  string id = 1;
+}
+
+message PublishNoteRequest {
+  string id = 1;
+}
+
+message NoteResponse {
+  string id = 1;
+  string author_id = 2;
+  string title = 3;
+  string content = 4;
+  string status = 5;
+}

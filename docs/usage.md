@@ -1,0 +1,849 @@
+# 使用说明
+
+这份文档按真实使用流程写：先准备脚手架仓库，再安装 `bw-cli`，然后生成项目、初始化依赖、启动服务、调用接口、修改配置、扩展业务。
+
+## 1. 准备环境
+
+### 1.1 检查 Go
+
+```bash
+go version
+```
+
+要求：
+
+```text
+go1.25+
+```
+
+### 1.2 检查 protoc
+
+```bash
+protoc --version
+```
+
+如果没有安装，需要先安装 Protocol Buffers 编译器。
+
+### 1.3 安装 Go 的 proto 插件
+
+在脚手架仓库根目录执行：
+
+```bash
+make tools
+```
+
+它会安装：
+
+```text
+protoc-gen-go
+protoc-gen-go-grpc
+```
+
+### 1.4 验证脚手架自身
+
+```bash
+make proto
+make test
+```
+
+预期结果：
+
+```text
+所有 package 测试通过，无 FAIL
+```
+
+## 2. 作为脚手架维护者：发布 bw-cli
+
+如果你要把这个脚手架放到 Git 仓库里给团队使用，先做这几步。
+
+### 2.1 确认 go.mod module
+
+打开 `go.mod`，确认 module 是真实仓库地址。
+
+示例：
+
+```go
+module github.com/BwCloudWeGo/bw-cli
+```
+
+不要使用本地临时 module 名称，否则远程安装会失败。
+
+### 2.2 提交到 Git 仓库
+
+```bash
+git init
+git add .
+git commit -m "init bw-cli scaffold"
+git remote add origin https://github.com/BwCloudWeGo/bw-cli.git
+git push -u origin main
+```
+
+如果你的默认分支不是 `main`，后续生成项目时把 `--branch` 改成真实分支名。
+
+### 2.3 验证远程安装命令
+
+在任意目录执行：
+
+```bash
+go install github.com/BwCloudWeGo/bw-cli/cmd/bw-cli@latest
+```
+
+确认命令已安装：
+
+```bash
+bw-cli new -h
+```
+
+能看到 `new` 命令参数说明即可。
+
+## 3. 作为脚手架使用者：安装 bw-cli
+
+推荐方式是 `go install`。
+
+```bash
+go install github.com/BwCloudWeGo/bw-cli/cmd/bw-cli@latest
+```
+
+确认安装：
+
+```bash
+bw-cli new -h
+```
+
+如果是引用公共基础包，使用 `go get` 添加依赖：
+
+```bash
+go get github.com/BwCloudWeGo/bw-cli/pkg/logger
+go get github.com/BwCloudWeGo/bw-cli/pkg/mysqlx
+```
+
+Go 1.17+ 推荐 `go install ...@latest` 安装命令行工具，`go get` 用来添加库依赖。
+
+## 4. 生成新项目
+
+`bw-cli` 支持两种生成方式：从远程 Git 仓库生成，或从本地脚手架目录生成。
+
+### 4.1 从远程 Git 仓库生成
+
+这是团队正式使用时最常见的方式。
+
+```bash
+bw-cli new my-service \
+  --module github.com/acme/my-service \
+  --repo https://github.com/BwCloudWeGo/bw-cli.git \
+  --branch main \
+  --tidy
+```
+
+参数解释：
+
+- `new my-service`：生成目录是当前目录下的 `my-service`。
+- `--module github.com/acme/my-service`：新项目的 Go module。
+- `--repo https://github.com/BwCloudWeGo/bw-cli.git`：脚手架 Git 仓库地址。
+- `--branch main`：使用脚手架仓库的 `main` 分支。
+- `--tidy`：生成完成后自动执行 `go mod tidy`。
+
+生成后会得到：
+
+```text
+my-service
+  ├── api
+  ├── cmd
+  ├── configs
+  ├── internal
+  ├── pkg
+  ├── docs
+  ├── Makefile
+  ├── go.mod
+  └── README.md
+```
+
+### 4.2 从本地脚手架目录生成
+
+适合你正在开发或调试脚手架时使用。
+
+```bash
+git clone https://github.com/BwCloudWeGo/bw-cli.git
+cd bw-cli
+go install ./cmd/bw-cli
+
+bw-cli new ../demo-app \
+  --module github.com/acme/demo-app \
+  --source . \
+  --tidy
+```
+
+参数解释：
+
+- `../demo-app`：新项目生成到脚手架目录的同级目录。
+- `--source .`：用当前目录作为脚手架模板来源。
+- `--module github.com/acme/demo-app`：新项目 module。
+
+### 4.3 bw-cli 生成时做了什么
+
+生成过程包含：
+
+1. 从 `--repo` 克隆脚手架，或从 `--source` 复制本地脚手架。
+2. 跳过 `.git`、`.idea`、`logs`、`data`、`tmp` 等运行时目录。
+3. 替换 `go.mod` 和源码中的 module 路径。
+4. 跳过已生成的 `*.pb.go`，避免破坏 protobuf 原始描述符。
+5. 替换 `.proto` 文件中的 `go_package`，后续可通过 `make proto` 重新生成代码。
+6. 如果指定 `--tidy`，自动执行 `go mod tidy`。
+
+## 5. 初始化生成后的项目
+
+进入新项目目录：
+
+```bash
+cd my-service
+```
+
+安装 proto 插件：
+
+```bash
+make tools
+```
+
+重新生成 proto 代码：
+
+```bash
+make proto
+```
+
+整理依赖：
+
+```bash
+go mod tidy
+```
+
+运行测试：
+
+```bash
+make test
+```
+
+预期结果：
+
+```text
+所有 package 测试通过
+```
+
+## 6. 配置项目
+
+主配置文件：
+
+```text
+configs/config.yaml
+```
+
+### 6.1 服务名配置
+
+```yaml
+app:
+  name: xiaolanshu
+  env: local
+  gateway_service_name: gateway
+  user_service_name: user-service
+  note_service_name: note-service
+```
+
+这些值会用于日志文件名、日志字段和可观测性服务名。
+
+### 6.2 HTTP 配置
+
+```yaml
+http:
+  host: 0.0.0.0
+  port: 8080
+  read_timeout_seconds: 5
+  write_timeout_seconds: 10
+```
+
+修改端口后启动 gateway：
+
+```bash
+APP_HTTP_PORT=8081 make run-gateway
+```
+
+### 6.3 gRPC 配置
+
+```yaml
+grpc:
+  host: 0.0.0.0
+  user_port: 9001
+  note_port: 9002
+  user_target: 127.0.0.1:9001
+  note_target: 127.0.0.1:9002
+```
+
+说明：
+
+- `user_port` 和 `note_port` 是 gRPC 服务监听端口。
+- `user_target` 和 `note_target` 是 gateway 连接下游服务的地址。
+
+### 6.4 SQLite 默认配置
+
+默认使用 SQLite，适合本地快速运行：
+
+```yaml
+database:
+  driver: sqlite
+  dsn: data/xiaolanshu.db
+```
+
+直接启动服务即可自动创建本地数据库文件。
+
+### 6.5 切换到 MySQL
+
+配置文件中不要写假账号密码。推荐通过环境变量注入：
+
+```bash
+export APP_DATABASE_DRIVER=mysql
+export APP_MYSQL_DSN='user:pass@tcp(mysql.example.com:3306)/app?charset=utf8mb4&parseTime=True&loc=Local'
+export APP_MYSQL_MAX_IDLE_CONNS=10
+export APP_MYSQL_MAX_OPEN_CONNS=100
+export APP_MYSQL_CONN_MAX_LIFETIME_SECONDS=3600
+```
+
+然后启动服务：
+
+```bash
+make run-user
+make run-note
+```
+
+注意：切换 MySQL 时，`database.driver` 决定使用哪个驱动，`mysql.*` 决定 MySQL 连接和连接池参数。
+
+### 6.6 Redis 配置
+
+```yaml
+redis:
+  addr: 127.0.0.1:6379
+  username: ""
+  password: ""
+  db: 0
+  pool_size: 10
+```
+
+生产环境建议通过环境变量注入密码：
+
+```bash
+export APP_REDIS_ADDR='redis.example.com:6379'
+export APP_REDIS_PASSWORD='replace-with-real-password'
+```
+
+### 6.7 Elasticsearch 配置
+
+```yaml
+elasticsearch:
+  addresses:
+    - http://127.0.0.1:9200
+  username: ""
+  password: ""
+```
+
+生产环境示例：
+
+```bash
+export APP_ELASTICSEARCH_ADDRESSES='https://es.example.com:9200'
+export APP_ELASTICSEARCH_USERNAME='elastic'
+export APP_ELASTICSEARCH_PASSWORD='replace-with-real-password'
+```
+
+### 6.8 Kafka 配置
+
+```yaml
+kafka:
+  brokers:
+    - 127.0.0.1:9092
+  topic: xiaolanshu-events
+  group_id: xiaolanshu-consumer
+```
+
+生产环境示例：
+
+```bash
+export APP_KAFKA_BROKERS='kafka-1.example.com:9092,kafka-2.example.com:9092'
+export APP_KAFKA_TOPIC='business-events'
+export APP_KAFKA_GROUP_ID='business-consumer'
+```
+
+### 6.9 CORS 配置
+
+```yaml
+middleware:
+  cors:
+    allow_origins:
+      - "*"
+    allow_methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    allow_headers:
+      - Origin
+      - Content-Type
+      - Authorization
+      - X-Request-ID
+    allow_credentials: false
+```
+
+生产环境建议把 `allow_origins` 改成明确域名：
+
+```yaml
+allow_origins:
+  - https://console.example.com
+```
+
+### 6.10 JWT 配置
+
+JWT 密钥默认不提供假值，必须配置：
+
+```bash
+export APP_MIDDLEWARE_JWT_SECRET='replace-with-a-real-secret'
+export APP_MIDDLEWARE_JWT_ISSUER='xiaolanshu'
+export APP_MIDDLEWARE_JWT_EXPIRE_SECONDS=7200
+```
+
+生成 token 示例：
+
+```go
+cfg := middleware.DefaultJWTConfig()
+cfg.Secret = os.Getenv("APP_MIDDLEWARE_JWT_SECRET")
+
+token, err := middleware.GenerateToken(cfg, middleware.JWTClaims{
+    UserID: "user-1",
+    Role:   "admin",
+})
+```
+
+## 7. 启动服务
+
+建议开三个终端。
+
+### 7.1 终端一：启动 user-service
+
+```bash
+make run-user
+```
+
+监听：
+
+```text
+0.0.0.0:9001
+```
+
+### 7.2 终端二：启动 note-service
+
+```bash
+make run-note
+```
+
+监听：
+
+```text
+0.0.0.0:9002
+```
+
+### 7.3 终端三：启动 gateway
+
+```bash
+make run-gateway
+```
+
+监听：
+
+```text
+0.0.0.0:8080
+```
+
+### 7.4 查看日志
+
+日志按服务名和日期生成：
+
+```bash
+ls logs
+```
+
+示例：
+
+```text
+gateway-2026-04-28.log
+user-service-2026-04-28.log
+note-service-2026-04-28.log
+```
+
+查看 gateway 日志：
+
+```bash
+tail -f logs/gateway-$(date +%F).log
+```
+
+## 8. 调用接口验证
+
+### 8.1 健康检查
+
+```bash
+curl -i http://localhost:8080/healthz
+```
+
+预期：
+
+```text
+HTTP/1.1 200 OK
+{"status":"ok"}
+```
+
+### 8.2 注册用户
+
+```bash
+curl -i -X POST http://localhost:8080/api/v1/users/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"ada@example.com","display_name":"Ada","password":"secret123"}'
+```
+
+预期：
+
+```json
+{
+  "request_id": "...",
+  "data": {
+    "id": "...",
+    "email": "ada@example.com",
+    "display_name": "Ada"
+  }
+}
+```
+
+记录返回的 `data.id`，后面创建笔记会用到。
+
+### 8.3 登录用户
+
+```bash
+curl -i -X POST http://localhost:8080/api/v1/users/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"ada@example.com","password":"secret123"}'
+```
+
+预期返回用户信息。
+
+### 8.4 查询用户
+
+把 `<user_id>` 换成注册接口返回的用户 ID：
+
+```bash
+curl -i http://localhost:8080/api/v1/users/<user_id>
+```
+
+### 8.5 创建笔记
+
+```bash
+curl -i -X POST http://localhost:8080/api/v1/notes \
+  -H 'Content-Type: application/json' \
+  -d '{"author_id":"<user_id>","title":"DDD scaffold","content":"Gin plus gRPC demo"}'
+```
+
+预期：
+
+```json
+{
+  "request_id": "...",
+  "data": {
+    "id": "...",
+    "author_id": "<user_id>",
+    "title": "DDD scaffold",
+    "content": "Gin plus gRPC demo",
+    "status": "DRAFT"
+  }
+}
+```
+
+记录返回的 `data.id`，发布笔记会用到。
+
+### 8.6 发布笔记
+
+把 `<note_id>` 换成创建笔记返回的笔记 ID：
+
+```bash
+curl -i -X POST http://localhost:8080/api/v1/notes/<note_id>/publish
+```
+
+预期 `status` 变为：
+
+```text
+PUBLISHED
+```
+
+## 9. 代码结构怎么读
+
+### 9.1 HTTP 入参在哪里
+
+```text
+internal/gateway/request
+```
+
+示例：
+
+```text
+RegisterUserRequest
+LoginUserRequest
+CreateNoteRequest
+```
+
+控制器不再定义请求结构体，只负责绑定请求和调用下游。
+
+### 9.2 路由在哪里
+
+```text
+internal/gateway/router
+```
+
+路由按层级拆分：
+
+```text
+router.go       # Gin engine + 全局中间件
+health.go       # /healthz
+v1.go           # /api/v1
+user_routes.go  # /api/v1/users
+note_routes.go  # /api/v1/notes
+```
+
+### 9.3 业务服务怎么看
+
+以 `user` 为例：
+
+```text
+internal/user/model      # User 实体、错误、Repository 接口
+internal/user/service    # Register/Login/GetUser 用例
+internal/user/repo       # Gorm 实现
+internal/user/handler    # gRPC server
+```
+
+## 10. 新增一个业务服务
+
+假设新增 `comment-service`。
+
+### 10.1 新增 proto
+
+创建：
+
+```text
+api/proto/comment/v1/comment.proto
+```
+
+定义：
+
+```proto
+syntax = "proto3";
+
+package comment.v1;
+
+option go_package = "github.com/acme/my-service/api/gen/comment/v1;commentv1";
+
+service CommentService {
+  rpc CreateComment(CreateCommentRequest) returns (CommentResponse);
+}
+```
+
+### 10.2 修改 Makefile
+
+把 `comment/v1/comment.proto` 加到 `make proto` 的 proto 列表。
+
+### 10.3 生成代码
+
+```bash
+make proto
+```
+
+### 10.4 创建服务目录
+
+```text
+internal/comment/model
+internal/comment/service
+internal/comment/repo
+internal/comment/handler
+cmd/comment
+```
+
+### 10.5 实现 model
+
+放实体、错误和仓储接口：
+
+```text
+internal/comment/model/comment.go
+internal/comment/model/repository.go
+```
+
+### 10.6 实现 service
+
+放业务用例：
+
+```text
+internal/comment/service/service.go
+```
+
+### 10.7 实现 repo
+
+放 Gorm Model 和 Repository 实现：
+
+```text
+internal/comment/repo/gorm_repository.go
+```
+
+### 10.8 实现 handler
+
+放 gRPC server：
+
+```text
+internal/comment/handler/server.go
+```
+
+### 10.9 新增 cmd 入口
+
+```text
+cmd/comment/main.go
+```
+
+负责加载配置、初始化日志、打开数据库、注册 gRPC server。
+
+### 10.10 gateway 接入
+
+新增：
+
+```text
+internal/gateway/handler/comment_handler.go
+internal/gateway/request/comment_request.go
+internal/gateway/router/comment_routes.go
+```
+
+并在：
+
+```text
+internal/gateway/router/v1.go
+```
+
+调用：
+
+```go
+registerCommentRoutes(v1, handler.NewCommentHandler(clients.Comment, log))
+```
+
+## 11. 发布公共包给其他项目使用
+
+如果脚手架仓库地址是：
+
+```text
+github.com/BwCloudWeGo/bw-cli
+```
+
+其他项目可以直接引入公共组件：
+
+```bash
+go get github.com/BwCloudWeGo/bw-cli/pkg/logger
+go get github.com/BwCloudWeGo/bw-cli/pkg/mysqlx
+go get github.com/BwCloudWeGo/bw-cli/pkg/redisx
+go get github.com/BwCloudWeGo/bw-cli/pkg/esx
+go get github.com/BwCloudWeGo/bw-cli/pkg/kafkax
+go get github.com/BwCloudWeGo/bw-cli/pkg/middleware
+```
+
+示例：
+
+```go
+package main
+
+import (
+    "github.com/BwCloudWeGo/bw-cli/pkg/mysqlx"
+)
+
+func main() {
+    cfg := mysqlx.DefaultConfig()
+    cfg.DSN = "user:pass@tcp(mysql.example.com:3306)/app?charset=utf8mb4&parseTime=True&loc=Local"
+
+    db, err := mysqlx.Open(cfg)
+    if err != nil {
+        panic(err)
+    }
+
+    _ = db
+}
+```
+
+如果多个项目长期共用，建议把这些基础包拆到独立仓库，例如：
+
+```text
+github.com/your-org/go-kit/logger
+github.com/your-org/go-kit/mysqlx
+github.com/your-org/go-kit/redisx
+```
+
+## 12. 常见问题
+
+### 12.1 bw-cli: command not found
+
+确认 Go bin 目录在 `PATH` 中：
+
+```bash
+go env GOPATH
+```
+
+如果输出是 `/Users/you/go`，把下面内容加入 shell 配置：
+
+```bash
+export PATH="$PATH:$(go env GOPATH)/bin"
+```
+
+然后重新打开终端。
+
+### 12.2 go install 远程安装失败
+
+检查：
+
+1. Git 仓库是否可访问。
+2. `go.mod` 的 module 是否等于真实仓库路径。
+3. 命令是否带了 `@latest`。
+
+正确形式：
+
+```bash
+go install github.com/BwCloudWeGo/bw-cli/cmd/bw-cli@latest
+```
+
+### 12.3 生成项目后 protobuf panic
+
+正常情况下不会出现。`bw-cli` 会跳过 `*.pb.go` 的 module 替换，并改写 `.proto` 的 `go_package`。如果你手动替换过生成文件，执行：
+
+```bash
+make proto
+make test
+```
+
+重新生成即可。
+
+### 12.4 gateway 调用 user/note 失败
+
+检查三个进程是否都启动：
+
+```bash
+make run-user
+make run-note
+make run-gateway
+```
+
+检查 `configs/config.yaml`：
+
+```yaml
+grpc:
+  user_target: 127.0.0.1:9001
+  note_target: 127.0.0.1:9002
+```
+
+### 12.5 JWT 返回 invalid token
+
+检查生成 token 和验证 token 使用的是同一个 secret：
+
+```bash
+echo $APP_MIDDLEWARE_JWT_SECRET
+```

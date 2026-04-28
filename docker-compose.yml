@@ -1,0 +1,32 @@
+services:
+  user:
+    build: .
+    command: ["/app/user"]
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    ports:
+      - "9001:9001"
+
+  note:
+    build: .
+    command: ["/app/note"]
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    ports:
+      - "9002:9002"
+
+  gateway:
+    build: .
+    command: ["/app/gateway"]
+    depends_on:
+      - user
+      - note
+    environment:
+      APP_GRPC_USER_TARGET: user:9001
+      APP_GRPC_NOTE_TARGET: note:9002
+    volumes:
+      - ./logs:/app/logs
+    ports:
+      - "8080:8080"
