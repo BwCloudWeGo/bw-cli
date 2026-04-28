@@ -184,4 +184,4 @@ curl -X POST http://localhost:8080/api/v1/notes/<note_id>/publish
 
 - [架构说明](docs/architecture.md)：解释分层、路由、公共包和扩展方式。
 - [使用说明](docs/usage.md)：按步骤说明如何发布 `bw-cli`、安装命令、生成项目、初始化依赖、配置服务、启动验证和扩展业务。
-- [MongoDB 使用教程](docs/mongodb.md)：说明配置、连接、建模、仓储封装、索引、分页和常见问题。
+- [MongoDB 从 0 到 1 教学教程](docs/mongodb.md)：说明概念、本地启动、命令行 CRUD、Go 接入、仓储封装、索引、分页、事务、测试和排错。
