@@ -36,8 +36,8 @@ func main() {
 	}
 	defer log.Sync()
 
-	// Database.Open chooses SQLite or MySQL using the configured driver.
-	db, err := database.Open(cfg.Database, cfg.MySQL, log)
+	// Database.Open chooses SQLite, MySQL or PostgreSQL using the configured driver.
+	db, err := database.Open(cfg.Database, cfg.MySQL, cfg.PostgreSQL, log)
 	if err != nil {
 		log.Fatal("open database failed", zap.Error(err))
 	}

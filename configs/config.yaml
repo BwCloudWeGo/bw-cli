@@ -28,6 +28,21 @@ mysql:
   max_open_conns: 100
   conn_max_lifetime_seconds: 3600
 
+postgresql:
+  dsn: ""
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime_seconds: 3600
+
+mongodb:
+  uri: mongodb://127.0.0.1:27017
+  database: xiaolanshu
+  app_name: bw-cli
+  min_pool_size: 0
+  max_pool_size: 100
+  connect_timeout_seconds: 10
+  server_selection_timeout_seconds: 5
+
 redis:
   addr: 127.0.0.1:6379
   username: ""

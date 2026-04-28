@@ -10,7 +10,9 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/kafkax"
 	"github.com/BwCloudWeGo/bw-cli/pkg/logger"
 	"github.com/BwCloudWeGo/bw-cli/pkg/middleware"
+	"github.com/BwCloudWeGo/bw-cli/pkg/mongox"
 	"github.com/BwCloudWeGo/bw-cli/pkg/mysqlx"
+	"github.com/BwCloudWeGo/bw-cli/pkg/postgresx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/redisx"
 )
 
@@ -59,6 +61,40 @@ func (cfg MySQLConfig) ConnMaxLifetime() time.Duration {
 	return time.Duration(cfg.ConnMaxLifetimeSeconds) * time.Second
 }
 
+// PostgreSQLConfig contains the PostgreSQL DSN and sql.DB connection pool settings.
+type PostgreSQLConfig struct {
+	DSN                    string `mapstructure:"dsn" yaml:"dsn"`
+	MaxIdleConns           int    `mapstructure:"max_idle_conns" yaml:"max_idle_conns"`
+	MaxOpenConns           int    `mapstructure:"max_open_conns" yaml:"max_open_conns"`
+	ConnMaxLifetimeSeconds int    `mapstructure:"conn_max_lifetime_seconds" yaml:"conn_max_lifetime_seconds"`
+}
+
+// ConnMaxLifetime converts the YAML seconds value to a duration used by sql.DB.
+func (cfg PostgreSQLConfig) ConnMaxLifetime() time.Duration {
+	return time.Duration(cfg.ConnMaxLifetimeSeconds) * time.Second
+}
+
+// MongoDBConfig contains MongoDB client, database and pool settings loaded from YAML/env.
+type MongoDBConfig struct {
+	URI                           string `mapstructure:"uri" yaml:"uri"`
+	Database                      string `mapstructure:"database" yaml:"database"`
+	AppName                       string `mapstructure:"app_name" yaml:"app_name"`
+	MinPoolSize                   uint64 `mapstructure:"min_pool_size" yaml:"min_pool_size"`
+	MaxPoolSize                   uint64 `mapstructure:"max_pool_size" yaml:"max_pool_size"`
+	ConnectTimeoutSeconds         int    `mapstructure:"connect_timeout_seconds" yaml:"connect_timeout_seconds"`
+	ServerSelectionTimeoutSeconds int    `mapstructure:"server_selection_timeout_seconds" yaml:"server_selection_timeout_seconds"`
+}
+
+// ConnectTimeout converts the YAML seconds value to a MongoDB connect timeout.
+func (cfg MongoDBConfig) ConnectTimeout() time.Duration {
+	return time.Duration(cfg.ConnectTimeoutSeconds) * time.Second
+}
+
+// ServerSelectionTimeout converts the YAML seconds value to a MongoDB server selection timeout.
+func (cfg MongoDBConfig) ServerSelectionTimeout() time.Duration {
+	return time.Duration(cfg.ServerSelectionTimeoutSeconds) * time.Second
+}
+
 // MiddlewareConfig groups HTTP middleware configuration loaded from YAML/env.
 type MiddlewareConfig struct {
 	CORS middleware.CORSConfig `mapstructure:"cors" yaml:"cors"`
@@ -72,6 +108,8 @@ type Config struct {
 	GRPC          GRPCConfig       `mapstructure:"grpc" yaml:"grpc"`
 	Database      DatabaseConfig   `mapstructure:"database" yaml:"database"`
 	MySQL         MySQLConfig      `mapstructure:"mysql" yaml:"mysql"`
+	PostgreSQL    PostgreSQLConfig `mapstructure:"postgresql" yaml:"postgresql"`
+	MongoDB       MongoDBConfig    `mapstructure:"mongodb" yaml:"mongodb"`
 	Redis         redisx.Config    `mapstructure:"redis" yaml:"redis"`
 	Elasticsearch esx.Config       `mapstructure:"elasticsearch" yaml:"elasticsearch"`
 	Kafka         kafkax.Config    `mapstructure:"kafka" yaml:"kafka"`
@@ -129,6 +167,17 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("mysql.max_idle_conns", mysqlx.DefaultConfig().MaxIdleConns)
 	v.SetDefault("mysql.max_open_conns", mysqlx.DefaultConfig().MaxOpenConns)
 	v.SetDefault("mysql.conn_max_lifetime_seconds", int(mysqlx.DefaultConfig().ConnMaxLifetime/time.Second))
+	v.SetDefault("postgresql.dsn", postgresx.DefaultConfig().DSN)
+	v.SetDefault("postgresql.max_idle_conns", postgresx.DefaultConfig().MaxIdleConns)
+	v.SetDefault("postgresql.max_open_conns", postgresx.DefaultConfig().MaxOpenConns)
+	v.SetDefault("postgresql.conn_max_lifetime_seconds", int(postgresx.DefaultConfig().ConnMaxLifetime/time.Second))
+	v.SetDefault("mongodb.uri", mongox.DefaultConfig().URI)
+	v.SetDefault("mongodb.database", mongox.DefaultConfig().Database)
+	v.SetDefault("mongodb.app_name", mongox.DefaultConfig().AppName)
+	v.SetDefault("mongodb.min_pool_size", mongox.DefaultConfig().MinPoolSize)
+	v.SetDefault("mongodb.max_pool_size", mongox.DefaultConfig().MaxPoolSize)
+	v.SetDefault("mongodb.connect_timeout_seconds", int(mongox.DefaultConfig().ConnectTimeout/time.Second))
+	v.SetDefault("mongodb.server_selection_timeout_seconds", int(mongox.DefaultConfig().ServerSelectionTimeout/time.Second))
 	v.SetDefault("redis.addr", redisx.DefaultConfig().Addr)
 	v.SetDefault("redis.db", redisx.DefaultConfig().DB)
 	v.SetDefault("redis.pool_size", redisx.DefaultConfig().PoolSize)

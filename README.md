@@ -80,6 +80,8 @@ repo -> model
 
 ```text
 pkg/mysqlx   # Gorm MySQL 初始化和连接池配置
+pkg/postgresx # Gorm PostgreSQL 初始化和连接池配置
+pkg/mongox   # MongoDB 官方驱动客户端初始化和 ping
 pkg/redisx   # go-redis 客户端初始化和 ping
 pkg/esx      # Elasticsearch v8 客户端初始化
 pkg/kafkax   # Kafka writer/reader 初始化
@@ -93,6 +95,8 @@ pkg/errors   # 统一业务错误码和 HTTP/gRPC 映射
 
 ```bash
 go get github.com/BwCloudWeGo/bw-cli/pkg/mysqlx
+go get github.com/BwCloudWeGo/bw-cli/pkg/postgresx
+go get github.com/BwCloudWeGo/bw-cli/pkg/mongox
 go get github.com/BwCloudWeGo/bw-cli/pkg/redisx
 go get github.com/BwCloudWeGo/bw-cli/pkg/esx
 go get github.com/BwCloudWeGo/bw-cli/pkg/kafkax
@@ -142,6 +146,8 @@ bw-cli new my-service \
 ```bash
 go get github.com/BwCloudWeGo/bw-cli/pkg/logger
 go get github.com/BwCloudWeGo/bw-cli/pkg/mysqlx
+go get github.com/BwCloudWeGo/bw-cli/pkg/postgresx
+go get github.com/BwCloudWeGo/bw-cli/pkg/mongox
 ```
 
 生成命令会做三件事：
@@ -178,3 +184,4 @@ curl -X POST http://localhost:8080/api/v1/notes/<note_id>/publish
 
 - [架构说明](docs/architecture.md)：解释分层、路由、公共包和扩展方式。
 - [使用说明](docs/usage.md)：按步骤说明如何发布 `bw-cli`、安装命令、生成项目、初始化依赖、配置服务、启动验证和扩展业务。
+- [MongoDB 使用教程](docs/mongodb.md)：说明配置、连接、建模、仓储封装、索引、分页和常见问题。

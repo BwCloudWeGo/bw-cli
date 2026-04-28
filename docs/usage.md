@@ -115,6 +115,8 @@ bw-cli new -h
 ```bash
 go get github.com/BwCloudWeGo/bw-cli/pkg/logger
 go get github.com/BwCloudWeGo/bw-cli/pkg/mysqlx
+go get github.com/BwCloudWeGo/bw-cli/pkg/postgresx
+go get github.com/BwCloudWeGo/bw-cli/pkg/mongox
 ```
 
 Go 1.17+ 推荐 `go install ...@latest` 安装命令行工具，`go get` 用来添加库依赖。
@@ -314,7 +316,67 @@ make run-note
 
 注意：切换 MySQL 时，`database.driver` 决定使用哪个驱动，`mysql.*` 决定 MySQL 连接和连接池参数。
 
-### 6.6 Redis 配置
+### 6.6 切换到 PostgreSQL
+
+PostgreSQL 也走 Gorm 入口，适合替代 MySQL 作为主业务库。配置文件中不要写生产账号密码，推荐通过环境变量注入：
+
+```bash
+export APP_DATABASE_DRIVER=postgres
+export APP_POSTGRESQL_DSN='host=postgres.example.com user=app password=replace-with-real-password dbname=app port=5432 sslmode=require TimeZone=Asia/Shanghai'
+export APP_POSTGRESQL_MAX_IDLE_CONNS=10
+export APP_POSTGRESQL_MAX_OPEN_CONNS=100
+export APP_POSTGRESQL_CONN_MAX_LIFETIME_SECONDS=3600
+```
+
+然后启动服务：
+
+```bash
+make run-user
+make run-note
+```
+
+支持的关系型驱动值：
+
+```text
+sqlite
+mysql
+postgres
+postgresql
+pg
+```
+
+注意：切换 PostgreSQL 时，`database.driver` 决定使用哪个驱动，`postgresql.*` 决定 PostgreSQL 连接和连接池参数。
+
+### 6.7 MongoDB 配置
+
+MongoDB 不走 Gorm，适合存储内容快照、扩展属性、操作日志、草稿、搜索前的宽表文档等。默认配置：
+
+```yaml
+mongodb:
+  uri: mongodb://127.0.0.1:27017
+  database: xiaolanshu
+  app_name: bw-cli
+  min_pool_size: 0
+  max_pool_size: 100
+  connect_timeout_seconds: 10
+  server_selection_timeout_seconds: 5
+```
+
+生产环境建议通过环境变量注入连接地址和认证信息：
+
+```bash
+export APP_MONGODB_URI='mongodb://app:replace-with-real-password@mongo-1.example.com:27017,mongo-2.example.com:27017/app?replicaSet=rs0&authSource=admin'
+export APP_MONGODB_DATABASE='app'
+export APP_MONGODB_APP_NAME='note-service'
+export APP_MONGODB_MIN_POOL_SIZE=2
+export APP_MONGODB_MAX_POOL_SIZE=100
+export APP_MONGODB_CONNECT_TIMEOUT_SECONDS=10
+export APP_MONGODB_SERVER_SELECTION_TIMEOUT_SECONDS=5
+```
+
+详细建模、索引、仓储和查询示例见 [MongoDB 使用教程](mongodb.md)。
+
+### 6.8 Redis 配置
 
 ```yaml
 redis:
@@ -332,7 +394,7 @@ export APP_REDIS_ADDR='redis.example.com:6379'
 export APP_REDIS_PASSWORD='replace-with-real-password'
 ```
 
-### 6.7 Elasticsearch 配置
+### 6.9 Elasticsearch 配置
 
 ```yaml
 elasticsearch:
@@ -350,7 +412,7 @@ export APP_ELASTICSEARCH_USERNAME='elastic'
 export APP_ELASTICSEARCH_PASSWORD='replace-with-real-password'
 ```
 
-### 6.8 Kafka 配置
+### 6.10 Kafka 配置
 
 ```yaml
 kafka:
@@ -368,7 +430,7 @@ export APP_KAFKA_TOPIC='business-events'
 export APP_KAFKA_GROUP_ID='business-consumer'
 ```
 
-### 6.9 CORS 配置
+### 6.11 CORS 配置
 
 ```yaml
 middleware:
@@ -397,7 +459,7 @@ allow_origins:
   - https://console.example.com
 ```
 
-### 6.10 JWT 配置
+### 6.12 JWT 配置
 
 JWT 密钥默认不提供假值，必须配置：
 
@@ -743,6 +805,8 @@ github.com/BwCloudWeGo/bw-cli
 ```bash
 go get github.com/BwCloudWeGo/bw-cli/pkg/logger
 go get github.com/BwCloudWeGo/bw-cli/pkg/mysqlx
+go get github.com/BwCloudWeGo/bw-cli/pkg/postgresx
+go get github.com/BwCloudWeGo/bw-cli/pkg/mongox
 go get github.com/BwCloudWeGo/bw-cli/pkg/redisx
 go get github.com/BwCloudWeGo/bw-cli/pkg/esx
 go get github.com/BwCloudWeGo/bw-cli/pkg/kafkax
@@ -776,6 +840,8 @@ func main() {
 ```text
 github.com/your-org/go-kit/logger
 github.com/your-org/go-kit/mysqlx
+github.com/your-org/go-kit/postgresx
+github.com/your-org/go-kit/mongox
 github.com/your-org/go-kit/redisx
 ```
 

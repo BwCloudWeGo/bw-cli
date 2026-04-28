@@ -30,3 +30,29 @@ services:
       - ./logs:/app/logs
     ports:
       - "8080:8080"
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: xiaolanshu
+      POSTGRES_USER: bw
+      POSTGRES_PASSWORD: bw-secret
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  mongodb:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: bw
+      MONGO_INITDB_ROOT_PASSWORD: bw-secret
+      MONGO_INITDB_DATABASE: xiaolanshu
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+
+volumes:
+  postgres_data:
+  mongodb_data:

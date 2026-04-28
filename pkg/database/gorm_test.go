@@ -25,3 +25,19 @@ func TestMySQLConfigUsesValuesFromAppConfig(t *testing.T) {
 	require.Equal(t, 17, mysqlCfg.MaxOpenConns)
 	require.Equal(t, 45*time.Second, mysqlCfg.ConnMaxLifetime)
 }
+
+func TestPostgreSQLConfigUsesValuesFromAppConfig(t *testing.T) {
+	cfg := config.PostgreSQLConfig{
+		DSN:                    "host=postgres user=app password=secret dbname=app port=5432 sslmode=disable",
+		MaxIdleConns:           4,
+		MaxOpenConns:           25,
+		ConnMaxLifetimeSeconds: 120,
+	}
+
+	postgresCfg := database.ToPostgreSQLConfig(cfg)
+
+	require.Equal(t, cfg.DSN, postgresCfg.DSN)
+	require.Equal(t, 4, postgresCfg.MaxIdleConns)
+	require.Equal(t, 25, postgresCfg.MaxOpenConns)
+	require.Equal(t, 120*time.Second, postgresCfg.ConnMaxLifetime)
+}

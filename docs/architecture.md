@@ -110,6 +110,8 @@ pkg/middleware   Gin 中间件
 pkg/grpcx        gRPC 拦截器
 pkg/httpx        HTTP 响应封装
 pkg/mysqlx       MySQL/Gorm 封装
+pkg/postgresx    PostgreSQL/Gorm 封装
+pkg/mongox       MongoDB 官方驱动封装
 pkg/redisx       Redis 封装
 pkg/esx          Elasticsearch 封装
 pkg/kafkax       Kafka 封装
@@ -153,12 +155,26 @@ JWT token 可以通过 `middleware.GenerateToken` 生成。密钥必须来自 `c
 
 ## 外部组件封装
 
-MySQL、Redis、ES、Kafka 都在 `pkg` 下提供薄封装，目标不是隐藏原生 SDK，而是统一默认配置、连接初始化、连接池和调用入口。
+MySQL、PostgreSQL、MongoDB、Redis、ES、Kafka 都在 `pkg` 下提供薄封装，目标不是隐藏原生 SDK，而是统一默认配置、连接初始化、连接池和调用入口。
+
+关系型数据库统一通过 `pkg/database.Open` 进入，目前支持：
+
+```text
+database.driver=sqlite
+database.driver=mysql
+database.driver=postgres
+database.driver=postgresql
+database.driver=pg
+```
+
+MongoDB 是文档数据库，不走 Gorm 入口。业务服务需要 MongoDB 时，从 `config.MongoDB` 读取配置并调用 `mongox.NewClient` 创建客户端，再在 `repo` 层封装集合、索引和查询逻辑。
 
 后续推到 Git 仓库后可以通过：
 
 ```bash
 go get github.com/BwCloudWeGo/bw-cli/pkg/mysqlx
+go get github.com/BwCloudWeGo/bw-cli/pkg/postgresx
+go get github.com/BwCloudWeGo/bw-cli/pkg/mongox
 ```
 
 方式复用。若企业内多个项目长期共用，建议拆成独立基础库仓库。
