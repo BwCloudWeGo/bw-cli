@@ -26,9 +26,10 @@ func TestInitCopiesSourceAndRewritesModule(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(source, "logs", "skip.log"), []byte("skip"), 0o644))
 
 	err := scaffold.Init(scaffold.InitOptions{
-		SourceDir:  source,
-		TargetDir:  target,
-		ModulePath: "github.com/acme/demo",
+		SourceDir:   source,
+		TargetDir:   target,
+		ModulePath:  "github.com/acme/demo",
+		IncludeDemo: true,
 	})
 
 	require.NoError(t, err)
@@ -71,9 +72,10 @@ func TestInitClonesRepositoryWithoutGitMetadata(t *testing.T) {
 	runGit(t, source, "commit", "-m", "init")
 
 	err := scaffold.Init(scaffold.InitOptions{
-		RepoURL:    source,
-		TargetDir:  target,
-		ModulePath: "github.com/acme/demo",
+		RepoURL:     source,
+		TargetDir:   target,
+		ModulePath:  "github.com/acme/demo",
+		IncludeDemo: true,
 	})
 
 	require.NoError(t, err)
@@ -104,17 +106,26 @@ func TestInitWithoutDemoRemovesDemoServicesAndWritesCleanGateway(t *testing.T) {
 	requireNoPath(t, filepath.Join(target, "cmd", "bw-cli"))
 	requireNoPath(t, filepath.Join(target, "internal", "user"))
 	requireNoPath(t, filepath.Join(target, "internal", "note"))
+	requireNoPath(t, filepath.Join(target, "internal", "content"))
 	requireNoPath(t, filepath.Join(target, "pkg", "scaffold"))
 	requireNoPath(t, filepath.Join(target, "internal", "gateway", "client"))
 	requireNoPath(t, filepath.Join(target, "api", "proto", "user"))
 	requireNoPath(t, filepath.Join(target, "api", "proto", "note"))
+	requireNoPath(t, filepath.Join(target, "api", "proto", "content"))
 	requireNoPath(t, filepath.Join(target, "api", "gen", "user"))
 	requireNoPath(t, filepath.Join(target, "api", "gen", "note"))
+	requireNoPath(t, filepath.Join(target, "api", "gen", "content"))
 	requireNoPath(t, filepath.Join(target, "docs", "superpowers"))
 
 	gatewayMain := readString(t, filepath.Join(target, "cmd", "gateway", "main.go"))
 	require.Contains(t, gatewayMain, "github.com/acme/clean/internal/gateway/router")
 	require.NotContains(t, gatewayMain, "internal/gateway/client")
+	require.Contains(t, gatewayMain, "net.Listen(\"tcp\", addr)")
+	require.Contains(t, gatewayMain, "server.Serve(listener)")
+	require.Contains(t, gatewayMain, "printStartupSummary(cfg, addr)")
+	require.Contains(t, gatewayMain, "[Gateway Start Failed]")
+	require.Contains(t, gatewayMain, "service: %s")
+	require.Contains(t, gatewayMain, "health: %s/healthz")
 
 	routerFile := readString(t, filepath.Join(target, "internal", "gateway", "router", "router.go"))
 	require.Contains(t, routerFile, "func New(log *zap.Logger, middlewareCfg config.MiddlewareConfig) *gin.Engine")
@@ -138,6 +149,8 @@ func TestInitWithoutDemoRemovesDemoServicesAndWritesCleanGateway(t *testing.T) {
 
 	readme := readString(t, filepath.Join(target, "README.md"))
 	require.Contains(t, readme, "github.com/acme/clean")
+	require.Contains(t, readme, "[Gateway Started]")
+	require.Contains(t, readme, "health: http://127.0.0.1:8080/healthz")
 	require.NotContains(t, readme, "user-service")
 	require.NotContains(t, readme, "note-service")
 
@@ -174,7 +187,7 @@ func TestInitWithDemoKeepsDemoServices(t *testing.T) {
 	require.FileExists(t, filepath.Join(target, "internal", "note", "model", "note.go"))
 	requireNoPath(t, filepath.Join(target, "pkg", "scaffold"))
 	require.FileExists(t, filepath.Join(target, "api", "proto", "user", "v1", "user.proto"))
-	require.FileExists(t, filepath.Join(target, "api", "proto", "note", "v1", "note.proto"))
+	require.FileExists(t, filepath.Join(target, "api", "proto", "note", "v1", "content.proto"))
 
 	readme := readString(t, filepath.Join(target, "README.md"))
 	require.Contains(t, readme, "bw-cli demo")
@@ -192,7 +205,7 @@ func writeMinimalScaffold(t *testing.T, root string) {
 	files := map[string]string{
 		"go.mod": "module old/module\n\ngo 1.25.0\n",
 		"Makefile": `proto:
-	protoc user/v1/user.proto note/v1/note.proto
+	protoc user/v1/user.proto note/v1/content.proto
 run-user:
 	go run ./cmd/user
 run-note:
@@ -228,11 +241,14 @@ run-gateway:
 		"internal/gateway/router/router_test.go":   "package router\n",
 		"internal/user/model/user.go":              "package model\n",
 		"internal/note/model/note.go":              "package model\n",
+		"internal/content/model/content.go":        "package model\n",
 		"pkg/scaffold/scaffold.go":                 "package scaffold\n",
 		"api/proto/user/v1/user.proto":             "option go_package = \"old/module/api/gen/user/v1;userv1\";\n",
-		"api/proto/note/v1/note.proto":             "option go_package = \"old/module/api/gen/note/v1;notev1\";\n",
+		"api/proto/note/v1/content.proto":          "option go_package = \"old/module/api/gen/note/v1;notev1\";\n",
+		"api/proto/content/v1/content.proto":       "option go_package = \"old/module/api/gen/content/v1;contentv1\";\n",
 		"api/gen/user/v1/user.pb.go":               "package userv1\n",
 		"api/gen/note/v1/note.pb.go":               "package notev1\n",
+		"api/gen/content/v1/content.pb.go":         "package contentv1\n",
 	}
 	for rel, content := range files {
 		path := filepath.Join(root, rel)

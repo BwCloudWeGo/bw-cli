@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -50,14 +51,42 @@ func main() {
 		WriteTimeout: time.Duration(cfg.HTTP.WriteTimeoutSeconds) * time.Second,
 	}
 
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		printStartupFailure(addr, err)
+		log.Fatal("gateway listen failed", zap.String("addr", addr), zap.Error(err))
+	}
+	printStartupSummary(cfg, addr)
+
 	go func() {
 		log.Info("gateway listening", zap.String("addr", addr))
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
 			log.Fatal("gateway stopped unexpectedly", zap.Error(err))
 		}
 	}()
 
 	waitForShutdown(server, log)
+}
+
+func printStartupFailure(addr string, err error) {
+	fmt.Fprintf(os.Stderr, "\n[Gateway Start Failed]\n")
+	fmt.Fprintf(os.Stderr, "  listen: %s\n", addr)
+	fmt.Fprintf(os.Stderr, "  error: %v\n\n", err)
+}
+
+func printStartupSummary(cfg *config.Config, addr string) {
+	host := cfg.HTTP.Host
+	if host == "" || host == "0.0.0.0" {
+		host = "127.0.0.1"
+	}
+	baseURL := fmt.Sprintf("http://%s:%d", host, cfg.HTTP.Port)
+	fmt.Fprintf(os.Stdout, "\n[Gateway Started]\n")
+	fmt.Fprintf(os.Stdout, "  service: %s\n", cfg.App.GatewayServiceName)
+	fmt.Fprintf(os.Stdout, "  env: %s\n", cfg.App.Env)
+	fmt.Fprintf(os.Stdout, "  listen: %s\n", addr)
+	fmt.Fprintf(os.Stdout, "  http: %s\n", baseURL)
+	fmt.Fprintf(os.Stdout, "  health: %s/healthz\n", baseURL)
+	fmt.Fprintf(os.Stdout, "  api: %s/api/v1\n\n", baseURL)
 }
 
 func waitForShutdown(server *http.Server, log *zap.Logger) {

@@ -151,15 +151,20 @@ func removeScaffoldTooling(root string) error {
 }
 
 func stripDemo(root string, module string) error {
+	for _, item := range []struct {
+		rel  string
+		keep []string
+	}{
+		{rel: "cmd", keep: []string{"gateway"}},
+		{rel: "internal", keep: []string{"gateway"}},
+		{rel: filepath.Join("api", "proto")},
+		{rel: filepath.Join("api", "gen")},
+	} {
+		if err := removeChildrenExcept(filepath.Join(root, item.rel), item.keep...); err != nil {
+			return err
+		}
+	}
 	for _, rel := range []string{
-		filepath.Join("api", "proto", "user"),
-		filepath.Join("api", "proto", "note"),
-		filepath.Join("api", "gen", "user"),
-		filepath.Join("api", "gen", "note"),
-		filepath.Join("cmd", "user"),
-		filepath.Join("cmd", "note"),
-		filepath.Join("internal", "user"),
-		filepath.Join("internal", "note"),
 		filepath.Join("internal", "gateway", "client"),
 		filepath.Join("internal", "gateway", "handler"),
 		filepath.Join("internal", "gateway", "request"),
@@ -182,6 +187,29 @@ func stripDemo(root string, module string) error {
 	}
 	if err := writeCleanDocs(root, module); err != nil {
 		return err
+	}
+	return nil
+}
+
+func removeChildrenExcept(dir string, keep ...string) error {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	keepSet := make(map[string]struct{}, len(keep))
+	for _, name := range keep {
+		keepSet[name] = struct{}{}
+	}
+	for _, entry := range entries {
+		if _, ok := keepSet[entry.Name()]; ok {
+			continue
+		}
+		if err := os.RemoveAll(filepath.Join(dir, entry.Name())); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -275,6 +303,7 @@ func cleanGatewayMain(module string) string {
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -314,14 +343,42 @@ func main() {
 		WriteTimeout: time.Duration(cfg.HTTP.WriteTimeoutSeconds) * time.Second,
 	}
 
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		printStartupFailure(addr, err)
+		log.Fatal("gateway listen failed", zap.String("addr", addr), zap.Error(err))
+	}
+	printStartupSummary(cfg, addr)
+
 	go func() {
 		log.Info("gateway listening", zap.String("addr", addr))
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
 			log.Fatal("gateway stopped unexpectedly", zap.Error(err))
 		}
 	}()
 
 	waitForShutdown(server, log)
+}
+
+func printStartupFailure(addr string, err error) {
+	fmt.Fprintf(os.Stderr, "\n[Gateway Start Failed]\n")
+	fmt.Fprintf(os.Stderr, "  listen: %%s\n", addr)
+	fmt.Fprintf(os.Stderr, "  error: %%v\n\n", err)
+}
+
+func printStartupSummary(cfg *config.Config, addr string) {
+	host := cfg.HTTP.Host
+	if host == "" || host == "0.0.0.0" {
+		host = "127.0.0.1"
+	}
+	baseURL := fmt.Sprintf("http://%%s:%%d", host, cfg.HTTP.Port)
+	fmt.Fprintf(os.Stdout, "\n[Gateway Started]\n")
+	fmt.Fprintf(os.Stdout, "  service: %%s\n", cfg.App.GatewayServiceName)
+	fmt.Fprintf(os.Stdout, "  env: %%s\n", cfg.App.Env)
+	fmt.Fprintf(os.Stdout, "  listen: %%s\n", addr)
+	fmt.Fprintf(os.Stdout, "  http: %%s\n", baseURL)
+	fmt.Fprintf(os.Stdout, "  health: %%s/healthz\n", baseURL)
+	fmt.Fprintf(os.Stdout, "  api: %%s/api/v1\n\n", baseURL)
 }
 
 func waitForShutdown(server *http.Server, log *zap.Logger) {
@@ -621,6 +678,20 @@ make test
 make run-gateway
 `+"```"+`
 
+端口监听成功后，控制台会输出：
+
+`+"```text"+`
+[Gateway Started]
+  service: gateway
+  env: local
+  listen: 0.0.0.0:8080
+  http: http://127.0.0.1:8080
+  health: http://127.0.0.1:8080/healthz
+  api: http://127.0.0.1:8080/api/v1
+`+"```"+`
+
+如果端口被占用，控制台会输出 `+"`[Gateway Start Failed]`"+`，并显示失败的监听地址和系统错误。
+
 健康检查：
 
 `+"```bash"+`
@@ -677,6 +748,9 @@ make test
 `+"```bash"+`
 make run-gateway
 `+"```"+`
+
+端口监听成功后，控制台会输出服务名、环境、监听地址、HTTP 地址、健康检查地址和 API 前缀。
+如果端口被占用，控制台会输出 `+"`[Gateway Start Failed]`"+`，并显示失败的监听地址和系统错误。
 
 默认监听：
 

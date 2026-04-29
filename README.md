@@ -216,6 +216,20 @@ make test
 make run-gateway
 ```
 
+端口监听成功后，控制台会直接输出启动项：
+
+```text
+[Gateway Started]
+  service: gateway
+  env: local
+  listen: 0.0.0.0:8080
+  http: http://127.0.0.1:8080
+  health: http://127.0.0.1:8080/healthz
+  api: http://127.0.0.1:8080/api/v1
+```
+
+如果端口被占用，控制台会输出 `[Gateway Start Failed]`，并显示失败的监听地址和系统错误。
+
 验证：
 
 ```bash
