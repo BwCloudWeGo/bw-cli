@@ -137,11 +137,16 @@ func TestInitWithoutDemoRemovesDemoServicesAndWritesCleanGateway(t *testing.T) {
 	require.NotContains(t, v1File, "registerNoteRoutes")
 
 	makefile := readString(t, filepath.Join(target, "Makefile"))
-	require.Contains(t, makefile, "No proto files found")
-	require.Contains(t, makefile, "sed 's,^\\./,,'")
-	require.NotContains(t, makefile, "sed 's#")
+	require.Contains(t, makefile, "$(GO) run ./tools/protogen")
+	require.NotContains(t, makefile, "if [")
+	require.NotContains(t, makefile, "find .")
+	require.NotContains(t, makefile, "sed ")
+	require.NotContains(t, makefile, "PATH=\"")
 	require.NotContains(t, makefile, "run-user")
 	require.NotContains(t, makefile, "run-note")
+	require.FileExists(t, filepath.Join(target, "tools", "protogen", "main.go"))
+	protogen := readString(t, filepath.Join(target, "tools", "protogen", "main.go"))
+	require.Contains(t, protogen, "No proto files found")
 
 	cfg := readString(t, filepath.Join(target, "configs", "config.yaml"))
 	require.NotContains(t, cfg, "user_service_name")
@@ -243,6 +248,7 @@ run-gateway:
 		"internal/note/model/note.go":              "package model\n",
 		"internal/content/model/content.go":        "package model\n",
 		"pkg/scaffold/scaffold.go":                 "package scaffold\n",
+		"tools/protogen/main.go":                   "package main\n\nconst noProtoMessage = \"No proto files found\"\n",
 		"api/proto/user/v1/user.proto":             "option go_package = \"old/module/api/gen/user/v1;userv1\";\n",
 		"api/proto/note/v1/content.proto":          "option go_package = \"old/module/api/gen/note/v1;notev1\";\n",
 		"api/proto/content/v1/content.proto":       "option go_package = \"old/module/api/gen/content/v1;contentv1\";\n",

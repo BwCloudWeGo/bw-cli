@@ -1,9 +1,11 @@
 GO ?= go
 PROTOC ?= protoc
-PROTO_PATH := api/proto
-PROTO_OUT := api/gen
-PROTO_PLUGIN_PATH := $(shell go env GOPATH)/bin
-PROTO_FILES := $(shell if [ -d "$(PROTO_PATH)" ]; then cd $(PROTO_PATH) && find . -name '*.proto' | sed 's,^\./,,'; fi)
+PROTO_PATH ?= api/proto
+PROTO_OUT ?= api/gen
+
+export PROTOC
+export PROTO_PATH
+export PROTO_OUT
 
 .PHONY: proto test tidy run-gateway run-user run-note run-cli install-cli install-bw-cli tools
 
@@ -12,15 +14,7 @@ tools:
 	$(GO) install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 proto:
-	@if [ -z "$(PROTO_FILES)" ]; then \
-		echo "No proto files found"; \
-	else \
-		PATH="$(PROTO_PLUGIN_PATH):$$PATH" $(PROTOC) \
-			--proto_path=$(PROTO_PATH) \
-			--go_out=$(PROTO_OUT) --go_opt=paths=source_relative \
-			--go-grpc_out=$(PROTO_OUT) --go-grpc_opt=paths=source_relative \
-			$(PROTO_FILES); \
-	fi
+	$(GO) run ./tools/protogen
 
 test:
 	$(GO) test ./...

@@ -357,6 +357,9 @@ repo -> model
 
 ## 6. 常用 Make 命令
 
+Makefile 只调用 Go 命令，不依赖 `find`、`sed`、`if [ ... ]` 等 Unix shell 语法；`make proto` 内部通过 `tools/protogen` 使用 Go 自动适配 Windows、macOS、Linux 的路径分隔符和插件目录。
+Windows 仍需要安装 GNU Make；如果没有 `make`，可以直接执行等价的 Go 命令，例如 `go run ./tools/protogen`、`go test ./...`、`go run ./cmd/gateway`。
+
 | 命令 | 作用 |
 | --- | --- |
 | `make tools` | 安装 proto 生成插件 |
@@ -367,6 +370,18 @@ repo -> model
 | `make run-note` | 启动 note-service |
 | `make run-gateway` | 启动 HTTP gateway |
 | `make install-cli` | 本地安装 `bw-cli` |
+
+Windows PowerShell 设置临时环境变量时使用：
+
+```powershell
+$env:APP_HTTP_PORT="8081"; make run-gateway
+```
+
+macOS/Linux 使用：
+
+```bash
+APP_HTTP_PORT=8081 make run-gateway
+```
 
 ## 7. 配置说明
 

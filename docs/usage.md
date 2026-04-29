@@ -46,6 +46,9 @@ make proto
 make test
 ```
 
+Makefile 只调用 Go 命令，不依赖 `find`、`sed`、`if [ ... ]` 等 Unix shell 语法。`make proto` 内部会调用 `tools/protogen`，由 Go 自动适配 Windows、macOS、Linux 的路径分隔符和 proto 插件目录。
+Windows 仍需要安装 GNU Make；如果没有 `make`，可以直接执行等价的 Go 命令，例如 `go run ./tools/protogen`、`go test ./...`、`go run ./cmd/gateway`。
+
 预期结果：
 
 ```text
@@ -318,6 +321,12 @@ http:
 
 ```bash
 APP_HTTP_PORT=8081 make run-gateway
+```
+
+Windows PowerShell 使用：
+
+```powershell
+$env:APP_HTTP_PORT="8081"; make run-gateway
 ```
 
 ### 6.3 gRPC 配置
@@ -891,7 +900,7 @@ service CommentService {
 
 ### 10.2 生成代码
 
-当前 Makefile 会自动扫描 `api/proto` 下的 proto 文件，不需要手动维护 proto 列表。
+当前 Makefile 会通过 Go 工具自动扫描 `api/proto` 下的 proto 文件，不需要手动维护 proto 列表；该流程兼容 Windows、macOS、Linux。
 
 执行：
 

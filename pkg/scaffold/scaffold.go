@@ -449,27 +449,21 @@ func registerAPIRoutes(r *gin.Engine) {
 func cleanMakefile() string {
 	return `GO ?= go
 PROTOC ?= protoc
-PROTO_PATH := api/proto
-PROTO_OUT := api/gen
-PROTO_PLUGIN_PATH := $(shell go env GOPATH)/bin
-PROTO_FILES := $(shell if [ -d "$(PROTO_PATH)" ]; then cd $(PROTO_PATH) && find . -name '*.proto' | sed 's,^\./,,'; fi)
+PROTO_PATH ?= api/proto
+PROTO_OUT ?= api/gen
 
-.PHONY: proto test tidy run-gateway install-tools
+export PROTOC
+export PROTO_PATH
+export PROTO_OUT
+
+.PHONY: proto test tidy run-gateway tools
 
 tools:
 	$(GO) install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	$(GO) install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 proto:
-	@if [ -z "$(PROTO_FILES)" ]; then \
-		echo "No proto files found"; \
-	else \
-		PATH="$(PROTO_PLUGIN_PATH):$$PATH" $(PROTOC) \
-			--proto_path=$(PROTO_PATH) \
-			--go_out=$(PROTO_OUT) --go_opt=paths=source_relative \
-			--go-grpc_out=$(PROTO_OUT) --go-grpc_opt=paths=source_relative \
-			$(PROTO_FILES); \
-	fi
+	$(GO) run ./tools/protogen
 
 test:
 	$(GO) test ./...
@@ -672,6 +666,9 @@ make proto
 make test
 `+"```"+`
 
+Makefile 只调用 Go 命令，不依赖 `+"`find`"+`、`+"`sed`"+`、`+"`if [ ... ]`"+` 等 Unix shell 语法；`+"`make proto`"+` 会通过 `+"`tools/protogen`"+` 自动适配 Windows、macOS、Linux。
+Windows 仍需要安装 GNU Make；如果没有 `+"`make`"+`，可以直接执行等价的 Go 命令，例如 `+"`go run ./tools/protogen`"+`、`+"`go test ./...`"+`、`+"`go run ./cmd/gateway`"+`。
+
 启动 HTTP gateway：
 
 `+"```bash"+`
@@ -742,6 +739,8 @@ make test
 `+"```"+`
 
 如果当前还没有 proto 文件，`+"`make proto`"+` 会输出 `+"`No proto files found`"+` 并正常结束。
+Makefile 只调用 Go 命令，不依赖 Unix shell 语法；`+"`make proto`"+` 会通过 `+"`tools/protogen`"+` 自动适配 Windows、macOS、Linux。
+Windows 仍需要安装 GNU Make；如果没有 `+"`make`"+`，可以直接执行等价的 Go 命令，例如 `+"`go run ./tools/protogen`"+`、`+"`go test ./...`"+`、`+"`go run ./cmd/gateway`"+`。
 
 ## 2. 启动 gateway
 
@@ -784,6 +783,12 @@ APP_ + 配置路径大写 + 下划线
 export APP_HTTP_PORT=8081
 export APP_LOG_LEVEL=debug
 export APP_DATABASE_DRIVER=postgres
+`+"```"+`
+
+Windows PowerShell 使用：
+
+`+"```powershell"+`
+$env:APP_HTTP_PORT="8081"; make run-gateway
 `+"```"+`
 
 ## 4. 当前 module
@@ -900,6 +905,9 @@ make proto
 make test
 `+"```"+`
 
+Makefile 只调用 Go 命令，不依赖 `+"`find`"+`、`+"`sed`"+`、`+"`if [ ... ]`"+` 等 Unix shell 语法；`+"`make proto`"+` 会通过 `+"`tools/protogen`"+` 自动适配 Windows、macOS、Linux。
+Windows 仍需要安装 GNU Make；如果没有 `+"`make`"+`，可以直接执行等价的 Go 命令，例如 `+"`go run ./tools/protogen`"+`、`+"`go test ./...`"+`、`+"`go run ./cmd/gateway`"+`。
+
 建议开三个终端启动：
 
 `+"```bash"+`
@@ -951,6 +959,9 @@ make tidy
 make proto
 make test
 `+"```"+`
+
+Makefile 只调用 Go 命令，不依赖 Unix shell 语法；`+"`make proto`"+` 会通过 `+"`tools/protogen`"+` 自动适配 Windows、macOS、Linux。
+Windows 仍需要安装 GNU Make；如果没有 `+"`make`"+`，可以直接执行等价的 Go 命令，例如 `+"`go run ./tools/protogen`"+`、`+"`go test ./...`"+`、`+"`go run ./cmd/gateway`"+`。
 
 当前 module：
 
@@ -1020,6 +1031,12 @@ APP_ + 配置路径大写 + 下划线
 export APP_HTTP_PORT=8081
 export APP_GRPC_USER_TARGET='127.0.0.1:9001'
 export APP_GRPC_NOTE_TARGET='127.0.0.1:9002'
+`+"```"+`
+
+Windows PowerShell 使用：
+
+`+"```powershell"+`
+$env:APP_HTTP_PORT="8081"; make run-gateway
 `+"```"+`
 
 ## 5. 公共工具
