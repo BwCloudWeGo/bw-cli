@@ -453,6 +453,93 @@ repo -> model
 `model` 不依赖 Gin、gRPC、Gorm、MongoDB SDK 或日志框架，便于测试和替换基础设施。
 `service.go` 只写业务流程；命令入参放 `service/command.go`，返回 DTO 和转换函数放 `service/dto.go`，避免控制器或服务主文件堆字段。
 
+### 6.1 C4 架构图说明
+
+README 使用 C4 模型描述架构，便于从“系统边界 -> 运行容器 -> 服务内部组件”逐层理解。图中的 `bw-cli` 是脚手架命令本身，`Generated Project` 是通过 `bw-cli new` 或 `bw-cli demo` 生成的业务工程。
+
+#### Level 1：系统上下文
+
+```mermaid
+C4Context
+  title System Context - bw-cli Go Microservice Scaffold
+
+  Person(developer, "开发者/业务团队", "使用脚手架生成、扩展和维护 Go 微服务项目")
+  Person_Ext(apiClient, "外部客户端", "Web、App、第三方系统或测试工具")
+
+  System(cli, "bw-cli", "用于生成干净项目、演示项目和新业务服务的 Go CLI")
+  System(project, "Generated Project", "Gin + gRPC + Gorm 微服务工程，承载业务 API 和公共基础能力")
+  System_Ext(gitRepo, "Git Repository", "脚手架源码仓库和业务项目仓库")
+
+  Rel(developer, cli, "执行 new/demo/service 命令", "Shell")
+  Rel(cli, gitRepo, "拉取脚手架模板", "Git")
+  Rel(cli, project, "生成项目源码、配置和文档", "File System")
+  Rel(developer, project, "开发业务逻辑、运行测试和启动服务", "Go/Make")
+  Rel(apiClient, project, "调用 HTTP API", "JSON/HTTP")
+```
+
+#### Level 2：生成项目容器视图
+
+```mermaid
+C4Container
+  title Container Diagram - Generated Project Runtime
+
+  Person(apiClient, "外部客户端", "Web、App、第三方系统或测试工具")
+
+  System_Boundary(project, "Generated Project") {
+    Container(gateway, "Gateway", "Gin HTTP", "统一入口、路由、中间件、HTTP 响应封装")
+    Container(service, "Business gRPC Service", "Go + gRPC", "承载业务用例、领域模型和仓储接口")
+    ContainerDb(sqlDb, "Relational Database", "SQLite/MySQL/PostgreSQL + Gorm", "默认业务数据持久化")
+    ContainerDb(mongoDb, "MongoDB", "MongoDB Driver", "文档型数据存储")
+    ContainerDb(redis, "Redis", "go-redis", "缓存、分布式锁和临时状态")
+    ContainerQueue(kafka, "Kafka", "segmentio/kafka-go", "异步事件生产和消费")
+    ContainerDb(es, "Elasticsearch", "elastic/go-elasticsearch", "搜索索引和检索")
+    ContainerDb(objectStorage, "Object Storage", "MinIO/OSS/Qiniu/COS", "文件上传和对象存储")
+  }
+
+  Rel(apiClient, gateway, "调用业务接口", "JSON/HTTP")
+  Rel(gateway, service, "调用内部服务", "gRPC")
+  Rel(service, sqlDb, "读写关系型数据", "Gorm")
+  Rel(service, mongoDb, "读写文档数据", "MongoDB Driver")
+  Rel(service, redis, "缓存或加锁", "Redis")
+  Rel(service, kafka, "发布或消费事件", "Kafka")
+  Rel(service, es, "写入索引或搜索", "HTTP")
+  Rel(service, objectStorage, "上传或读取文件", "SDK/API")
+```
+
+#### Level 3：业务服务组件视图
+
+```mermaid
+C4Component
+  title Component Diagram - internal/<service>
+
+  Container(gateway, "Gateway Handler", "Gin", "绑定 HTTP 入参并调用 gRPC client")
+  ContainerDb(sqlDb, "Database", "Gorm Supported DB", "业务数据表")
+
+  Container_Boundary(serviceBoundary, "Business Service") {
+    Component(grpcHandler, "handler", "gRPC Adapter", "把 proto request 转成 service command")
+    Component(command, "service/command.go", "Command DTO", "定义业务用例入参")
+    Component(usecase, "service/service.go", "Use Case Service", "编排业务流程和事务意图")
+    Component(dto, "service/dto.go", "Response DTO", "定义业务出参并转换领域模型")
+    Component(model, "model", "Domain Model", "实体、值对象、业务错误和 Repository 接口")
+    Component(repo, "repo", "Gorm Repository", "实现 model.Repository 并操作数据库")
+  }
+
+  Rel(gateway, grpcHandler, "调用 RPC", "gRPC")
+  Rel(grpcHandler, command, "组装入参")
+  Rel(grpcHandler, usecase, "调用业务用例")
+  Rel(usecase, model, "执行业务规则")
+  Rel(usecase, repo, "通过接口访问仓储")
+  Rel(repo, model, "实现 Repository 接口")
+  Rel(repo, sqlDb, "读写数据", "Gorm")
+  Rel(usecase, dto, "返回业务出参")
+```
+
+这三张图对应开发时的三个判断：
+
+- 看系统边界时，先看 Level 1，确认 `bw-cli`、生成项目、外部调用方和 Git 仓库的关系。
+- 看运行时调用链时，看 Level 2，确认 gateway、gRPC 服务和各类数据源之间的依赖。
+- 写具体业务代码时，看 Level 3，确认入参、业务流程、DTO、领域模型和数据库实现分别放在哪一层。
+
 ## 7. 常用 Make 命令
 
 Makefile 只调用 Go 命令，不依赖 `find`、`sed`、`if [ ... ]` 等 Unix shell 语法；`make proto` 内部通过 `tools/protogen` 使用 Go 自动适配 Windows、macOS、Linux 的路径分隔符和插件目录。
