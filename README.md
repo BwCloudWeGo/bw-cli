@@ -297,7 +297,48 @@ make test
 
 `make proto` 会基于新的 `go_package` 重新生成 `*.pb.go`。
 
-## 5. 项目目录说明
+## 5. 生成新的业务服务
+
+进入已生成的项目根目录，直接执行：
+
+```bash
+bw-cli service order --port 9100 --tidy
+```
+
+这条命令会自动读取当前项目的 `go.mod`，并生成一整套可编译的服务骨架：
+
+```text
+api/proto/order/v1/order.proto
+api/gen/order/v1
+cmd/order/main.go
+internal/order/model
+internal/order/service
+internal/order/repo
+internal/order/handler
+docs/services/order.md
+```
+
+同时会在 `Makefile` 中追加：
+
+```bash
+make run-order
+```
+
+生成后常用流程：
+
+```bash
+make proto
+make test
+make run-order
+```
+
+如果是 Windows PowerShell，覆盖服务端口时使用：
+
+```powershell
+$env:APP_ORDER_GRPC_PORT="9101"; make run-order
+```
+
+## 6. 项目目录说明
 
 下面是脚手架仓库源码目录。通过 `bw-cli new` 生成的干净项目会移除 `cmd/bw-cli`、`cmd/user`、`cmd/note`、`internal/user`、`internal/note` 和示例 proto；通过 `bw-cli demo` 生成的演示项目会保留 user/note 示例。
 
@@ -355,7 +396,7 @@ repo -> model
 
 `model` 不依赖 Gin、gRPC、Gorm、MongoDB SDK 或日志框架，便于测试和替换基础设施。
 
-## 6. 常用 Make 命令
+## 7. 常用 Make 命令
 
 Makefile 只调用 Go 命令，不依赖 `find`、`sed`、`if [ ... ]` 等 Unix shell 语法；`make proto` 内部通过 `tools/protogen` 使用 Go 自动适配 Windows、macOS、Linux 的路径分隔符和插件目录。
 Windows 仍需要安装 GNU Make；如果没有 `make`，可以直接执行等价的 Go 命令，例如 `go run ./tools/protogen`、`go test ./...`、`go run ./cmd/gateway`。
@@ -383,7 +424,7 @@ macOS/Linux 使用：
 APP_HTTP_PORT=8081 make run-gateway
 ```
 
-## 7. 配置说明
+## 8. 配置说明
 
 默认配置文件：
 
@@ -519,7 +560,7 @@ result, err := uploader.Upload(ctx, filex.UploadRequest{
 
 完整配置和调用流程见 [工具组件总览与调用流程](docs/toolkit.md)。
 
-## 8. 日志说明
+## 9. 日志说明
 
 日志默认使用 Zap + Lumberjack：
 
@@ -538,7 +579,7 @@ result, err := uploader.Upload(ctx, filex.UploadRequest{
 
 日志目录 `logs/` 已被 `.gitignore` 忽略。
 
-## 9. 公共组件
+## 10. 公共组件
 
 这些包可以在其他项目中通过 `go get` 引入：
 
@@ -573,9 +614,9 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 | `pkg/filex` | 文件上传校验和 MinIO/OSS/Qiniu/COS 存储适配 |
 | `pkg/scaffold` | 脚手架生成逻辑 |
 
-## 10. 常见问题
+## 11. 常见问题
 
-### 10.1 bw-cli: command not found
+### 11.1 bw-cli: command not found
 
 确认 Go bin 目录在 `PATH` 中：
 
@@ -583,7 +624,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 export PATH="$PATH:$(go env GOPATH)/bin"
 ```
 
-### 10.2 protoc-gen-go: program not found
+### 11.2 protoc-gen-go: program not found
 
 执行：
 
@@ -597,7 +638,7 @@ make tools
 make proto
 ```
 
-### 10.3 生成项目后还有旧 module 路径
+### 11.3 生成项目后还有旧 module 路径
 
 生成项目后执行：
 
@@ -607,7 +648,7 @@ make proto
 
 原因是 `bw-cli` 会跳过 `*.pb.go` 的直接字符串替换，避免破坏 protobuf 原始描述符。`make proto` 会根据新的 `.proto go_package` 重新生成代码。
 
-### 10.4 端口被占用
+### 11.4 端口被占用
 
 默认端口：
 
@@ -632,7 +673,7 @@ export APP_GRPC_USER_TARGET='127.0.0.1:9101'
 export APP_GRPC_NOTE_TARGET='127.0.0.1:9102'
 ```
 
-## 11. 更多文档
+## 12. 更多文档
 
 - [架构说明](docs/architecture.md)：分层、路由、公共包和扩展方式。
 - [详细使用说明](docs/usage.md)：发布 `bw-cli`、安装命令、生成项目、初始化依赖、配置服务、启动验证和扩展业务。

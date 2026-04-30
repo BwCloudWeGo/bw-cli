@@ -707,14 +707,13 @@ pkg            # 公共工具包
 docs           # 使用和架构文档
 `+"```"+`
 
-新增业务服务时建议使用：
+新增业务服务时使用脚手架命令：
 
-`+"```text"+`
-internal/<service>/model
-internal/<service>/service
-internal/<service>/repo
-internal/<service>/handler
+`+"```bash"+`
+bw-cli service order --port 9100 --tidy
 `+"```"+`
+
+命令会生成 `+"`cmd/order`"+`、`+"`api/proto/order`"+`、`+"`internal/order/model`"+`、`+"`service`"+`、`+"`repo`"+`、`+"`handler`"+` 和 `+"`docs/services/order.md`"+`，用户只需要继续填写业务逻辑。
 
 需要演示项目时请使用：
 
@@ -810,6 +809,37 @@ MongoDB 教学文档见：
 `+"```text"+`
 docs/mongodb.md
 `+"```"+`
+
+## 6. 新增业务服务
+
+进入项目根目录执行：
+
+`+"```bash"+`
+bw-cli service comment --port 9103 --tidy
+`+"```"+`
+
+生成结构：
+
+`+"```text"+`
+api/proto/comment/v1/comment.proto
+api/gen/comment/v1
+cmd/comment/main.go
+internal/comment/model      # 领域实体、业务错误、Repository 接口
+internal/comment/service    # 业务用例编排
+internal/comment/repo       # 数据库访问，默认 Gorm
+internal/comment/handler    # gRPC 协议转换
+docs/services/comment.md    # 单服务详细开发说明
+`+"```"+`
+
+开发原则：
+
+- `+"`model`"+` 写业务核心，不依赖 Gin、gRPC、Gorm。
+- `+"`service`"+` 写业务流程，只依赖 `+"`model.Repository`"+`。
+- `+"`repo`"+` 是数据库操作唯一入口，Gorm/MongoDB/Redis 查询都放这里。
+- `+"`handler`"+` 只做 gRPC request/response 转换和错误映射。
+- HTTP 入参放 `+"`internal/gateway/request`"+`，路由按 `+"`/api/v1/<business>`"+` 拆分。
+
+数据库操作示例见每次生成的 `+"`docs/services/<service>.md`"+`。
 `, module)
 }
 
