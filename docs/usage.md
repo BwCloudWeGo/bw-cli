@@ -877,10 +877,23 @@ internal/comment/handler    # gRPC server
 假设新增 `comment-service`，进入项目根目录执行：
 
 ```bash
+bw-cli service comment --tidy
+```
+
+命令会自动读取当前项目的 `go.mod`，生成完整 CRUD 服务并执行 `make proto`。不传 `--port` 时默认端口是 `9100`，需要指定端口时使用：
+
+```bash
 bw-cli service comment --port 9103 --tidy
 ```
 
-命令会自动读取当前项目的 `go.mod`，生成完整服务骨架并执行 `make proto`：
+生成后不需要修改 `configs/config.yaml`：
+
+- 服务名、默认 gRPC 端口和端口环境变量会写入 `cmd/comment/main.go`。
+- 数据库继续读取项目已有的 `database`、`mysql`、`postgresql` 配置。
+- SQLite 默认配置可直接本地运行，服务启动时会自动执行 `AutoMigrate`。
+- `--tidy` 会在生成后执行 `go mod tidy`。
+
+生成文件：
 
 ```text
 api/proto/comment/v1/comment.proto
@@ -912,144 +925,105 @@ Windows PowerShell：
 $env:APP_COMMENT_GRPC_PORT="9104"; make run-comment
 ```
 
-### 10.1 推荐开发顺序
+### 10.1 生成后已经具备什么
 
-生成服务后按这个顺序写业务：
+`bw-cli service` 生成的是一条可编译、可启动、可继续扩展的基础 CRUD 调用链。用户可以直接基于生成代码开发业务，不需要先补空文件。
 
-1. 先写 `api/proto/comment/v1/comment.proto`：定义外部契约，明确 RPC、Request、Response。
-2. 执行 `make proto`：生成 `api/gen/comment/v1`，业务代码只引用生成后的 Go 类型。
-3. 写 `internal/comment/model`：定义领域实体、业务错误、仓储接口。
-4. 写 `internal/comment/service`：编排业务用例，只依赖 `model.Repository` 接口。
-5. 写 `internal/comment/repo`：实现数据库访问，默认使用 Gorm。
-6. 写 `internal/comment/handler`：把 gRPC 请求转换成 service 命令，并把业务错误转换成统一错误。
-7. 如需 HTTP 入口，再接入 `internal/gateway/request`、`handler`、`router`。
+默认已经包含：
+
+- `CreateComment`
+- `GetComment`
+- `ListComments`
+- `UpdateComment`
+- `DeleteComment`
+
+如果项目包含 Gin gateway，命令还会同步生成 HTTP CRUD 入口：
+
+```text
+POST   /api/v1/comments
+GET    /api/v1/comments
+GET    /api/v1/comments/:id
+PUT    /api/v1/comments/:id
+DELETE /api/v1/comments/:id
+```
+
+默认调用链如下：
+
+```text
+HTTP client
+  -> internal/gateway/router
+  -> internal/gateway/handler
+  -> gRPC client
+  -> api/proto/comment/v1/comment.proto
+  -> internal/comment/handler
+  -> internal/comment/service
+  -> internal/comment/model.Repository
+  -> internal/comment/repo(Gorm)
+  -> database.Open(cfg.Database, cfg.MySQL, cfg.PostgreSQL, log)
+```
+
+服务端口不需要写进配置文件。`cmd/comment/main.go` 内置默认端口 `9103`，也支持环境变量覆盖：
+
+```text
+APP_COMMENT_GRPC_PORT
+```
+
+gateway 调用服务的目标地址也不需要写进配置文件，默认是 `127.0.0.1:9103`，需要覆盖时设置：
+
+```bash
+export APP_COMMENT_GRPC_TARGET=127.0.0.1:9103
+```
 
 ### 10.2 每一层怎么写，为什么这么写
 
 | 层级 | 放什么 | 怎么写 | 为什么这么写 |
 | --- | --- | --- | --- |
-| `api/proto/<service>/v1` | gRPC 协议 | 只定义 RPC、请求、响应和 `go_package` | 先稳定外部契约，避免 handler/service 随意暴露内部模型 |
+| `api/proto/<service>/v1` | gRPC 协议 | 默认带 CRUD RPC，请按业务改 Request/Response 字段 | 先稳定外部契约，避免 handler/service 随意暴露内部模型 |
 | `api/gen/<service>/v1` | 生成代码 | 只通过 `make proto` 生成，不手写 | 保持 proto 和 Go 类型一致，减少人为错误 |
 | `cmd/<service>` | 服务启动入口 | 加载配置、初始化日志、打开数据库、注册 gRPC server | 入口负责组装依赖，业务逻辑不放在 main 中 |
-| `internal/<service>/model` | 领域模型 | 写实体、值对象、业务错误、Repository 接口 | model 是业务核心，不依赖 Gin、gRPC、Gorm，方便测试和替换基础设施 |
+| `internal/<service>/model` | 领域模型 | 写实体、业务错误、Repository 接口 | model 是业务核心，不依赖 Gin、gRPC、Gorm，方便测试和替换基础设施 |
 | `internal/<service>/service` | 业务用例 | 接收命令对象，调用领域模型和仓储接口 | service 表达业务流程，避免 handler 直接写业务 |
-| `internal/<service>/repo` | 数据库实现 | 用 Gorm/MongoDB/Redis 实现 `model.Repository` | 数据库操作集中在 repo，业务层只面向接口 |
+| `internal/<service>/repo` | 数据库实现 | 默认用 Gorm 实现 `model.Repository` | 数据库操作集中在 repo，业务层只面向接口 |
 | `internal/<service>/handler` | gRPC 入站适配 | 把 proto request 转成 service command，把 DTO 转成 proto response | handler 只做协议转换，不写数据库和复杂业务 |
 | `internal/gateway/request` | HTTP 入参 DTO | 定义 Gin bind/validate 结构体 | 控制器不堆请求字段，入参可复用和测试 |
-| `internal/gateway/handler` | HTTP 控制器 | 参数绑定、调用下游 gRPC/client、统一响应 | HTTP 层只处理 Web 协议，不直接操作数据库 |
+| `internal/gateway/handler` | HTTP 控制器 | 参数绑定、调用下游 gRPC client、统一响应 | HTTP 层只处理 Web 协议，不直接操作数据库 |
 | `internal/gateway/router` | 路由注册 | 按 `/api/v1/<business>` 分文件注册 | 路由按版本/业务拆分，避免所有接口堆在一个文件 |
 
 ### 10.3 model 层：写业务核心
 
-`model` 层放实体、业务错误和仓储接口。不要在这里引入 Gorm、Gin、gRPC SDK。
+生成后的 `model` 默认包含 `ID`、`Name`、`Description`、`CreatedAt`、`UpdatedAt`，这是 CRUD 示例字段。真实开发时，把 `Name/Description` 换成业务字段，把校验放在构造函数或实体方法里。
 
-示例：
-
-```go
-package model
-
-import (
-    "errors"
-    "strings"
-    "time"
-
-    "github.com/google/uuid"
-)
-
-var (
-    ErrCommentNotFound = errors.New("comment not found")
-    ErrInvalidComment  = errors.New("invalid comment")
-)
-
-type Comment struct {
-    ID        string
-    AuthorID  string
-    Content   string
-    CreatedAt time.Time
-    UpdatedAt time.Time
-}
-
-func NewComment(authorID string, content string) (*Comment, error) {
-    authorID = strings.TrimSpace(authorID)
-    content = strings.TrimSpace(content)
-    if authorID == "" || content == "" {
-        return nil, ErrInvalidComment
-    }
-    now := time.Now().UTC()
-    return &Comment{
-        ID:        uuid.NewString(),
-        AuthorID:  authorID,
-        Content:   content,
-        CreatedAt: now,
-        UpdatedAt: now,
-    }, nil
-}
-```
-
-仓储接口也放在 `model`：
+Repository 接口也放在 `model`：
 
 ```go
-package model
-
-import "context"
-
 type Repository interface {
-    Save(ctx context.Context, comment *Comment) error
+    Save(ctx context.Context, item *Comment) error
     FindByID(ctx context.Context, id string) (*Comment, error)
+    List(ctx context.Context, offset int, limit int) ([]*Comment, int64, error)
+    Delete(ctx context.Context, id string) error
 }
 ```
 
-这样做的原因是：业务层只关心“我要保存/查询评论”，不关心底层是 MySQL、PostgreSQL、MongoDB 还是测试内存实现。
+这样做的原因是：业务层只关心“保存、查询、分页、删除”这些能力，不关心底层是 MySQL、PostgreSQL、MongoDB 还是测试 fake。
 
 ### 10.4 service 层：写业务流程
 
-`service` 层负责业务用例编排。它依赖 `model.Repository` 接口，不直接依赖 Gorm。
+`service` 层已经生成 `Create/Get/List/Update/Delete`。新增业务规则时写在这里或 `model`，不要写在 handler。
 
 ```go
-package service
-
-import (
-    "context"
-
-    "github.com/acme/my-service/internal/comment/model"
-)
-
-type Service struct {
-    repo model.Repository
-}
-
-func NewService(repo model.Repository) *Service {
-    return &Service{repo: repo}
-}
-
-type CreateCommand struct {
-    AuthorID string
-    Content  string
-}
-
-type CommentDTO struct {
-    ID       string
-    AuthorID string
-    Content  string
-}
-
 func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*CommentDTO, error) {
-    comment, err := model.NewComment(cmd.AuthorID, cmd.Content)
+    item, err := model.NewComment(cmd.Name, cmd.Description)
     if err != nil {
         return nil, err
     }
-    if err := s.repo.Save(ctx, comment); err != nil {
+    if err := s.repo.Save(ctx, item); err != nil {
         return nil, err
     }
-    return &CommentDTO{
-        ID:       comment.ID,
-        AuthorID: comment.AuthorID,
-        Content:  comment.Content,
-    }, nil
+    return toDTO(item), nil
 }
 ```
 
-这样写的原因是：业务规则集中在 service/model，handler 变薄，repo 可替换，单元测试可以用 fake repository。
+这样写的原因是：业务规则集中在 service/model，handler 变薄，repo 可替换，单元测试可以用 fake repository。生成的 `internal/comment/service/service_test.go` 已经给出 fake repository 的 CRUD 测试示例。
 
 ### 10.5 repo 层：数据库在哪里操作，如何操作
 
@@ -1058,120 +1032,41 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*CommentDTO, e
 ```go
 db, err := database.Open(cfg.Database, cfg.MySQL, cfg.PostgreSQL, log)
 repo := commentrepo.NewGormRepository(db, log)
-svc := commentservice.NewService(repo)
+svc := commentservice.NewService(repo, log)
 ```
 
-repo 层示例：
+生成后的 Gorm repo 已经实现：
 
-```go
-package repo
-
-import (
-    "context"
-    "errors"
-    "time"
-
-    "go.uber.org/zap"
-    "gorm.io/gorm"
-
-    "github.com/acme/my-service/internal/comment/model"
-)
-
-type CommentModel struct {
-    ID        string `gorm:"primaryKey;size:64"`
-    AuthorID  string `gorm:"index;size:64;not null"`
-    Content   string `gorm:"type:text;not null"`
-    CreatedAt time.Time
-    UpdatedAt time.Time
-}
-
-func (CommentModel) TableName() string {
-    return "comments"
-}
-
-type GormRepository struct {
-    db  *gorm.DB
-    log *zap.Logger
-}
-
-func NewGormRepository(db *gorm.DB, log *zap.Logger) *GormRepository {
-    if log == nil {
-        log = zap.NewNop()
-    }
-    return &GormRepository{db: db, log: log}
-}
-
-func AutoMigrate(db *gorm.DB) error {
-    return db.AutoMigrate(&CommentModel{})
-}
-
-func (r *GormRepository) Save(ctx context.Context, comment *model.Comment) error {
-    record := &CommentModel{
-        ID:        comment.ID,
-        AuthorID:  comment.AuthorID,
-        Content:   comment.Content,
-        CreatedAt: comment.CreatedAt,
-        UpdatedAt: comment.UpdatedAt,
-    }
-    return r.db.WithContext(ctx).Save(record).Error
-}
-
-func (r *GormRepository) FindByID(ctx context.Context, id string) (*model.Comment, error) {
-    var record CommentModel
-    err := r.db.WithContext(ctx).Where("id = ?", id).First(&record).Error
-    if errors.Is(err, gorm.ErrRecordNotFound) {
-        return nil, model.ErrCommentNotFound
-    }
-    if err != nil {
-        return nil, err
-    }
-    return &model.Comment{
-        ID:        record.ID,
-        AuthorID:  record.AuthorID,
-        Content:   record.Content,
-        CreatedAt: record.CreatedAt,
-        UpdatedAt: record.UpdatedAt,
-    }, nil
-}
-```
+- `AutoMigrate(db)`：创建或更新表结构。
+- `Save(ctx, item)`：新增或更新。
+- `FindByID(ctx, id)`：按 ID 查询，查不到返回 `model.ErrCommentNotFound`。
+- `List(ctx, offset, limit)`：分页查询并返回总数。
+- `Delete(ctx, id)`：按 ID 删除，删不到返回 `model.ErrCommentNotFound`。
 
 数据库操作规则：
 
 - `handler` 不直接操作数据库。
 - `service` 不直接使用 `*gorm.DB`。
-- `model` 不引入 Gorm tag，除非项目明确采用贫血模型并接受基础设施耦合。
-- 所有查询、事务、分页、锁、索引相关实现放在 `repo`。
-- 需要事务时，在 repo 层提供方法，内部使用 `db.Transaction(func(tx *gorm.DB) error { ... })`。
-- 多数据源时仍保持接口不变，例如 `MongoRepository` 和 `GormRepository` 都实现 `model.Repository`。
+- `model` 不引入 Gorm tag，避免领域模型和数据库实现耦合。
+- 查询、分页、事务、锁、索引相关实现都放在 `repo`。
+- 需要事务时，在 repo 层内部使用 `db.Transaction(func(tx *gorm.DB) error { ... })`。
+- 多数据源时保持接口不变，例如 `GormRepository`、`MongoRepository` 都实现 `model.Repository`。
 
 ### 10.6 handler 层：协议转换
 
-`handler` 层只处理 gRPC 协议转换：
+`handler` 层已经生成 CRUD 方法。它只处理协议转换：
 
-```go
-func (s *Server) CreateComment(ctx context.Context, req *commentv1.CreateCommentRequest) (*commentv1.CommentResponse, error) {
-    dto, err := s.svc.Create(ctx, service.CreateCommand{
-        AuthorID: req.GetAuthorId(),
-        Content:  req.GetContent(),
-    })
-    if err != nil {
-        return nil, mapCommentError(err)
-    }
-    return &commentv1.CommentResponse{
-        Id:       dto.ID,
-        AuthorId: dto.AuthorID,
-        Content:  dto.Content,
-    }, nil
-}
-```
+1. 从 proto request 取字段。
+2. 组装 service command。
+3. 调用 service。
+4. 把 DTO 转成 proto response。
+5. 把业务错误转成统一错误。
 
-这样写的原因是：gRPC 字段、HTTP 字段、数据库字段经常不同，handler 负责协议适配，service 保持业务语义。
+不要在 handler 中写 SQL、Gorm 查询、复杂业务判断。
 
-### 10.7 gateway 接入
+### 10.7 gateway 层：HTTP 调用已经接好
 
-### 10.1 gateway 接入
-
-新增：
+`bw-cli service comment` 会自动生成：
 
 ```text
 internal/gateway/handler/comment_handler.go
@@ -1179,19 +1074,38 @@ internal/gateway/request/comment_request.go
 internal/gateway/router/comment_routes.go
 ```
 
-并在：
+并把 `internal/gateway/router/v1.go` 中的 `/api/v1` 路由自动挂上。用户启动 `comment-service` 和 `gateway` 后，可以直接通过 HTTP 调用基础 CRUD。
 
-```text
-internal/gateway/router/v1.go
+创建：
+
+```bash
+curl -i -X POST http://localhost:8080/api/v1/comments \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"first","description":"created from gateway"}'
 ```
 
-调用：
+列表：
 
-```go
-registerCommentRoutes(v1, handler.NewCommentHandler(clients.Comment, log))
+```bash
+curl -i 'http://localhost:8080/api/v1/comments?page=1&page_size=20'
 ```
 
-干净项目默认没有 `internal/gateway/client`，新增 gRPC 服务后再按业务需要创建对应 client 聚合即可。
+详情、更新、删除：
+
+```bash
+curl -i http://localhost:8080/api/v1/comments/<id>
+curl -i -X PUT http://localhost:8080/api/v1/comments/<id> \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"updated","description":"updated from gateway"}'
+curl -i -X DELETE http://localhost:8080/api/v1/comments/<id>
+```
+
+gateway handler 默认连接 `APP_COMMENT_GRPC_TARGET`，没有设置时使用生成服务端口 `127.0.0.1:9103`。因此只要按顺序启动即可：
+
+```bash
+make run-comment
+make run-gateway
+```
 
 ## 11. 发布公共包给其他项目使用
 

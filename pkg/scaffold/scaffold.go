@@ -710,10 +710,28 @@ docs           # 使用和架构文档
 新增业务服务时使用脚手架命令：
 
 `+"```bash"+`
-bw-cli service order --port 9100 --tidy
+bw-cli service order --tidy
 `+"```"+`
 
-命令会生成 `+"`cmd/order`"+`、`+"`api/proto/order`"+`、`+"`internal/order/model`"+`、`+"`service`"+`、`+"`repo`"+`、`+"`handler`"+` 和 `+"`docs/services/order.md`"+`，用户只需要继续填写业务逻辑。
+命令会生成 `+"`cmd/order`"+`、`+"`api/proto/order`"+`、`+"`internal/order/model`"+`、`+"`service`"+`、`+"`repo`"+`、`+"`handler`"+`、gateway request/handler/router 和 `+"`docs/services/order.md`"+`。生成后的服务默认带 Create/Get/List/Update/Delete 基础 CRUD，端口默认值写在 `+"`cmd/order/main.go`"+`，不需要修改 `+"`configs/config.yaml`"+`。
+
+需要指定端口时使用：
+
+`+"```bash"+`
+bw-cli service order --port 9103 --tidy
+`+"```"+`
+
+启动后控制台会输出服务名、环境、监听地址、gRPC 地址和端口环境变量。
+
+如果项目包含 gateway，HTTP CRUD 路由也会自动挂载：
+
+`+"```text"+`
+POST   /api/v1/orders
+GET    /api/v1/orders
+GET    /api/v1/orders/:id
+PUT    /api/v1/orders/:id
+DELETE /api/v1/orders/:id
+`+"```"+`
 
 需要演示项目时请使用：
 
@@ -815,8 +833,21 @@ docs/mongodb.md
 进入项目根目录执行：
 
 `+"```bash"+`
+bw-cli service comment --tidy
+`+"```"+`
+
+不传 `+"`--port`"+` 时默认端口是 `+"`9100`"+`。需要指定端口时使用：
+
+`+"```bash"+`
 bw-cli service comment --port 9103 --tidy
 `+"```"+`
+
+生成后的服务不需要修改配置即可编译和启动：
+
+- 服务名、默认 gRPC 端口和 `+"`APP_COMMENT_GRPC_PORT`"+` 环境变量写在 `+"`cmd/comment/main.go`"+`。
+- 数据库继续读取当前项目已有的 `+"`database`"+`、`+"`mysql`"+`、`+"`postgresql`"+` 配置。
+- 默认 SQLite 可直接本地运行，服务启动时自动执行 `+"`AutoMigrate`"+`。
+- proto、handler、service、model、repo、gateway HTTP 入口和 service 单测都会同时生成。
 
 生成结构：
 
@@ -828,7 +859,36 @@ internal/comment/model      # 领域实体、业务错误、Repository 接口
 internal/comment/service    # 业务用例编排
 internal/comment/repo       # 数据库访问，默认 Gorm
 internal/comment/handler    # gRPC 协议转换
+internal/gateway/request/comment_request.go
+internal/gateway/handler/comment_handler.go
+internal/gateway/router/comment_routes.go
 docs/services/comment.md    # 单服务详细开发说明
+`+"```"+`
+
+生成后的基础 CRUD 调用链：
+
+`+"```text"+`
+gRPC client -> proto -> handler -> service -> model.Repository -> repo(Gorm) -> database
+`+"```"+`
+
+HTTP 入口也已挂载：
+
+`+"```text"+`
+POST   /api/v1/comments
+GET    /api/v1/comments
+GET    /api/v1/comments/:id
+PUT    /api/v1/comments/:id
+DELETE /api/v1/comments/:id
+`+"```"+`
+
+默认提供：
+
+`+"```text"+`
+CreateComment
+GetComment
+ListComments
+UpdateComment
+DeleteComment
 `+"```"+`
 
 开发原则：

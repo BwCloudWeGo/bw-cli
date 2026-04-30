@@ -156,8 +156,16 @@ func TestInitWithoutDemoRemovesDemoServicesAndWritesCleanGateway(t *testing.T) {
 	require.Contains(t, readme, "github.com/acme/clean")
 	require.Contains(t, readme, "[Gateway Started]")
 	require.Contains(t, readme, "health: http://127.0.0.1:8080/healthz")
+	require.Contains(t, readme, "bw-cli service order --tidy")
+	require.Contains(t, readme, "Create/Get/List/Update/Delete")
+	require.Contains(t, readme, "不需要修改 `configs/config.yaml`")
 	require.NotContains(t, readme, "user-service")
 	require.NotContains(t, readme, "note-service")
+
+	usage := readString(t, filepath.Join(target, "docs", "usage.md"))
+	require.Contains(t, usage, "bw-cli service comment --tidy")
+	require.Contains(t, usage, "APP_COMMENT_GRPC_PORT")
+	require.Contains(t, usage, "gRPC client -> proto -> handler -> service -> model.Repository -> repo(Gorm) -> database")
 
 	toolkit := readString(t, filepath.Join(target, "docs", "toolkit.md"))
 	require.Contains(t, toolkit, "github.com/acme/clean")

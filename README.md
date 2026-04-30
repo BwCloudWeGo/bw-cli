@@ -7,6 +7,7 @@
 - 快速生成 Gin + gRPC 微服务项目。
 - `bw-cli new <项目名> --module <module>` 一条命令生成干净框架。
 - `bw-cli demo <项目名> --module <module>` 单独生成带示例业务的演示项目。
+- `bw-cli service <服务名> --tidy` 在现有项目中生成可启动的基础 CRUD 服务。
 - 使用清晰的 DDD 分层：`model`、`service`、`repo`、`handler`。
 - 默认支持 Gorm，并内置 SQLite、MySQL、PostgreSQL。
 - 内置 MongoDB、Redis、Elasticsearch、Kafka 客户端封装。
@@ -302,10 +303,10 @@ make test
 进入已生成的项目根目录，直接执行：
 
 ```bash
-bw-cli service order --port 9100 --tidy
+bw-cli service order --tidy
 ```
 
-这条命令会自动读取当前项目的 `go.mod`，并生成一整套可编译的服务骨架：
+这条命令会自动读取当前项目的 `go.mod`，并生成一整套可编译、可启动、带基础 CRUD 的服务代码，不需要先修改 `configs/config.yaml`：
 
 ```text
 api/proto/order/v1/order.proto
@@ -323,6 +324,56 @@ docs/services/order.md
 ```bash
 make run-order
 ```
+
+默认 gRPC 端口是 `9100`。如果需要指定端口，可以在生成时传 `--port`：
+
+```bash
+bw-cli service order --port 9103 --tidy
+```
+
+端口不写入配置文件，而是固化在生成的 `cmd/order/main.go` 默认值里，也支持环境变量覆盖：
+
+```bash
+APP_ORDER_GRPC_PORT=9104 make run-order
+```
+
+生成后的基础调用链已经成型：
+
+```text
+HTTP client -> gateway router/handler -> gRPC client -> proto -> handler -> service -> model.Repository -> repo(Gorm) -> database
+```
+
+默认提供：
+
+```text
+CreateOrder
+GetOrder
+ListOrders
+UpdateOrder
+DeleteOrder
+```
+
+用户可以直接把示例字段 `Name`、`Description` 替换成真实业务字段，或者在现有 CRUD 上继续增加业务方法。
+
+如果项目包含 gateway，命令会同步生成：
+
+```text
+internal/gateway/request/order_request.go
+internal/gateway/handler/order_handler.go
+internal/gateway/router/order_routes.go
+```
+
+并自动挂载：
+
+```text
+POST   /api/v1/orders
+GET    /api/v1/orders
+GET    /api/v1/orders/:id
+PUT    /api/v1/orders/:id
+DELETE /api/v1/orders/:id
+```
+
+gateway 默认连接生成服务端口，例如 `--port 9103` 时连接 `127.0.0.1:9103`；可用 `APP_ORDER_GRPC_TARGET` 覆盖，不需要改配置文件。
 
 生成后常用流程：
 
