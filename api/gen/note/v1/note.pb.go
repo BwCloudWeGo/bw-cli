@@ -126,8 +126,17 @@ func (x *GetNoteRequest) GetId() string {
 }
 
 type PublishNoteRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Id       string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	AuthorId string                 `protobuf:"bytes,2,opt,name=author_id,json=authorId,proto3" json:"author_id,omitempty"`
+	Title    string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Content  string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
+	// 0=图文 1=视频
+	NoteType int32 `protobuf:"varint,5,opt,name=note_type,json=noteType,proto3" json:"note_type,omitempty"`
+	// 0=公开 1=私密
+	Permission    int32    `protobuf:"varint,6,opt,name=permission,proto3" json:"permission,omitempty"`
+	TopicIds      []string `protobuf:"bytes,7,rep,name=topic_ids,json=topicIds,proto3" json:"topic_ids,omitempty"`
+	Status        int32    `protobuf:"varint,8,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -169,6 +178,55 @@ func (x *PublishNoteRequest) GetId() string {
 	return ""
 }
 
+func (x *PublishNoteRequest) GetAuthorId() string {
+	if x != nil {
+		return x.AuthorId
+	}
+	return ""
+}
+
+func (x *PublishNoteRequest) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *PublishNoteRequest) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *PublishNoteRequest) GetNoteType() int32 {
+	if x != nil {
+		return x.NoteType
+	}
+	return 0
+}
+
+func (x *PublishNoteRequest) GetPermission() int32 {
+	if x != nil {
+		return x.Permission
+	}
+	return 0
+}
+
+func (x *PublishNoteRequest) GetTopicIds() []string {
+	if x != nil {
+		return x.TopicIds
+	}
+	return nil
+}
+
+func (x *PublishNoteRequest) GetStatus() int32 {
+	if x != nil {
+		return x.Status
+	}
+	return 0
+}
+
 type NoteResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -176,6 +234,10 @@ type NoteResponse struct {
 	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	Content       string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
 	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	NoteType      int32                  `protobuf:"varint,6,opt,name=note_type,json=noteType,proto3" json:"note_type,omitempty"`
+	Permission    int32                  `protobuf:"varint,7,opt,name=permission,proto3" json:"permission,omitempty"`
+	Remark        string                 `protobuf:"bytes,8,opt,name=remark,proto3" json:"remark,omitempty"`
+	TopicIds      []string               `protobuf:"bytes,9,rep,name=topic_ids,json=topicIds,proto3" json:"topic_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -245,6 +307,34 @@ func (x *NoteResponse) GetStatus() string {
 	return ""
 }
 
+func (x *NoteResponse) GetNoteType() int32 {
+	if x != nil {
+		return x.NoteType
+	}
+	return 0
+}
+
+func (x *NoteResponse) GetPermission() int32 {
+	if x != nil {
+		return x.Permission
+	}
+	return 0
+}
+
+func (x *NoteResponse) GetRemark() string {
+	if x != nil {
+		return x.Remark
+	}
+	return ""
+}
+
+func (x *NoteResponse) GetTopicIds() []string {
+	if x != nil {
+		return x.TopicIds
+	}
+	return nil
+}
+
 var File_note_v1_note_proto protoreflect.FileDescriptor
 
 const file_note_v1_note_proto_rawDesc = "" +
@@ -255,15 +345,30 @@ const file_note_v1_note_proto_rawDesc = "" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
 	"\acontent\x18\x03 \x01(\tR\acontent\" \n" +
 	"\x0eGetNoteRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"$\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xe3\x01\n" +
 	"\x12PublishNoteRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x83\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
+	"\tauthor_id\x18\x02 \x01(\tR\bauthorId\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12\x18\n" +
+	"\acontent\x18\x04 \x01(\tR\acontent\x12\x1b\n" +
+	"\tnote_type\x18\x05 \x01(\x05R\bnoteType\x12\x1e\n" +
+	"\n" +
+	"permission\x18\x06 \x01(\x05R\n" +
+	"permission\x12\x1b\n" +
+	"\ttopic_ids\x18\a \x03(\tR\btopicIds\x12\x16\n" +
+	"\x06status\x18\b \x01(\x05R\x06status\"\xf5\x01\n" +
 	"\fNoteResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tauthor_id\x18\x02 \x01(\tR\bauthorId\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12\x18\n" +
 	"\acontent\x18\x04 \x01(\tR\acontent\x12\x16\n" +
-	"\x06status\x18\x05 \x01(\tR\x06status2\xcc\x01\n" +
+	"\x06status\x18\x05 \x01(\tR\x06status\x12\x1b\n" +
+	"\tnote_type\x18\x06 \x01(\x05R\bnoteType\x12\x1e\n" +
+	"\n" +
+	"permission\x18\a \x01(\x05R\n" +
+	"permission\x12\x16\n" +
+	"\x06remark\x18\b \x01(\tR\x06remark\x12\x1b\n" +
+	"\ttopic_ids\x18\t \x03(\tR\btopicIds2\xcc\x01\n" +
 	"\vNoteService\x12?\n" +
 	"\n" +
 	"CreateNote\x12\x1a.note.v1.CreateNoteRequest\x1a\x15.note.v1.NoteResponse\x129\n" +

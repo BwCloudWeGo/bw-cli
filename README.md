@@ -313,7 +313,9 @@ api/proto/order/v1/order.proto
 api/gen/order/v1
 cmd/order/main.go
 internal/order/model
-internal/order/service
+internal/order/service/command.go
+internal/order/service/dto.go
+internal/order/service/service.go
 internal/order/repo
 internal/order/handler
 docs/services/order.md
@@ -421,7 +423,10 @@ $env:APP_ORDER_GRPC_PORT="9101"; make run-order
 ```text
 internal/<service>
   ├── model    # 实体、值对象、业务错误、仓储接口
-  ├── service  # 业务用例编排
+  ├── service
+  │   ├── command.go  # 业务用例入参命令
+  │   ├── dto.go      # 业务用例出参 DTO 和转换
+  │   └── service.go  # 业务流程编排
   ├── repo     # Gorm、MongoDB、Redis、外部依赖实现
   └── handler  # gRPC/HTTP 入站适配
 ```
@@ -446,6 +451,7 @@ repo -> model
 ```
 
 `model` 不依赖 Gin、gRPC、Gorm、MongoDB SDK 或日志框架，便于测试和替换基础设施。
+`service.go` 只写业务流程；命令入参放 `service/command.go`，返回 DTO 和转换函数放 `service/dto.go`，避免控制器或服务主文件堆字段。
 
 ## 7. 常用 Make 命令
 

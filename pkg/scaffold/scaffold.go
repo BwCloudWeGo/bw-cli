@@ -713,7 +713,7 @@ docs           # 使用和架构文档
 bw-cli service order --tidy
 `+"```"+`
 
-命令会生成 `+"`cmd/order`"+`、`+"`api/proto/order`"+`、`+"`internal/order/model`"+`、`+"`service`"+`、`+"`repo`"+`、`+"`handler`"+`、gateway request/handler/router 和 `+"`docs/services/order.md`"+`。生成后的服务默认带 Create/Get/List/Update/Delete 基础 CRUD，端口默认值写在 `+"`cmd/order/main.go`"+`，不需要修改 `+"`configs/config.yaml`"+`。
+命令会生成 `+"`cmd/order`"+`、`+"`api/proto/order`"+`、`+"`internal/order/model`"+`、`+"`internal/order/service/command.go`"+`、`+"`dto.go`"+`、`+"`service.go`"+`、`+"`repo`"+`、`+"`handler`"+`、gateway request/handler/router 和 `+"`docs/services/order.md`"+`。生成后的服务默认带 Create/Get/List/Update/Delete 基础 CRUD，端口默认值写在 `+"`cmd/order/main.go`"+`，不需要修改 `+"`configs/config.yaml`"+`。
 
 需要指定端口时使用：
 
@@ -856,7 +856,9 @@ api/proto/comment/v1/comment.proto
 api/gen/comment/v1
 cmd/comment/main.go
 internal/comment/model      # 领域实体、业务错误、Repository 接口
-internal/comment/service    # 业务用例编排
+internal/comment/service/command.go  # 业务用例入参命令
+internal/comment/service/dto.go      # 业务用例出参 DTO 和转换
+internal/comment/service/service.go  # 业务流程编排
 internal/comment/repo       # 数据库访问，默认 Gorm
 internal/comment/handler    # gRPC 协议转换
 internal/gateway/request/comment_request.go
@@ -894,7 +896,7 @@ DeleteComment
 开发原则：
 
 - `+"`model`"+` 写业务核心，不依赖 Gin、gRPC、Gorm。
-- `+"`service`"+` 写业务流程，只依赖 `+"`model.Repository`"+`。
+- `+"`service/command.go`"+` 写业务入参，`+"`service/dto.go`"+` 写业务出参，`+"`service/service.go`"+` 写业务流程。
 - `+"`repo`"+` 是数据库操作唯一入口，Gorm/MongoDB/Redis 查询都放这里。
 - `+"`handler`"+` 只做 gRPC request/response 转换和错误映射。
 - HTTP 入参放 `+"`internal/gateway/request`"+`，路由按 `+"`/api/v1/<business>`"+` 拆分。
@@ -914,7 +916,9 @@ func cleanArchitectureDoc() string {
 
 ~~~text
 internal/<service>/model    # 实体、值对象、业务错误、仓储接口
-internal/<service>/service  # 业务用例编排
+internal/<service>/service/command.go  # 业务用例入参命令
+internal/<service>/service/dto.go      # 业务用例出参 DTO 和转换
+internal/<service>/service/service.go  # 业务流程编排
 internal/<service>/repo     # Gorm、MongoDB、Redis、外部依赖实现
 internal/<service>/handler  # gRPC/HTTP 入站适配
 ~~~
@@ -926,7 +930,7 @@ handler -> service -> model
 repo -> model
 ~~~
 
-model 不依赖 Gin、gRPC、Gorm 或云 SDK，便于测试和替换基础设施。
+model 不依赖 Gin、gRPC、Gorm 或云 SDK，便于测试和替换基础设施。service 继续拆为 command、dto、service 三个文件：command 放业务入参，dto 放业务出参和转换，service 放业务流程。
 
 ## Gateway
 
@@ -1161,7 +1165,9 @@ Client
 
 ~~~text
 internal/<service>/model    # 实体、值对象、业务错误、仓储接口
-internal/<service>/service  # 业务用例编排
+internal/<service>/service/command.go  # 业务用例入参命令
+internal/<service>/service/dto.go      # 业务用例出参 DTO 和转换
+internal/<service>/service/service.go  # 业务流程编排
 internal/<service>/repo     # Gorm、MongoDB、Redis、外部依赖实现
 internal/<service>/handler  # gRPC/HTTP 入站适配
 ~~~
@@ -1172,6 +1178,8 @@ internal/<service>/handler  # gRPC/HTTP 入站适配
 handler -> service -> model
 repo -> model
 ~~~
+
+service 目录中，command 放业务入参，dto 放业务出参和转换，service 放业务流程；handler 不直接堆字段或操作数据库。
 
 ## Gateway
 

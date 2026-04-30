@@ -52,6 +52,26 @@ func TestCreateAndPublishNote(t *testing.T) {
 	require.Equal(t, model.NoteStatusPublished, found.Status)
 }
 
+func TestPublishSubmittedCreatesPublishedNote(t *testing.T) {
+	svc := service.NewService(newMemoryNoteRepo())
+
+	published, err := svc.PublishSubmitted(context.Background(), service.PublishNoteCommand{
+		AuthorID:   "user-1",
+		Title:      "Published",
+		Content:    "Created from publish payload",
+		NoteType:   1,
+		Permission: 1,
+		TopicIDs:   []string{"topic-1"},
+	})
+
+	require.NoError(t, err)
+	require.NotEmpty(t, published.ID)
+	require.Equal(t, "user-1", published.AuthorID)
+	require.Equal(t, model.NoteStatusPublished, published.Status)
+	require.Equal(t, int32(1), published.NoteType)
+	require.Equal(t, []string{"topic-1"}, published.TopicIDs)
+}
+
 func TestCreateNoteRequiresAuthorTitleAndContent(t *testing.T) {
 	svc := service.NewService(newMemoryNoteRepo())
 

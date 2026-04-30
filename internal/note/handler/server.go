@@ -49,7 +49,16 @@ func (s *Server) GetNote(ctx context.Context, req *notev1.GetNoteRequest) (*note
 
 // PublishNote handles the note publish RPC.
 func (s *Server) PublishNote(ctx context.Context, req *notev1.PublishNoteRequest) (*notev1.NoteResponse, error) {
-	note, err := s.svc.Publish(ctx, req.GetId())
+	note, err := s.svc.PublishSubmitted(ctx, service.PublishNoteCommand{
+		ID:         req.GetId(),
+		AuthorID:   req.GetAuthorId(),
+		Title:      req.GetTitle(),
+		Content:    req.GetContent(),
+		NoteType:   req.GetNoteType(),
+		Permission: req.GetPermission(),
+		TopicIDs:   req.GetTopicIds(),
+		Status:     req.GetStatus(),
+	})
 	if err != nil {
 		return nil, mapNoteError(err)
 	}
@@ -59,11 +68,15 @@ func (s *Server) PublishNote(ctx context.Context, req *notev1.PublishNoteRequest
 
 func toProto(note *service.NoteDTO) *notev1.NoteResponse {
 	return &notev1.NoteResponse{
-		Id:       note.ID,
-		AuthorId: note.AuthorID,
-		Title:    note.Title,
-		Content:  note.Content,
-		Status:   string(note.Status),
+		Id:         note.ID,
+		AuthorId:   note.AuthorID,
+		Title:      note.Title,
+		Content:    note.Content,
+		Status:     string(note.Status),
+		NoteType:   int32(note.NoteType),
+		Permission: int32(note.Permission),
+		Remark:     note.Remark,
+		TopicIds:   note.TopicIDs,
 	}
 }
 

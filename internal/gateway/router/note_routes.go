@@ -12,4 +12,5 @@ func registerNoteRoutes(v1 *gin.RouterGroup, noteHandler *handler.NoteHandler) {
 	notes.POST("", noteHandler.Create)
 	notes.GET("/:id", noteHandler.Get)
 	notes.POST("/:id/publish", noteHandler.Publish)
+	notes.POST("/publishNote", noteHandler.PublishNote)
 }

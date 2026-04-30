@@ -13,14 +13,17 @@ import (
 
 // NoteModel is the Gorm persistence model for the notes table.
 type NoteModel struct {
-	ID          string `gorm:"primaryKey;size:64"`
-	AuthorID    string `gorm:"index;size:64;not null"`
-	Title       string `gorm:"size:255;not null"`
-	Content     string `gorm:"type:text;not null"`
-	Status      string `gorm:"size:32;not null"`
-	PublishedAt *time.Time
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          string     `gorm:"column:id;primaryKey;size:64"`
+	AuthorID    string     `gorm:"column:author_id;index;size:64;not null"`
+	Title       string     `gorm:"column:title;size:100;comment:标题"`
+	Content     string     `gorm:"column:content;type:text;comment:内容"`
+	Status      int32      `gorm:"column:status;comment:状态（1.草稿 2.发布）"`
+	TypeID      int32      `gorm:"column:type_id;comment:笔记类型 1.文字 2.图片 3.视频"`
+	Remark      string     `gorm:"column:remark;size:50;comment:备注"`
+	Permission  int32      `gorm:"column:permission;comment:权限（1.公开 2.私密 3.部分 4.好友 5.密码）"`
+	PublishedAt *time.Time `gorm:"column:published_at"`
+	CreatedAt   time.Time  `gorm:"column:created_at"`
+	UpdatedAt   time.Time  `gorm:"column:updated_at"`
 }
 
 func (NoteModel) TableName() string {
@@ -93,7 +96,10 @@ func toNoteModel(note *model.Note) *NoteModel {
 		AuthorID:    note.AuthorID,
 		Title:       note.Title,
 		Content:     note.Content,
-		Status:      string(note.Status),
+		Status:      note.Status.Code(),
+		TypeID:      note.NoteType,
+		Permission:  note.Permission,
+		Remark:      note.Remark,
 		PublishedAt: note.PublishedAt,
 		CreatedAt:   note.CreatedAt,
 		UpdatedAt:   note.UpdatedAt,
@@ -106,7 +112,10 @@ func toNoteDomain(record *NoteModel) *model.Note {
 		AuthorID:    record.AuthorID,
 		Title:       record.Title,
 		Content:     record.Content,
-		Status:      model.NoteStatus(record.Status),
+		Status:      model.NoteStatusFromCode(record.Status),
+		NoteType:    record.TypeID,
+		Permission:  record.Permission,
+		Remark:      record.Remark,
 		PublishedAt: record.PublishedAt,
 		CreatedAt:   record.CreatedAt,
 		UpdatedAt:   record.UpdatedAt,

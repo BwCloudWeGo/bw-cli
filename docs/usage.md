@@ -336,7 +336,7 @@ grpc:
   host: 0.0.0.0
 ```
 
-干净项目默认不创建具体 gRPC 服务端口。新增业务服务后，可以在 `config.GRPCConfig` 中补充对应服务的监听端口和 gateway target。
+干净项目默认不创建具体 gRPC 服务端口。执行 `bw-cli service <name>` 后，服务默认端口写在 `cmd/<name>/main.go`，可用 `APP_<SERVICE>_GRPC_PORT` 覆盖；gateway 目标地址可用 `APP_<SERVICE>_GRPC_TARGET` 覆盖，不需要先改 `configs/config.yaml`。
 
 ### 6.4 SQLite 默认配置
 
@@ -829,7 +829,7 @@ PUBLISHED
 
 ### 9.1 HTTP 入参在哪里
 
-干净项目默认不创建业务 DTO。新增业务时放在：
+干净项目默认不创建 HTTP 入参 DTO。新增业务时放在：
 
 ```text
 internal/gateway/request
@@ -867,7 +867,10 @@ v1.go           # /api/v1
 
 ```text
 internal/comment/model      # Comment 实体、错误、Repository 接口
-internal/comment/service    # Create/Get/List 等业务用例
+internal/comment/service
+  ├── command.go            # CreateCommand、UpdateCommand、ListCommand
+  ├── dto.go                # CommentDTO、ListCommentDTO、toDTO
+  └── service.go            # Create/Get/List 等业务用例
 internal/comment/repo       # Gorm 或 MongoDB 实现
 internal/comment/handler    # gRPC server
 ```
@@ -900,7 +903,9 @@ api/proto/comment/v1/comment.proto
 api/gen/comment/v1
 cmd/comment/main.go
 internal/comment/model
-internal/comment/service
+internal/comment/service/command.go
+internal/comment/service/dto.go
+internal/comment/service/service.go
 internal/comment/repo
 internal/comment/handler
 docs/services/comment.md
@@ -982,7 +987,9 @@ export APP_COMMENT_GRPC_TARGET=127.0.0.1:9103
 | `api/gen/<service>/v1` | 生成代码 | 只通过 `make proto` 生成，不手写 | 保持 proto 和 Go 类型一致，减少人为错误 |
 | `cmd/<service>` | 服务启动入口 | 加载配置、初始化日志、打开数据库、注册 gRPC server | 入口负责组装依赖，业务逻辑不放在 main 中 |
 | `internal/<service>/model` | 领域模型 | 写实体、业务错误、Repository 接口 | model 是业务核心，不依赖 Gin、gRPC、Gorm，方便测试和替换基础设施 |
-| `internal/<service>/service` | 业务用例 | 接收命令对象，调用领域模型和仓储接口 | service 表达业务流程，避免 handler 直接写业务 |
+| `internal/<service>/service/command.go` | 业务用例入参 | 定义 `CreateCommand`、`UpdateCommand`、`ListCommand` 等命令对象 | handler 只组装命令，不堆业务字段 |
+| `internal/<service>/service/dto.go` | 业务用例出参 | 定义 DTO，并把领域模型转成返回结构 | 对外不暴露领域模型和数据库模型 |
+| `internal/<service>/service/service.go` | 业务流程编排 | 接收命令对象，调用领域模型和仓储接口 | service 表达业务流程，避免 handler 直接写业务 |
 | `internal/<service>/repo` | 数据库实现 | 默认用 Gorm 实现 `model.Repository` | 数据库操作集中在 repo，业务层只面向接口 |
 | `internal/<service>/handler` | gRPC 入站适配 | 把 proto request 转成 service command，把 DTO 转成 proto response | handler 只做协议转换，不写数据库和复杂业务 |
 | `internal/gateway/request` | HTTP 入参 DTO | 定义 Gin bind/validate 结构体 | 控制器不堆请求字段，入参可复用和测试 |
@@ -1008,7 +1015,15 @@ type Repository interface {
 
 ### 10.4 service 层：写业务流程
 
-`service` 层已经生成 `Create/Get/List/Update/Delete`。新增业务规则时写在这里或 `model`，不要写在 handler。
+`service` 层已经生成 `Create/Get/List/Update/Delete`，并严格拆成三个文件：
+
+```text
+internal/comment/service/command.go  # 业务入参命令
+internal/comment/service/dto.go      # 业务出参 DTO 和 toDTO
+internal/comment/service/service.go  # 业务流程编排
+```
+
+新增业务规则时写在 `service.go` 或 `model`，不要写在 handler。新增入参先放 `command.go`，新增出参和转换放 `dto.go`。
 
 ```go
 func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*CommentDTO, error) {

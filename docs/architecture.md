@@ -52,12 +52,20 @@ Client
 
 ### service
 
-放业务用例：
+放业务用例，并按文件继续拆清职责：
 
 - 注册用户
 - 创建订单
 - 发布内容
 - 审核资源
+
+```text
+internal/<service>/service/command.go  # 业务用例入参命令
+internal/<service>/service/dto.go      # 业务用例出参 DTO 和转换
+internal/<service>/service/service.go  # 业务流程编排
+```
+
+`command.go` 只定义 `CreateCommand`、`UpdateCommand` 等入参，不写业务流程。`dto.go` 只定义返回结构和 `toDTO` 转换，不暴露领域模型或数据库模型。`service.go` 只写用例方法，负责调用领域模型和 `model.Repository`。
 
 这一层只依赖 `model` 中的接口和实体。事务、幂等、权限等业务编排也放在这里。
 
@@ -217,12 +225,18 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 
 ## 扩展新服务
 
-新增服务时按以下步骤：
+推荐直接使用脚手架生成完整调用链：
+
+```bash
+bw-cli service <service> --tidy
+```
+
+命令会创建 proto、cmd、model、service、repo、handler、gateway request/handler/router 和服务文档。需要手工扩展时按以下步骤：
 
 1. 在 `api/proto/<service>/v1` 添加 proto。
 2. 运行 `make proto`。
 3. 创建 `internal/<service>/model`。
-4. 创建 `internal/<service>/service`。
+4. 创建 `internal/<service>/service/command.go`、`dto.go`、`service.go`。
 5. 创建 `internal/<service>/repo`。
 6. 创建 `internal/<service>/handler`。
 7. 创建 `cmd/<service>/main.go`。

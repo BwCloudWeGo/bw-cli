@@ -195,6 +195,8 @@ func writeServiceFiles(root string, data serviceTemplateData) error {
 		filepath.Join("cmd", data.Dir, "main.go"):                         renderServiceTemplate(serviceMainTemplate, data),
 		filepath.Join("internal", data.Dir, "model", data.Dir+".go"):      renderServiceTemplate(serviceModelTemplate, data),
 		filepath.Join("internal", data.Dir, "model", "repository.go"):     renderServiceTemplate(serviceRepositoryTemplate, data),
+		filepath.Join("internal", data.Dir, "service", "command.go"):      renderServiceTemplate(serviceCommandTemplate, data),
+		filepath.Join("internal", data.Dir, "service", "dto.go"):          renderServiceTemplate(serviceDTOTemplate, data),
 		filepath.Join("internal", data.Dir, "service", "service.go"):      renderServiceTemplate(serviceUseCaseTemplate, data),
 		filepath.Join("internal", data.Dir, "service", "service_test.go"): renderServiceTemplate(serviceUseCaseTestTemplate, data),
 		filepath.Join("internal", data.Dir, "repo", "gorm_repository.go"): renderServiceTemplate(serviceGormRepoTemplate, data),
@@ -312,6 +314,8 @@ func gofmtService(root string, serviceDir string) error {
 		filepath.Join("cmd", serviceDir, "main.go"),
 		filepath.Join("internal", serviceDir, "model", serviceDir+".go"),
 		filepath.Join("internal", serviceDir, "model", "repository.go"),
+		filepath.Join("internal", serviceDir, "service", "command.go"),
+		filepath.Join("internal", serviceDir, "service", "dto.go"),
 		filepath.Join("internal", serviceDir, "service", "service.go"),
 		filepath.Join("internal", serviceDir, "service", "service_test.go"),
 		filepath.Join("internal", serviceDir, "repo", "gorm_repository.go"),
@@ -620,30 +624,7 @@ type Repository interface {
 }
 `
 
-const serviceUseCaseTemplate = `package service
-
-import (
-	"context"
-	"time"
-
-	"go.uber.org/zap"
-
-	"{{ .Module }}/internal/{{ .Dir }}/model"
-)
-
-// Service orchestrates {{ .Dir }} use cases.
-type Service struct {
-	repo model.Repository
-	log  *zap.Logger
-}
-
-// NewService constructs the {{ .Dir }} use-case service.
-func NewService(repo model.Repository, log *zap.Logger) *Service {
-	if log == nil {
-		log = zap.NewNop()
-	}
-	return &Service{repo: repo, log: log}
-}
+const serviceCommandTemplate = `package service
 
 // CreateCommand contains input for creating a {{ .Dir }} record.
 type CreateCommand struct {
@@ -663,6 +644,15 @@ type ListCommand struct {
 	Page     int32
 	PageSize int32
 }
+`
+
+const serviceDTOTemplate = `package service
+
+import (
+	"time"
+
+	"{{ .Module }}/internal/{{ .Dir }}/model"
+)
 
 // {{ .Pascal }}DTO is returned by use cases and converted by handlers.
 type {{ .Pascal }}DTO struct {
@@ -677,6 +667,50 @@ type {{ .Pascal }}DTO struct {
 type List{{ .Pascal }}DTO struct {
 	Items []*{{ .Pascal }}DTO
 	Total int64
+}
+
+// toDTO converts a {{ .Dir }} aggregate into the service response DTO.
+func toDTO(item *model.{{ .Pascal }}) *{{ .Pascal }}DTO {
+	return &{{ .Pascal }}DTO{
+		ID:          item.ID,
+		Name:        item.Name,
+		Description: item.Description,
+		CreatedAt:   formatTime(item.CreatedAt),
+		UpdatedAt:   formatTime(item.UpdatedAt),
+	}
+}
+
+// formatTime keeps zero time empty and serializes real values in a stable API format.
+func formatTime(value time.Time) string {
+	if value.IsZero() {
+		return ""
+	}
+	return value.Format(time.RFC3339Nano)
+}
+`
+
+const serviceUseCaseTemplate = `package service
+
+import (
+	"context"
+
+	"go.uber.org/zap"
+
+	"{{ .Module }}/internal/{{ .Dir }}/model"
+)
+
+// Service orchestrates {{ .Dir }} use cases.
+type Service struct {
+	repo model.Repository
+	log  *zap.Logger
+}
+
+// NewService constructs the {{ .Dir }} use-case service.
+func NewService(repo model.Repository, log *zap.Logger) *Service {
+	if log == nil {
+		log = zap.NewNop()
+	}
+	return &Service{repo: repo, log: log}
 }
 
 // Create creates a {{ .Dir }} record.
@@ -752,23 +786,6 @@ func normalizePagination(page int32, pageSize int32) (int, int) {
 	}
 	return int((page - 1) * pageSize), int(pageSize)
 }
-
-func toDTO(item *model.{{ .Pascal }}) *{{ .Pascal }}DTO {
-	return &{{ .Pascal }}DTO{
-		ID:          item.ID,
-		Name:        item.Name,
-		Description: item.Description,
-		CreatedAt:   formatTime(item.CreatedAt),
-		UpdatedAt:   formatTime(item.UpdatedAt),
-	}
-}
-
-func formatTime(value time.Time) string {
-	if value.IsZero() {
-		return ""
-	}
-	return value.Format(time.RFC3339Nano)
-}
 `
 
 const serviceUseCaseTestTemplate = `package service
@@ -776,7 +793,6 @@ const serviceUseCaseTestTemplate = `package service
 import (
 	"context"
 	"testing"
-	"time"
 
 	"{{ .Module }}/internal/{{ .Dir }}/model"
 	"github.com/stretchr/testify/require"
@@ -865,7 +881,6 @@ func (r *fakeRepository) Delete(ctx context.Context, id string) error {
 }
 
 var _ model.Repository = (*fakeRepository)(nil)
-var _ = time.RFC3339Nano
 `
 
 const serviceGormRepoTemplate = `package repo
@@ -1396,7 +1411,9 @@ api/proto/{{ .Dir }}/v1/{{ .ProtoFile }}       # gRPC 协议定义
 api/gen/{{ .Dir }}/v1                          # make proto 生成代码
 cmd/{{ .Dir }}/main.go                         # gRPC 服务启动入口
 internal/{{ .Dir }}/model                      # 领域实体和仓储接口
-internal/{{ .Dir }}/service                    # 业务用例
+internal/{{ .Dir }}/service/command.go         # 业务用例入参命令
+internal/{{ .Dir }}/service/dto.go             # 业务用例出参 DTO
+internal/{{ .Dir }}/service/service.go         # 业务流程编排
 internal/{{ .Dir }}/repo                       # Gorm 仓储实现
 internal/{{ .Dir }}/handler                    # gRPC 入站适配器
 ~~~
@@ -1451,7 +1468,7 @@ export APP_{{ .EnvPrefix }}_GRPC_TARGET=127.0.0.1:{{ .Port }}
 1. 在 ` + "`api/proto/{{ .Dir }}/v1/{{ .ProtoFile }}`" + ` 中定义 RPC、Request、Response。
 2. 执行 ` + "`make proto`" + ` 生成 ` + "`api/gen/{{ .Dir }}/v1`" + `。
 3. 在 ` + "`internal/{{ .Dir }}/model`" + ` 补充领域实体、业务错误和仓储接口。
-4. 在 ` + "`internal/{{ .Dir }}/service`" + ` 编写业务用例。
+4. 在 ` + "`internal/{{ .Dir }}/service/command.go`" + ` 写入参，在 ` + "`dto.go`" + ` 写出参，在 ` + "`service.go`" + ` 编排业务用例。
 5. 在 ` + "`internal/{{ .Dir }}/repo`" + ` 实现数据库访问。
 6. 在 ` + "`internal/{{ .Dir }}/handler`" + ` 将 gRPC 请求转成业务命令。
 7. 在 ` + "`internal/gateway/request`" + `、` + "`handler`" + `、` + "`router`" + ` 调整 HTTP 入参、控制器和路由。
@@ -1464,7 +1481,9 @@ export APP_{{ .EnvPrefix }}_GRPC_TARGET=127.0.0.1:{{ .Port }}
 | ` + "`api/gen/{{ .Dir }}/v1`" + ` | ` + "`make proto`" + ` 生成代码 | 保持 proto 与 Go 类型一致，不手写 |
 | ` + "`cmd/{{ .Dir }}`" + ` | 配置、日志、数据库、gRPC server 组装 | main 只负责依赖装配，不写业务 |
 | ` + "`internal/{{ .Dir }}/model`" + ` | 领域实体、业务错误、Repository 接口 | 业务核心不依赖 Gin、gRPC、Gorm |
-| ` + "`internal/{{ .Dir }}/service`" + ` | 用例编排、事务意图、DTO | 表达业务流程，依赖接口而不是数据库实现 |
+| ` + "`internal/{{ .Dir }}/service/command.go`" + ` | 业务用例入参，例如 ` + "`CreateCommand`" + `、` + "`UpdateCommand`" + ` | handler 只负责组装命令，入参与流程分开 |
+| ` + "`internal/{{ .Dir }}/service/dto.go`" + ` | 业务用例出参和领域模型转换 | 对外不暴露领域模型和数据库模型 |
+| ` + "`internal/{{ .Dir }}/service/service.go`" + ` | 用例编排、事务意图、调用仓储接口 | 表达业务流程，依赖接口而不是数据库实现 |
 | ` + "`internal/{{ .Dir }}/repo`" + ` | Gorm/MongoDB/Redis 等实现 | 数据库访问集中管理，方便替换和测试 |
 | ` + "`internal/{{ .Dir }}/handler`" + ` | gRPC request/response 适配 | 协议转换和错误映射，不写数据库逻辑 |
 | ` + "`internal/gateway/request`" + ` | HTTP 入参 DTO | 控制器不堆字段，入参校验更清楚 |
@@ -1529,7 +1548,15 @@ type Repository interface {
 
 ## service 层
 
-` + "`service`" + ` 编排业务流程，只依赖 ` + "`model.Repository`" + `。
+` + "`service`" + ` 按职责拆成三个文件，避免一个文件同时承担入参、出参和流程编排：
+
+~~~text
+internal/{{ .Dir }}/service/command.go  # CreateCommand、UpdateCommand、ListCommand
+internal/{{ .Dir }}/service/dto.go      # {{ .Pascal }}DTO、List{{ .Pascal }}DTO、toDTO
+internal/{{ .Dir }}/service/service.go  # Service、NewService、Create/Get/List/Update/Delete
+~~~
+
+` + "`service.go`" + ` 只编排业务流程，只依赖 ` + "`model.Repository`" + `。
 
 ~~~go
 package service
@@ -1553,7 +1580,7 @@ func NewService(repo model.Repository, log *zap.Logger) *Service {
 }
 ~~~
 
-新增业务时建议先定义命令对象，例如 ` + "`CreateCommand`" + `，再在方法里调用领域模型和仓储接口。这样 handler 不会堆业务判断，service 也更容易写单元测试。
+新增业务时先在 ` + "`command.go`" + ` 定义命令对象，例如 ` + "`CreateCommand`" + `，再在 ` + "`service.go`" + ` 调用领域模型和仓储接口，最后在 ` + "`dto.go`" + ` 做出参转换。这样 handler 不会堆业务判断，service 也更容易写单元测试。
 
 ## repo 层：数据库在哪里操作，如何操作
 
