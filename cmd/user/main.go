@@ -23,10 +23,10 @@ import (
 
 func main() {
 	// Load service identity, database and logging settings from YAML/env.
-	cfg, err := config.Load("configs/config.yaml")
-	if err != nil {
+	if err := config.InitGlobal("configs/config.yaml"); err != nil {
 		panic(err)
 	}
+	cfg := config.MustGlobal()
 	cfg.Log.Service = cfg.App.UserServiceName
 	cfg.Log = logger.WithDailyFileName(cfg.Log, time.Now())
 

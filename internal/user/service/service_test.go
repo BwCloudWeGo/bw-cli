@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/BwCloudWeGo/bw-cli/internal/user/dto"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/model"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/service"
 )
@@ -57,7 +58,7 @@ func (plainHasher) Verify(hash string, password string) bool {
 func TestRegisterCreatesUserAndRejectsDuplicateEmail(t *testing.T) {
 	svc := service.NewService(newMemoryUserRepo(), plainHasher{})
 
-	created, err := svc.Register(context.Background(), service.RegisterCommand{
+	created, err := svc.Register(context.Background(), dto.RegisterCommand{
 		Email:       "ada@example.com",
 		DisplayName: "Ada",
 		Password:    "secret123",
@@ -67,7 +68,7 @@ func TestRegisterCreatesUserAndRejectsDuplicateEmail(t *testing.T) {
 	require.Equal(t, "ada@example.com", created.Email)
 	require.Equal(t, "Ada", created.DisplayName)
 
-	_, err = svc.Register(context.Background(), service.RegisterCommand{
+	_, err = svc.Register(context.Background(), dto.RegisterCommand{
 		Email:       "ada@example.com",
 		DisplayName: "Ada Again",
 		Password:    "secret123",
@@ -77,21 +78,21 @@ func TestRegisterCreatesUserAndRejectsDuplicateEmail(t *testing.T) {
 
 func TestLoginValidatesPassword(t *testing.T) {
 	svc := service.NewService(newMemoryUserRepo(), plainHasher{})
-	_, err := svc.Register(context.Background(), service.RegisterCommand{
+	_, err := svc.Register(context.Background(), dto.RegisterCommand{
 		Email:       "grace@example.com",
 		DisplayName: "Grace",
 		Password:    "secret123",
 	})
 	require.NoError(t, err)
 
-	user, err := svc.Login(context.Background(), service.LoginCommand{
+	user, err := svc.Login(context.Background(), dto.LoginCommand{
 		Email:    "grace@example.com",
 		Password: "secret123",
 	})
 	require.NoError(t, err)
 	require.Equal(t, "grace@example.com", user.Email)
 
-	_, err = svc.Login(context.Background(), service.LoginCommand{
+	_, err = svc.Login(context.Background(), dto.LoginCommand{
 		Email:    "grace@example.com",
 		Password: "wrong",
 	})

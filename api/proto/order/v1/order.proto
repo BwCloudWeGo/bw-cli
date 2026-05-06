@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package order.v1;
+
+option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/order/v1;orderv1";
+
+// OrderService is the gRPC boundary for the order business service.
+// The default CRUD contract is ready to call. Extend messages and RPCs as business grows.
+service OrderService {
+  rpc CreateOrder(CreateOrderRequest) returns (OrderResponse);
+  rpc GetOrder(GetOrderRequest) returns (OrderResponse);
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+  rpc UpdateOrder(UpdateOrderRequest) returns (OrderResponse);
+  rpc DeleteOrder(DeleteOrderRequest) returns (DeleteOrderResponse);
+}
+
+message CreateOrderRequest {
+  string name = 1;
+  string description = 2;
+}
+
+message GetOrderRequest {
+  string id = 1;
+}
+
+message ListOrdersRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message UpdateOrderRequest {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message DeleteOrderRequest {
+  string id = 1;
+}
+
+message OrderResponse {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string created_at = 4;
+  string updated_at = 5;
+}
+
+message ListOrdersResponse {
+  repeated OrderResponse items = 1;
+  int64 total = 2;
+}
+
+message DeleteOrderResponse {
+  bool success = 1;
+}

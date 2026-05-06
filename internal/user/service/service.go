@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/BwCloudWeGo/bw-cli/internal/user/dto"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/model"
 )
 
@@ -25,28 +26,8 @@ func NewService(repo model.Repository, hasher PasswordHasher) *Service {
 	return &Service{repo: repo, hasher: hasher}
 }
 
-// RegisterCommand contains validated input for registering a user.
-type RegisterCommand struct {
-	Email       string
-	DisplayName string
-	Password    string
-}
-
-// LoginCommand contains validated input for logging in a user.
-type LoginCommand struct {
-	Email    string
-	Password string
-}
-
-// UserDTO is the public user data returned by use cases.
-type UserDTO struct {
-	ID          string
-	Email       string
-	DisplayName string
-}
-
 // Register creates a new user after checking email uniqueness.
-func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*UserDTO, error) {
+func (s *Service) Register(ctx context.Context, cmd dto.RegisterCommand) (*dto.UserDTO, error) {
 	if strings.TrimSpace(cmd.Password) == "" {
 		return nil, model.ErrInvalidUser
 	}
@@ -67,11 +48,11 @@ func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*UserDTO, 
 	if err := s.repo.Save(ctx, user); err != nil {
 		return nil, err
 	}
-	return toDTO(user), nil
+	return dto.FromUser(user), nil
 }
 
 // Login verifies credentials and returns the matching user.
-func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*UserDTO, error) {
+func (s *Service) Login(ctx context.Context, cmd dto.LoginCommand) (*dto.UserDTO, error) {
 	user, err := s.repo.FindByEmail(ctx, strings.TrimSpace(strings.ToLower(cmd.Email)))
 	if err != nil {
 		if errors.Is(err, model.ErrUserNotFound) {
@@ -82,22 +63,14 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*UserDTO, error)
 	if !s.hasher.Verify(user.PasswordHash, cmd.Password) {
 		return nil, model.ErrInvalidCredentials
 	}
-	return toDTO(user), nil
+	return dto.FromUser(user), nil
 }
 
 // GetUser returns one user by id.
-func (s *Service) GetUser(ctx context.Context, id string) (*UserDTO, error) {
+func (s *Service) GetUser(ctx context.Context, id string) (*dto.UserDTO, error) {
 	user, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return toDTO(user), nil
-}
-
-func toDTO(user *model.User) *UserDTO {
-	return &UserDTO{
-		ID:          user.ID,
-		Email:       user.Email,
-		DisplayName: user.DisplayName,
-	}
+	return dto.FromUser(user), nil
 }

@@ -3,21 +3,22 @@ package service
 import (
 	"context"
 
+	"github.com/BwCloudWeGo/bw-cli/internal/note/dto"
 	"github.com/BwCloudWeGo/bw-cli/internal/note/model"
 )
 
-// Service orchestrates note use cases.
+// Service 只负责编排 note 用例流程，不直接处理协议对象和数据库细节。
 type Service struct {
 	repo model.Repository
 }
 
-// NewService constructs the note use-case service.
+// NewService 创建 note 用例服务。
 func NewService(repo model.Repository) *Service {
 	return &Service{repo: repo}
 }
 
-// Create stores a new draft note.
-func (s *Service) Create(ctx context.Context, cmd CreateNoteCommand) (*NoteDTO, error) {
+// Create 创建草稿笔记。
+func (s *Service) Create(ctx context.Context, cmd dto.CreateNoteCommand) (*dto.NoteDTO, error) {
 	note, err := model.NewNote(cmd.AuthorID, cmd.Title, cmd.Content)
 	if err != nil {
 		return nil, err
@@ -25,20 +26,20 @@ func (s *Service) Create(ctx context.Context, cmd CreateNoteCommand) (*NoteDTO, 
 	if err := s.repo.Save(ctx, note); err != nil {
 		return nil, err
 	}
-	return toDTO(note), nil
+	return dto.FromNote(note), nil
 }
 
-// Get returns one note by id.
-func (s *Service) Get(ctx context.Context, id string) (*NoteDTO, error) {
+// Get 按 ID 查询笔记。
+func (s *Service) Get(ctx context.Context, id string) (*dto.NoteDTO, error) {
 	note, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return toDTO(note), nil
+	return dto.FromNote(note), nil
 }
 
-// Publish changes an existing note to the published state and persists it.
-func (s *Service) Publish(ctx context.Context, id string) (*NoteDTO, error) {
+// Publish 发布已存在的笔记。
+func (s *Service) Publish(ctx context.Context, id string) (*dto.NoteDTO, error) {
 	note, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -47,11 +48,11 @@ func (s *Service) Publish(ctx context.Context, id string) (*NoteDTO, error) {
 	if err := s.repo.Save(ctx, note); err != nil {
 		return nil, err
 	}
-	return toDTO(note), nil
+	return dto.FromNote(note), nil
 }
 
-// PublishSubmitted creates or updates a note from a full publish payload.
-func (s *Service) PublishSubmitted(ctx context.Context, cmd PublishNoteCommand) (*NoteDTO, error) {
+// PublishSubmitted 根据完整提交内容创建或发布笔记。
+func (s *Service) PublishSubmitted(ctx context.Context, cmd dto.PublishNoteCommand) (*dto.NoteDTO, error) {
 	if cmd.ID != "" {
 		return s.Publish(ctx, cmd.ID)
 	}
@@ -67,8 +68,9 @@ func (s *Service) PublishSubmitted(ctx context.Context, cmd PublishNoteCommand) 
 	} else {
 		note.Publish()
 	}
+
 	if err := s.repo.Save(ctx, note); err != nil {
 		return nil, err
 	}
-	return toDTO(note), nil
+	return dto.FromNote(note), nil
 }

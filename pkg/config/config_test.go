@@ -23,6 +23,8 @@ postgresql:
   conn_max_lifetime_seconds: 600
 mongodb:
   uri: "mongodb://mongo:27017"
+  username: "content-user"
+  password: "content-secret"
   database: "content"
   app_name: "content-service"
   min_pool_size: 2
@@ -40,12 +42,16 @@ mongodb:
 	require.Equal(t, 80, cfg.PostgreSQL.MaxOpenConns)
 	require.Equal(t, 600, cfg.PostgreSQL.ConnMaxLifetimeSeconds)
 	require.Equal(t, "mongodb://mongo:27017", cfg.MongoDB.URI)
+	require.Equal(t, "content-user", cfg.MongoDB.Username)
+	require.Equal(t, "content-secret", cfg.MongoDB.Password)
 	require.Equal(t, "content", cfg.MongoDB.Database)
 	require.Equal(t, "content-service", cfg.MongoDB.AppName)
 	require.Equal(t, uint64(2), cfg.MongoDB.MinPoolSize)
 	require.Equal(t, uint64(40), cfg.MongoDB.MaxPoolSize)
 	require.Equal(t, 8, cfg.MongoDB.ConnectTimeoutSeconds)
 	require.Equal(t, 3, cfg.MongoDB.ServerSelectionTimeoutSeconds)
+	require.Equal(t, "content-user", cfg.MongoDB.MongoxConfig().Username)
+	require.Equal(t, "content-secret", cfg.MongoDB.MongoxConfig().Password)
 }
 
 func TestLoadReadsFileStorageConfig(t *testing.T) {
@@ -105,4 +111,21 @@ file_storage:
 	require.True(t, cfg.FileStorage.Qiniu.UseHTTPS)
 	require.Equal(t, "cos-id", cfg.FileStorage.COS.SecretID)
 	require.Equal(t, "ap-guangzhou", cfg.FileStorage.COS.Region)
+}
+
+func TestInitGlobalSetsProcessWideConfig(t *testing.T) {
+	previous := config.GlobalConfig
+	defer func() { config.GlobalConfig = previous }()
+
+	tmp := t.TempDir()
+	path := filepath.Join(tmp, "config.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+app:
+  name: global-test
+`), 0o644))
+
+	require.NoError(t, config.InitGlobal(path))
+
+	require.NotNil(t, config.GlobalConfig)
+	require.Equal(t, "global-test", config.MustGlobal().App.Name)
 }

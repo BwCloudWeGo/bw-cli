@@ -60,12 +60,12 @@ Client
 - 审核资源
 
 ```text
-internal/<service>/service/command.go  # 业务用例入参命令
-internal/<service>/service/dto.go      # 业务用例出参 DTO 和转换
+internal/<service>/dto/command.go      # 业务用例入参命令
+internal/<service>/dto/<service>.go    # 业务用例出参 DTO 和转换
 internal/<service>/service/service.go  # 业务流程编排
 ```
 
-`command.go` 只定义 `CreateCommand`、`UpdateCommand` 等入参，不写业务流程。`dto.go` 只定义返回结构和 `toDTO` 转换，不暴露领域模型或数据库模型。`service.go` 只写用例方法，负责调用领域模型和 `model.Repository`。
+`dto/command.go` 只定义 `CreateCommand`、`UpdateCommand` 等入参，不写业务流程。`dto/<service>.go` 只定义返回结构和 `FromXxx` 转换，不暴露领域模型或数据库模型。`service/service.go` 只写用例方法，负责调用领域模型和 `model.Repository`。
 
 这一层只依赖 `model` 中的接口和实体。事务、幂等、权限等业务编排也放在这里。
 
@@ -193,7 +193,7 @@ database.driver=postgresql
 database.driver=pg
 ```
 
-MongoDB 是文档数据库，不走 Gorm 入口。业务服务需要 MongoDB 时，从 `config.MongoDB` 读取配置并调用 `mongox.NewClient` 创建客户端，再在 `repo` 层封装集合、索引和查询逻辑。
+MongoDB 是文档数据库，不走 Gorm 入口。业务服务需要 MongoDB 时，从 `config.MongoDB` 读取配置并调用 `mongox.NewClient` 创建客户端，再在 `repo` 层通过 `mongox.NewCollection[T]` 复用公共 CRUD 操作类，业务层只依赖仓储接口。
 
 文件上传通过 `pkg/filex` 进入，业务层只依赖 `filex.Uploader` 接口。上传前会校验文件大小、扩展名和 MIME 类型，默认最大 100 MB，默认支持 Word、PDF、常见图片、视频和音频格式。当前存储 provider 支持：
 
@@ -236,7 +236,7 @@ bw-cli service <service> --tidy
 1. 在 `api/proto/<service>/v1` 添加 proto。
 2. 运行 `make proto`。
 3. 创建 `internal/<service>/model`。
-4. 创建 `internal/<service>/service/command.go`、`dto.go`、`service.go`。
+4. 创建 `internal/<service>/dto/command.go`、`dto/<service>.go`、`service/service.go`。
 5. 创建 `internal/<service>/repo`。
 6. 创建 `internal/<service>/handler`。
 7. 创建 `cmd/<service>/main.go`。

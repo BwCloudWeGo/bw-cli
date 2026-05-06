@@ -14,6 +14,8 @@ func TestDefaultConfigUsesLocalDevelopmentValues(t *testing.T) {
 	cfg := mongox.DefaultConfig()
 
 	require.Equal(t, "mongodb://127.0.0.1:27017", cfg.URI)
+	require.Empty(t, cfg.Username)
+	require.Empty(t, cfg.Password)
 	require.Equal(t, "xiaolanshu", cfg.Database)
 	require.Equal(t, "bw-cli", cfg.AppName)
 	require.Equal(t, uint64(0), cfg.MinPoolSize)

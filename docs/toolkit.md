@@ -15,7 +15,7 @@
 | `pkg/database` | 根据配置打开 SQLite/MySQL/PostgreSQL Gorm | `cmd/*/main.go` |
 | `pkg/mysqlx` | MySQL Gorm 初始化和连接池 | 独立 MySQL 项目 |
 | `pkg/postgresx` | PostgreSQL Gorm 初始化和连接池 | 独立 PostgreSQL 项目 |
-| `pkg/mongox` | MongoDB 官方 driver 初始化、Ping、Database 获取 | `repo` 层 |
+| `pkg/mongox` | MongoDB 官方 driver 初始化、Ping、Database 获取、公共 Collection CRUD 操作 | `repo` 层 |
 | `pkg/redisx` | Redis client 初始化和 Ping | 缓存、分布式锁、限流 |
 | `pkg/esx` | Elasticsearch client 初始化 | 搜索、索引同步 |
 | `pkg/kafkax` | Kafka reader/writer 初始化 | 事件发布和消费 |
@@ -73,16 +73,16 @@ make test
 
 1. 在 `configs/config.yaml` 写入默认配置。
 2. 用 `APP_` 前缀环境变量覆盖敏感值或环境差异值。
-3. 进程启动时调用 `config.Load`。
-4. 把 `cfg` 传给日志、数据库、中间件、文件上传等初始化函数。
+3. 进程启动时调用 `config.InitGlobal`。
+4. 通过 `config.MustGlobal()` 获取全局配置，再传给日志、数据库、中间件、文件上传等初始化函数。
 
 示例：
 
 ```go
-cfg, err := config.Load("configs/config.yaml")
-if err != nil {
+if err := config.InitGlobal("configs/config.yaml"); err != nil {
     panic(err)
 }
+cfg := config.MustGlobal()
 ```
 
 环境变量覆盖规则：
@@ -295,21 +295,27 @@ db, err := postgresx.Open(cfg)
 
 调用流程：
 
-1. 在 `configs/config.yaml` 或环境变量中配置 `mongodb.*`。
+1. 在 `configs/config.yaml` 中配置 `mongodb.*`。
 2. 进程启动时调用 `mongox.NewClient`。
 3. 调用 `mongox.Ping` 验证连接。
 4. 使用 `mongox.Database` 获取业务数据库。
-5. 在 `repo` 层封装 collection、索引和查询。
+5. 在 `repo` 层使用 `mongox.NewCollection[T]` 封装 collection CRUD。
 6. 进程退出时调用 `Disconnect`。
 
 示例：
 
 ```go
-client, err := mongox.NewClient(mongox.Config{
-    URI:      os.Getenv("APP_MONGODB_URI"),
-    Database: os.Getenv("APP_MONGODB_DATABASE"),
-    AppName:  "app-service",
-})
+type NoteDocument struct {
+    ID    string `bson:"_id"`
+    Title string `bson:"title"`
+}
+
+if err := config.InitGlobal("configs/config.yaml"); err != nil {
+    panic(err)
+}
+cfg := config.MustGlobal()
+
+client, err := mongox.NewClient(cfg.MongoDB.MongoxConfig())
 if err != nil {
     panic(err)
 }
@@ -319,11 +325,21 @@ if err := mongox.Ping(context.Background(), client); err != nil {
     panic(err)
 }
 
-db := mongox.Database(client, "xiaolanshu")
-collection := db.Collection("note_documents")
+db := mongox.Database(client, cfg.MongoDB.Database)
+notes := mongox.NewCollection[NoteDocument](db, "notes")
+
+_, err = notes.UpsertByID(context.Background(), "note-1", &NoteDocument{
+    ID:    "note-1",
+    Title: "MongoDB note",
+})
+if err != nil {
+    panic(err)
+}
+
+note, err := notes.FindByID(context.Background(), "note-1")
 ```
 
-完整教学文档见 [MongoDB 从 0 到 1 教学教程](mongodb.md)。
+脚手架内调用示例见 [MongoDB 调用示例全流程](mongo-call-examples.md)，基础教学见 [MongoDB 从 0 到 1 教学教程](mongodb.md)。
 
 ## 10. Redis：`pkg/redisx`
 
@@ -577,10 +593,10 @@ export APP_FILE_STORAGE_COS_BUCKET_URL='https://app-files-1250000000.cos.ap-guan
 初始化：
 
 ```go
-cfg, err := config.Load("configs/config.yaml")
-if err != nil {
+if err := config.InitGlobal("configs/config.yaml"); err != nil {
     panic(err)
 }
+cfg := config.MustGlobal()
 
 uploader, err := filex.NewUploader(cfg.FileStorage)
 if err != nil {
@@ -706,7 +722,7 @@ err := scaffold.Init(scaffold.InitOptions{
 
 在生成项目后，推荐按这个顺序把工具串起来：
 
-1. `config.Load` 读取配置。
+1. `config.InitGlobal` 读取配置并写入 `config.GlobalConfig`。
 2. `logger.WithDailyFileName` 和 `logger.New` 初始化日志。
 3. `database.Open` 或各数据源独立初始化。
 4. `filex.NewUploader` 初始化文件上传接口。

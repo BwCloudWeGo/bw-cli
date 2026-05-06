@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/BwCloudWeGo/bw-cli/internal/note/dto"
 	"github.com/BwCloudWeGo/bw-cli/internal/note/model"
 	"github.com/BwCloudWeGo/bw-cli/internal/note/service"
 )
@@ -34,7 +35,7 @@ func (r *memoryNoteRepo) FindByID(_ context.Context, id string) (*model.Note, er
 func TestCreateAndPublishNote(t *testing.T) {
 	svc := service.NewService(newMemoryNoteRepo())
 
-	note, err := svc.Create(context.Background(), service.CreateNoteCommand{
+	note, err := svc.Create(context.Background(), dto.CreateNoteCommand{
 		AuthorID: "user-1",
 		Title:    "DDD scaffold",
 		Content:  "Gin plus gRPC demo",
@@ -53,9 +54,10 @@ func TestCreateAndPublishNote(t *testing.T) {
 }
 
 func TestPublishSubmittedCreatesPublishedNote(t *testing.T) {
-	svc := service.NewService(newMemoryNoteRepo())
+	repo := newMemoryNoteRepo()
+	svc := service.NewService(repo)
 
-	published, err := svc.PublishSubmitted(context.Background(), service.PublishNoteCommand{
+	published, err := svc.PublishSubmitted(context.Background(), dto.PublishNoteCommand{
 		AuthorID:   "user-1",
 		Title:      "Published",
 		Content:    "Created from publish payload",
@@ -70,12 +72,16 @@ func TestPublishSubmittedCreatesPublishedNote(t *testing.T) {
 	require.Equal(t, model.NoteStatusPublished, published.Status)
 	require.Equal(t, int32(1), published.NoteType)
 	require.Equal(t, []string{"topic-1"}, published.TopicIDs)
+
+	found, err := repo.FindByID(context.Background(), published.ID)
+	require.NoError(t, err)
+	require.Equal(t, published.ID, found.ID)
 }
 
 func TestCreateNoteRequiresAuthorTitleAndContent(t *testing.T) {
 	svc := service.NewService(newMemoryNoteRepo())
 
-	_, err := svc.Create(context.Background(), service.CreateNoteCommand{
+	_, err := svc.Create(context.Background(), dto.CreateNoteCommand{
 		AuthorID: "",
 		Title:    "DDD scaffold",
 		Content:  "Gin plus gRPC demo",

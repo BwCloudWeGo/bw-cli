@@ -78,6 +78,8 @@ func (cfg PostgreSQLConfig) ConnMaxLifetime() time.Duration {
 // MongoDBConfig contains MongoDB client, database and pool settings loaded from YAML/env.
 type MongoDBConfig struct {
 	URI                           string `mapstructure:"uri" yaml:"uri"`
+	Username                      string `mapstructure:"username" yaml:"username"`
+	Password                      string `mapstructure:"password" yaml:"password"`
 	Database                      string `mapstructure:"database" yaml:"database"`
 	AppName                       string `mapstructure:"app_name" yaml:"app_name"`
 	MinPoolSize                   uint64 `mapstructure:"min_pool_size" yaml:"min_pool_size"`
@@ -94,6 +96,21 @@ func (cfg MongoDBConfig) ConnectTimeout() time.Duration {
 // ServerSelectionTimeout converts the YAML seconds value to a MongoDB server selection timeout.
 func (cfg MongoDBConfig) ServerSelectionTimeout() time.Duration {
 	return time.Duration(cfg.ServerSelectionTimeoutSeconds) * time.Second
+}
+
+// MongoxConfig converts YAML/env configuration into the shared MongoDB client config.
+func (cfg MongoDBConfig) MongoxConfig() mongox.Config {
+	return mongox.Config{
+		URI:                    cfg.URI,
+		Username:               cfg.Username,
+		Password:               cfg.Password,
+		Database:               cfg.Database,
+		AppName:                cfg.AppName,
+		MinPoolSize:            cfg.MinPoolSize,
+		MaxPoolSize:            cfg.MaxPoolSize,
+		ConnectTimeout:         cfg.ConnectTimeout(),
+		ServerSelectionTimeout: cfg.ServerSelectionTimeout(),
+	}
 }
 
 // MiddlewareConfig groups HTTP middleware configuration loaded from YAML/env.
@@ -174,6 +191,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("postgresql.max_open_conns", postgresx.DefaultConfig().MaxOpenConns)
 	v.SetDefault("postgresql.conn_max_lifetime_seconds", int(postgresx.DefaultConfig().ConnMaxLifetime/time.Second))
 	v.SetDefault("mongodb.uri", mongox.DefaultConfig().URI)
+	v.SetDefault("mongodb.username", mongox.DefaultConfig().Username)
+	v.SetDefault("mongodb.password", mongox.DefaultConfig().Password)
 	v.SetDefault("mongodb.database", mongox.DefaultConfig().Database)
 	v.SetDefault("mongodb.app_name", mongox.DefaultConfig().AppName)
 	v.SetDefault("mongodb.min_pool_size", mongox.DefaultConfig().MinPoolSize)

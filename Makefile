@@ -7,7 +7,7 @@ export PROTOC
 export PROTO_PATH
 export PROTO_OUT
 
-.PHONY: proto test tidy run-gateway run-user run-note run-cli install-cli install-bw-cli tools
+.PHONY: proto test tidy run-gateway run-user run-note run-cli install-cli install-bw-cli tools run-order
 
 tools:
 	$(GO) install google.golang.org/protobuf/cmd/protoc-gen-go@latest
@@ -38,3 +38,6 @@ install-cli:
 	$(GO) install ./cmd/bw-cli
 
 install-bw-cli: install-cli
+
+run-order:
+	$(GO) run ./cmd/order

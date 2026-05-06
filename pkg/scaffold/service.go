@@ -195,8 +195,8 @@ func writeServiceFiles(root string, data serviceTemplateData) error {
 		filepath.Join("cmd", data.Dir, "main.go"):                         renderServiceTemplate(serviceMainTemplate, data),
 		filepath.Join("internal", data.Dir, "model", data.Dir+".go"):      renderServiceTemplate(serviceModelTemplate, data),
 		filepath.Join("internal", data.Dir, "model", "repository.go"):     renderServiceTemplate(serviceRepositoryTemplate, data),
-		filepath.Join("internal", data.Dir, "service", "command.go"):      renderServiceTemplate(serviceCommandTemplate, data),
-		filepath.Join("internal", data.Dir, "service", "dto.go"):          renderServiceTemplate(serviceDTOTemplate, data),
+		filepath.Join("internal", data.Dir, "dto", "command.go"):          renderServiceTemplate(serviceCommandTemplate, data),
+		filepath.Join("internal", data.Dir, "dto", data.Dir+".go"):        renderServiceTemplate(serviceDTOTemplate, data),
 		filepath.Join("internal", data.Dir, "service", "service.go"):      renderServiceTemplate(serviceUseCaseTemplate, data),
 		filepath.Join("internal", data.Dir, "service", "service_test.go"): renderServiceTemplate(serviceUseCaseTestTemplate, data),
 		filepath.Join("internal", data.Dir, "repo", "gorm_repository.go"): renderServiceTemplate(serviceGormRepoTemplate, data),
@@ -314,8 +314,8 @@ func gofmtService(root string, serviceDir string) error {
 		filepath.Join("cmd", serviceDir, "main.go"),
 		filepath.Join("internal", serviceDir, "model", serviceDir+".go"),
 		filepath.Join("internal", serviceDir, "model", "repository.go"),
-		filepath.Join("internal", serviceDir, "service", "command.go"),
-		filepath.Join("internal", serviceDir, "service", "dto.go"),
+		filepath.Join("internal", serviceDir, "dto", "command.go"),
+		filepath.Join("internal", serviceDir, "dto", serviceDir+".go"),
 		filepath.Join("internal", serviceDir, "service", "service.go"),
 		filepath.Join("internal", serviceDir, "service", "service_test.go"),
 		filepath.Join("internal", serviceDir, "repo", "gorm_repository.go"),
@@ -479,10 +479,10 @@ const defaultGRPCPort = {{ .Port }}
 const grpcPortEnv = "APP_{{ .EnvPrefix }}_GRPC_PORT"
 
 func main() {
-	cfg, err := config.Load("configs/config.yaml")
-	if err != nil {
+	if err := config.InitGlobal("configs/config.yaml"); err != nil {
 		panic(err)
 	}
+	cfg := config.MustGlobal()
 	cfg.Log.Service = serviceName
 	cfg.Log = logger.WithDailyFileName(cfg.Log, time.Now())
 
@@ -624,7 +624,7 @@ type Repository interface {
 }
 `
 
-const serviceCommandTemplate = `package service
+const serviceCommandTemplate = `package dto
 
 // CreateCommand contains input for creating a {{ .Dir }} record.
 type CreateCommand struct {
@@ -646,7 +646,7 @@ type ListCommand struct {
 }
 `
 
-const serviceDTOTemplate = `package service
+const serviceDTOTemplate = `package dto
 
 import (
 	"time"
@@ -669,8 +669,8 @@ type List{{ .Pascal }}DTO struct {
 	Total int64
 }
 
-// toDTO converts a {{ .Dir }} aggregate into the service response DTO.
-func toDTO(item *model.{{ .Pascal }}) *{{ .Pascal }}DTO {
+// From{{ .Pascal }} converts a {{ .Dir }} aggregate into the service response DTO.
+func From{{ .Pascal }}(item *model.{{ .Pascal }}) *{{ .Pascal }}DTO {
 	return &{{ .Pascal }}DTO{
 		ID:          item.ID,
 		Name:        item.Name,
@@ -696,6 +696,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"{{ .Module }}/internal/{{ .Dir }}/dto"
 	"{{ .Module }}/internal/{{ .Dir }}/model"
 )
 
@@ -714,7 +715,7 @@ func NewService(repo model.Repository, log *zap.Logger) *Service {
 }
 
 // Create creates a {{ .Dir }} record.
-func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*{{ .Pascal }}DTO, error) {
+func (s *Service) Create(ctx context.Context, cmd dto.CreateCommand) (*dto.{{ .Pascal }}DTO, error) {
 	item, err := model.New{{ .Pascal }}(cmd.Name, cmd.Description)
 	if err != nil {
 		return nil, err
@@ -723,34 +724,34 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*{{ .Pascal }}
 		return nil, err
 	}
 	s.log.Info("{{ .Dir }} created", zap.String("aggregate_id", item.ID), zap.String("use_case", "Create{{ .Pascal }}"))
-	return toDTO(item), nil
+	return dto.From{{ .Pascal }}(item), nil
 }
 
 // Get returns one {{ .Dir }} record by id.
-func (s *Service) Get(ctx context.Context, id string) (*{{ .Pascal }}DTO, error) {
+func (s *Service) Get(ctx context.Context, id string) (*dto.{{ .Pascal }}DTO, error) {
 	item, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return toDTO(item), nil
+	return dto.From{{ .Pascal }}(item), nil
 }
 
 // List returns paginated {{ .Dir }} records.
-func (s *Service) List(ctx context.Context, cmd ListCommand) (*List{{ .Pascal }}DTO, error) {
+func (s *Service) List(ctx context.Context, cmd dto.ListCommand) (*dto.List{{ .Pascal }}DTO, error) {
 	offset, limit := normalizePagination(cmd.Page, cmd.PageSize)
 	items, total, err := s.repo.List(ctx, offset, limit)
 	if err != nil {
 		return nil, err
 	}
-	output := &List{{ .Pascal }}DTO{Items: make([]*{{ .Pascal }}DTO, 0, len(items)), Total: total}
+	output := &dto.List{{ .Pascal }}DTO{Items: make([]*dto.{{ .Pascal }}DTO, 0, len(items)), Total: total}
 	for _, item := range items {
-		output.Items = append(output.Items, toDTO(item))
+		output.Items = append(output.Items, dto.From{{ .Pascal }}(item))
 	}
 	return output, nil
 }
 
 // Update changes one {{ .Dir }} record by id.
-func (s *Service) Update(ctx context.Context, cmd UpdateCommand) (*{{ .Pascal }}DTO, error) {
+func (s *Service) Update(ctx context.Context, cmd dto.UpdateCommand) (*dto.{{ .Pascal }}DTO, error) {
 	item, err := s.repo.FindByID(ctx, cmd.ID)
 	if err != nil {
 		return nil, err
@@ -762,7 +763,7 @@ func (s *Service) Update(ctx context.Context, cmd UpdateCommand) (*{{ .Pascal }}
 		return nil, err
 	}
 	s.log.Info("{{ .Dir }} updated", zap.String("aggregate_id", item.ID), zap.String("use_case", "Update{{ .Pascal }}"))
-	return toDTO(item), nil
+	return dto.From{{ .Pascal }}(item), nil
 }
 
 // Delete removes one {{ .Dir }} record by id.
@@ -794,6 +795,7 @@ import (
 	"context"
 	"testing"
 
+	"{{ .Module }}/internal/{{ .Dir }}/dto"
 	"{{ .Module }}/internal/{{ .Dir }}/model"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -810,7 +812,7 @@ func TestServiceCRUD(t *testing.T) {
 	repo := newFakeRepository()
 	svc := NewService(repo, zap.NewNop())
 
-	created, err := svc.Create(ctx, CreateCommand{Name: "first", Description: "created from service test"})
+	created, err := svc.Create(ctx, dto.CreateCommand{Name: "first", Description: "created from service test"})
 	require.NoError(t, err)
 	require.NotEmpty(t, created.ID)
 	require.Equal(t, "first", created.Name)
@@ -819,12 +821,12 @@ func TestServiceCRUD(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, created.ID, got.ID)
 
-	list, err := svc.List(ctx, ListCommand{Page: 1, PageSize: 10})
+	list, err := svc.List(ctx, dto.ListCommand{Page: 1, PageSize: 10})
 	require.NoError(t, err)
 	require.Equal(t, int64(1), list.Total)
 	require.Len(t, list.Items, 1)
 
-	updated, err := svc.Update(ctx, UpdateCommand{ID: created.ID, Name: "updated", Description: "updated from service test"})
+	updated, err := svc.Update(ctx, dto.UpdateCommand{ID: created.ID, Name: "updated", Description: "updated from service test"})
 	require.NoError(t, err)
 	require.Equal(t, "updated", updated.Name)
 
@@ -1040,6 +1042,7 @@ import (
 	"go.uber.org/zap"
 
 	{{ .GoPackage }} "{{ .Module }}/api/gen/{{ .Dir }}/v1"
+	"{{ .Module }}/internal/{{ .Dir }}/dto"
 	"{{ .Module }}/internal/{{ .Dir }}/model"
 	"{{ .Module }}/internal/{{ .Dir }}/service"
 	apperrors "{{ .Module }}/pkg/errors"
@@ -1062,7 +1065,7 @@ func NewServer(svc *service.Service, log *zap.Logger) *Server {
 
 // Create{{ .Pascal }} handles the create RPC.
 func (s *Server) Create{{ .Pascal }}(ctx context.Context, req *{{ .GoPackage }}.Create{{ .Pascal }}Request) (*{{ .GoPackage }}.{{ .Pascal }}Response, error) {
-	item, err := s.svc.Create(ctx, service.CreateCommand{
+	item, err := s.svc.Create(ctx, dto.CreateCommand{
 		Name:        req.GetName(),
 		Description: req.GetDescription(),
 	})
@@ -1083,7 +1086,7 @@ func (s *Server) Get{{ .Pascal }}(ctx context.Context, req *{{ .GoPackage }}.Get
 
 // List{{ .Pascal }}s handles paginated listing.
 func (s *Server) List{{ .Pascal }}s(ctx context.Context, req *{{ .GoPackage }}.List{{ .Pascal }}sRequest) (*{{ .GoPackage }}.List{{ .Pascal }}sResponse, error) {
-	list, err := s.svc.List(ctx, service.ListCommand{
+	list, err := s.svc.List(ctx, dto.ListCommand{
 		Page:     req.GetPage(),
 		PageSize: req.GetPageSize(),
 	})
@@ -1102,7 +1105,7 @@ func (s *Server) List{{ .Pascal }}s(ctx context.Context, req *{{ .GoPackage }}.L
 
 // Update{{ .Pascal }} handles updates by id.
 func (s *Server) Update{{ .Pascal }}(ctx context.Context, req *{{ .GoPackage }}.Update{{ .Pascal }}Request) (*{{ .GoPackage }}.{{ .Pascal }}Response, error) {
-	item, err := s.svc.Update(ctx, service.UpdateCommand{
+	item, err := s.svc.Update(ctx, dto.UpdateCommand{
 		ID:          req.GetId(),
 		Name:        req.GetName(),
 		Description: req.GetDescription(),
@@ -1121,7 +1124,7 @@ func (s *Server) Delete{{ .Pascal }}(ctx context.Context, req *{{ .GoPackage }}.
 	return &{{ .GoPackage }}.Delete{{ .Pascal }}Response{Success: true}, nil
 }
 
-func toProto(item *service.{{ .Pascal }}DTO) *{{ .GoPackage }}.{{ .Pascal }}Response {
+func toProto(item *dto.{{ .Pascal }}DTO) *{{ .GoPackage }}.{{ .Pascal }}Response {
 	return &{{ .GoPackage }}.{{ .Pascal }}Response{
 		Id:          item.ID,
 		Name:        item.Name,
@@ -1411,8 +1414,8 @@ api/proto/{{ .Dir }}/v1/{{ .ProtoFile }}       # gRPC 协议定义
 api/gen/{{ .Dir }}/v1                          # make proto 生成代码
 cmd/{{ .Dir }}/main.go                         # gRPC 服务启动入口
 internal/{{ .Dir }}/model                      # 领域实体和仓储接口
-internal/{{ .Dir }}/service/command.go         # 业务用例入参命令
-internal/{{ .Dir }}/service/dto.go             # 业务用例出参 DTO
+internal/{{ .Dir }}/dto/command.go             # 业务用例入参命令
+internal/{{ .Dir }}/dto/{{ .Dir }}.go          # 业务用例出参 DTO 和转换
 internal/{{ .Dir }}/service/service.go         # 业务流程编排
 internal/{{ .Dir }}/repo                       # Gorm 仓储实现
 internal/{{ .Dir }}/handler                    # gRPC 入站适配器
@@ -1468,7 +1471,7 @@ export APP_{{ .EnvPrefix }}_GRPC_TARGET=127.0.0.1:{{ .Port }}
 1. 在 ` + "`api/proto/{{ .Dir }}/v1/{{ .ProtoFile }}`" + ` 中定义 RPC、Request、Response。
 2. 执行 ` + "`make proto`" + ` 生成 ` + "`api/gen/{{ .Dir }}/v1`" + `。
 3. 在 ` + "`internal/{{ .Dir }}/model`" + ` 补充领域实体、业务错误和仓储接口。
-4. 在 ` + "`internal/{{ .Dir }}/service/command.go`" + ` 写入参，在 ` + "`dto.go`" + ` 写出参，在 ` + "`service.go`" + ` 编排业务用例。
+4. 在 ` + "`internal/{{ .Dir }}/dto/command.go`" + ` 写入参，在 ` + "`dto/{{ .Dir }}.go`" + ` 写出参和转换，在 ` + "`service/service.go`" + ` 编排业务用例。
 5. 在 ` + "`internal/{{ .Dir }}/repo`" + ` 实现数据库访问。
 6. 在 ` + "`internal/{{ .Dir }}/handler`" + ` 将 gRPC 请求转成业务命令。
 7. 在 ` + "`internal/gateway/request`" + `、` + "`handler`" + `、` + "`router`" + ` 调整 HTTP 入参、控制器和路由。
@@ -1481,8 +1484,8 @@ export APP_{{ .EnvPrefix }}_GRPC_TARGET=127.0.0.1:{{ .Port }}
 | ` + "`api/gen/{{ .Dir }}/v1`" + ` | ` + "`make proto`" + ` 生成代码 | 保持 proto 与 Go 类型一致，不手写 |
 | ` + "`cmd/{{ .Dir }}`" + ` | 配置、日志、数据库、gRPC server 组装 | main 只负责依赖装配，不写业务 |
 | ` + "`internal/{{ .Dir }}/model`" + ` | 领域实体、业务错误、Repository 接口 | 业务核心不依赖 Gin、gRPC、Gorm |
-| ` + "`internal/{{ .Dir }}/service/command.go`" + ` | 业务用例入参，例如 ` + "`CreateCommand`" + `、` + "`UpdateCommand`" + ` | handler 只负责组装命令，入参与流程分开 |
-| ` + "`internal/{{ .Dir }}/service/dto.go`" + ` | 业务用例出参和领域模型转换 | 对外不暴露领域模型和数据库模型 |
+| ` + "`internal/{{ .Dir }}/dto/command.go`" + ` | 业务用例入参，例如 ` + "`CreateCommand`" + `、` + "`UpdateCommand`" + ` | handler 只负责组装命令，入参与流程分开 |
+| ` + "`internal/{{ .Dir }}/dto/{{ .Dir }}.go`" + ` | 业务用例出参和领域模型转换 | 对外不暴露领域模型和数据库模型 |
 | ` + "`internal/{{ .Dir }}/service/service.go`" + ` | 用例编排、事务意图、调用仓储接口 | 表达业务流程，依赖接口而不是数据库实现 |
 | ` + "`internal/{{ .Dir }}/repo`" + ` | Gorm/MongoDB/Redis 等实现 | 数据库访问集中管理，方便替换和测试 |
 | ` + "`internal/{{ .Dir }}/handler`" + ` | gRPC request/response 适配 | 协议转换和错误映射，不写数据库逻辑 |
@@ -1548,11 +1551,11 @@ type Repository interface {
 
 ## service 层
 
-` + "`service`" + ` 按职责拆成三个文件，避免一个文件同时承担入参、出参和流程编排：
+` + "`dto`" + ` 和 ` + "`service`" + ` 按职责拆开，避免一个文件同时承担入参、出参和流程编排：
 
 ~~~text
-internal/{{ .Dir }}/service/command.go  # CreateCommand、UpdateCommand、ListCommand
-internal/{{ .Dir }}/service/dto.go      # {{ .Pascal }}DTO、List{{ .Pascal }}DTO、toDTO
+internal/{{ .Dir }}/dto/command.go      # CreateCommand、UpdateCommand、ListCommand
+internal/{{ .Dir }}/dto/{{ .Dir }}.go   # {{ .Pascal }}DTO、List{{ .Pascal }}DTO、From{{ .Pascal }}
 internal/{{ .Dir }}/service/service.go  # Service、NewService、Create/Get/List/Update/Delete
 ~~~
 
@@ -1580,7 +1583,7 @@ func NewService(repo model.Repository, log *zap.Logger) *Service {
 }
 ~~~
 
-新增业务时先在 ` + "`command.go`" + ` 定义命令对象，例如 ` + "`CreateCommand`" + `，再在 ` + "`service.go`" + ` 调用领域模型和仓储接口，最后在 ` + "`dto.go`" + ` 做出参转换。这样 handler 不会堆业务判断，service 也更容易写单元测试。
+新增业务时先在 ` + "`dto/command.go`" + ` 定义命令对象，例如 ` + "`CreateCommand`" + `，再在 ` + "`service/service.go`" + ` 调用领域模型和仓储接口，最后在 ` + "`dto/{{ .Dir }}.go`" + ` 做出参转换。这样 handler 不会堆业务判断，service 也更容易写单元测试。
 
 ## repo 层：数据库在哪里操作，如何操作
 

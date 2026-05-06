@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 
 	userv1 "github.com/BwCloudWeGo/bw-cli/api/gen/user/v1"
+	"github.com/BwCloudWeGo/bw-cli/internal/user/dto"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/model"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/service"
 	apperrors "github.com/BwCloudWeGo/bw-cli/pkg/errors"
@@ -26,7 +27,7 @@ func NewServer(svc *service.Service, log *zap.Logger) *Server {
 
 // Register handles the user registration RPC.
 func (s *Server) Register(ctx context.Context, req *userv1.RegisterRequest) (*userv1.UserResponse, error) {
-	user, err := s.svc.Register(ctx, service.RegisterCommand{
+	user, err := s.svc.Register(ctx, dto.RegisterCommand{
 		Email:       req.GetEmail(),
 		DisplayName: req.GetDisplayName(),
 		Password:    req.GetPassword(),
@@ -40,7 +41,7 @@ func (s *Server) Register(ctx context.Context, req *userv1.RegisterRequest) (*us
 
 // Login handles the user login RPC.
 func (s *Server) Login(ctx context.Context, req *userv1.LoginRequest) (*userv1.UserResponse, error) {
-	user, err := s.svc.Login(ctx, service.LoginCommand{
+	user, err := s.svc.Login(ctx, dto.LoginCommand{
 		Email:    req.GetEmail(),
 		Password: req.GetPassword(),
 	})
@@ -60,7 +61,7 @@ func (s *Server) GetUser(ctx context.Context, req *userv1.GetUserRequest) (*user
 	return toProto(user), nil
 }
 
-func toProto(user *service.UserDTO) *userv1.UserResponse {
+func toProto(user *dto.UserDTO) *userv1.UserResponse {
 	return &userv1.UserResponse{
 		Id:          user.ID,
 		Email:       user.Email,

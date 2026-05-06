@@ -313,8 +313,8 @@ api/proto/order/v1/order.proto
 api/gen/order/v1
 cmd/order/main.go
 internal/order/model
-internal/order/service/command.go
-internal/order/service/dto.go
+internal/order/dto/command.go
+internal/order/dto/order.go
 internal/order/service/service.go
 internal/order/repo
 internal/order/handler
@@ -423,10 +423,11 @@ $env:APP_ORDER_GRPC_PORT="9101"; make run-order
 ```text
 internal/<service>
   ├── model    # 实体、值对象、业务错误、仓储接口
+  ├── dto
+  │   ├── command.go    # 业务用例入参命令
+  │   └── <service>.go  # 业务用例出参 DTO 和转换
   ├── service
-  │   ├── command.go  # 业务用例入参命令
-  │   ├── dto.go      # 业务用例出参 DTO 和转换
-  │   └── service.go  # 业务流程编排
+  │   └── service.go    # 业务流程编排
   ├── repo     # Gorm、MongoDB、Redis、外部依赖实现
   └── handler  # gRPC/HTTP 入站适配
 ```
@@ -451,7 +452,7 @@ repo -> model
 ```
 
 `model` 不依赖 Gin、gRPC、Gorm、MongoDB SDK 或日志框架，便于测试和替换基础设施。
-`service.go` 只写业务流程；命令入参放 `service/command.go`，返回 DTO 和转换函数放 `service/dto.go`，避免控制器或服务主文件堆字段。
+`service.go` 只写业务流程；命令入参放 `dto/command.go`，返回 DTO 和转换函数放 `dto/<service>.go`，避免控制器或服务主文件堆字段。
 
 ### 6.1 C4 架构图说明
 
@@ -517,9 +518,9 @@ C4Component
 
   Container_Boundary(serviceBoundary, "Business Service") {
     Component(grpcHandler, "handler", "gRPC Adapter", "把 proto request 转成 service command")
-    Component(command, "service/command.go", "Command DTO", "定义业务用例入参")
+    Component(command, "dto/command.go", "Command DTO", "定义业务用例入参")
     Component(usecase, "service/service.go", "Use Case Service", "编排业务流程和事务意图")
-    Component(dto, "service/dto.go", "Response DTO", "定义业务出参并转换领域模型")
+    Component(dto, "dto/<service>.go", "Response DTO", "定义业务出参并转换领域模型")
     Component(model, "model", "Domain Model", "实体、值对象、业务错误和 Repository 接口")
     Component(repo, "repo", "Gorm Repository", "实现 model.Repository 并操作数据库")
   }
@@ -639,6 +640,8 @@ pg
 ```yaml
 mongodb:
   uri: mongodb://127.0.0.1:27017
+  username: ""
+  password: ""
   database: xiaolanshu
   app_name: bw-cli
   min_pool_size: 0
@@ -647,16 +650,24 @@ mongodb:
   server_selection_timeout_seconds: 5
 ```
 
-如果使用 `docker-compose.yml` 里的 MongoDB：
+服务启动时会读取 `configs/config.yaml` 中的 `mongodb.*` 配置，并通过 `cfg.MongoDB.MongoxConfig()` 创建连接。用户名、密码、数据库名都写在配置文件对应字段中。
 
-```bash
-docker compose up -d mongodb
+业务仓储建议通过公共操作类读写 collection：
 
-export APP_MONGODB_URI='mongodb://bw:bw-secret@127.0.0.1:27017/xiaolanshu?authSource=admin'
-export APP_MONGODB_DATABASE='xiaolanshu'
+```go
+type NoteDocument struct {
+    ID    string `bson:"_id"`
+    Title string `bson:"title"`
+}
+
+db := mongox.Database(client, cfg.MongoDB.Database)
+notes := mongox.NewCollection[NoteDocument](db, "notes")
+
+_, err := notes.UpsertByID(ctx, "note-1", &NoteDocument{ID: "note-1", Title: "MongoDB note"})
+note, err := notes.FindByID(ctx, "note-1")
 ```
 
-详细教学文档见 [MongoDB 从 0 到 1 教学教程](docs/mongodb.md)。
+MongoDB 调用实战见 [MongoDB 调用示例全流程](docs/mongo-call-examples.md)，基础教学见 [MongoDB 从 0 到 1 教学教程](docs/mongodb.md)。
 
 ### 7.5 文件上传
 
@@ -751,7 +762,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 | `pkg/httpx` | HTTP 响应封装 |
 | `pkg/mysqlx` | MySQL/Gorm 初始化 |
 | `pkg/postgresx` | PostgreSQL/Gorm 初始化 |
-| `pkg/mongox` | MongoDB 官方 driver 初始化 |
+| `pkg/mongox` | MongoDB 官方 driver 初始化和公共 Collection CRUD 操作 |
 | `pkg/redisx` | Redis 客户端初始化 |
 | `pkg/esx` | Elasticsearch 客户端初始化 |
 | `pkg/kafkax` | Kafka reader/writer 初始化 |
@@ -822,4 +833,5 @@ export APP_GRPC_NOTE_TARGET='127.0.0.1:9102'
 - [架构说明](docs/architecture.md)：分层、路由、公共包和扩展方式。
 - [详细使用说明](docs/usage.md)：发布 `bw-cli`、安装命令、生成项目、初始化依赖、配置服务、启动验证和扩展业务。
 - [工具组件总览与调用流程](docs/toolkit.md)：配置、日志、中间件、数据库、MongoDB、Redis、ES、Kafka、文件上传等公共工具的调用方式。
+- [MongoDB 调用示例全流程](docs/mongo-call-examples.md)：配置、初始化、repo 封装、note/order/audit 多服务调用示例和测试方式。
 - [MongoDB 从 0 到 1 教学教程](docs/mongodb.md)：概念、本地启动、命令行 CRUD、Go 接入、仓储封装、索引、分页、事务、测试和排错。

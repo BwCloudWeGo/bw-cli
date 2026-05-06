@@ -320,10 +320,10 @@ import (
 
 func main() {
 	// Load runtime settings from YAML/env before constructing dependencies.
-	cfg, err := config.Load("configs/config.yaml")
-	if err != nil {
+	if err := config.InitGlobal("configs/config.yaml"); err != nil {
 		panic(err)
 	}
+	cfg := config.MustGlobal()
 	cfg.Log.Service = cfg.App.GatewayServiceName
 	cfg.Log = logger.WithDailyFileName(cfg.Log, time.Now())
 
@@ -509,6 +509,8 @@ postgresql:
 
 mongodb:
   uri: mongodb://127.0.0.1:27017
+  username: ""
+  password: ""
   database: app
   app_name: bw-cli
   min_pool_size: 0
@@ -713,7 +715,7 @@ docs           # 使用和架构文档
 bw-cli service order --tidy
 `+"```"+`
 
-命令会生成 `+"`cmd/order`"+`、`+"`api/proto/order`"+`、`+"`internal/order/model`"+`、`+"`internal/order/service/command.go`"+`、`+"`dto.go`"+`、`+"`service.go`"+`、`+"`repo`"+`、`+"`handler`"+`、gateway request/handler/router 和 `+"`docs/services/order.md`"+`。生成后的服务默认带 Create/Get/List/Update/Delete 基础 CRUD，端口默认值写在 `+"`cmd/order/main.go`"+`，不需要修改 `+"`configs/config.yaml`"+`。
+命令会生成 `+"`cmd/order`"+`、`+"`api/proto/order`"+`、`+"`internal/order/model`"+`、`+"`internal/order/dto`"+`、`+"`internal/order/service/service.go`"+`、`+"`repo`"+`、`+"`handler`"+`、gateway request/handler/router 和 `+"`docs/services/order.md`"+`。生成后的服务默认带 Create/Get/List/Update/Delete 基础 CRUD，端口默认值写在 `+"`cmd/order/main.go`"+`，不需要修改 `+"`configs/config.yaml`"+`。
 
 需要指定端口时使用：
 
@@ -856,8 +858,8 @@ api/proto/comment/v1/comment.proto
 api/gen/comment/v1
 cmd/comment/main.go
 internal/comment/model      # 领域实体、业务错误、Repository 接口
-internal/comment/service/command.go  # 业务用例入参命令
-internal/comment/service/dto.go      # 业务用例出参 DTO 和转换
+internal/comment/dto/command.go      # 业务用例入参命令
+internal/comment/dto/comment.go      # 业务用例出参 DTO 和转换
 internal/comment/service/service.go  # 业务流程编排
 internal/comment/repo       # 数据库访问，默认 Gorm
 internal/comment/handler    # gRPC 协议转换
@@ -896,7 +898,7 @@ DeleteComment
 开发原则：
 
 - `+"`model`"+` 写业务核心，不依赖 Gin、gRPC、Gorm。
-- `+"`service/command.go`"+` 写业务入参，`+"`service/dto.go`"+` 写业务出参，`+"`service/service.go`"+` 写业务流程。
+- `+"`dto/command.go`"+` 写业务入参，`+"`dto/<service>.go`"+` 写业务出参，`+"`service/service.go`"+` 写业务流程。
 - `+"`repo`"+` 是数据库操作唯一入口，Gorm/MongoDB/Redis 查询都放这里。
 - `+"`handler`"+` 只做 gRPC request/response 转换和错误映射。
 - HTTP 入参放 `+"`internal/gateway/request`"+`，路由按 `+"`/api/v1/<business>`"+` 拆分。
@@ -916,8 +918,8 @@ func cleanArchitectureDoc() string {
 
 ~~~text
 internal/<service>/model    # 实体、值对象、业务错误、仓储接口
-internal/<service>/service/command.go  # 业务用例入参命令
-internal/<service>/service/dto.go      # 业务用例出参 DTO 和转换
+internal/<service>/dto/command.go      # 业务用例入参命令
+internal/<service>/dto/<service>.go    # 业务用例出参 DTO 和转换
 internal/<service>/service/service.go  # 业务流程编排
 internal/<service>/repo     # Gorm、MongoDB、Redis、外部依赖实现
 internal/<service>/handler  # gRPC/HTTP 入站适配
@@ -1165,8 +1167,8 @@ Client
 
 ~~~text
 internal/<service>/model    # 实体、值对象、业务错误、仓储接口
-internal/<service>/service/command.go  # 业务用例入参命令
-internal/<service>/service/dto.go      # 业务用例出参 DTO 和转换
+internal/<service>/dto/command.go      # 业务用例入参命令
+internal/<service>/dto/<service>.go    # 业务用例出参 DTO 和转换
 internal/<service>/service/service.go  # 业务流程编排
 internal/<service>/repo     # Gorm、MongoDB、Redis、外部依赖实现
 internal/<service>/handler  # gRPC/HTTP 入站适配
@@ -1226,7 +1228,7 @@ func generatedToolkitDoc(module string) string {
 | `+"`pkg/database`"+` | SQLite/MySQL/PostgreSQL Gorm 统一入口 |
 | `+"`pkg/mysqlx`"+` | MySQL Gorm 初始化 |
 | `+"`pkg/postgresx`"+` | PostgreSQL Gorm 初始化 |
-| `+"`pkg/mongox`"+` | MongoDB 官方 driver 初始化 |
+| `+"`pkg/mongox`"+` | MongoDB 官方 driver 初始化和公共 Collection CRUD 操作 |
 | `+"`pkg/redisx`"+` | Redis client 初始化 |
 | `+"`pkg/esx`"+` | Elasticsearch client 初始化 |
 | `+"`pkg/kafkax`"+` | Kafka reader/writer 初始化 |
@@ -1236,7 +1238,7 @@ func generatedToolkitDoc(module string) string {
 ## 2. 推荐初始化顺序
 
 `+"```text"+`
-config.Load
+config.InitGlobal
   -> logger.New
   -> database.Open / mongox.NewClient / redisx.NewClient
   -> filex.NewUploader
@@ -1247,10 +1249,10 @@ config.Load
 ## 3. 配置加载
 
 `+"```go"+`
-cfg, err := config.Load("configs/config.yaml")
-if err != nil {
+if err := config.InitGlobal("configs/config.yaml"); err != nil {
     panic(err)
 }
+cfg := config.MustGlobal()
 `+"```"+`
 
 环境变量覆盖规则：
@@ -1294,14 +1296,22 @@ pg
 ## 6. MongoDB
 
 `+"```go"+`
-client, err := mongox.NewClient(cfg.MongoDB)
+type Document struct {
+    ID string `+"`bson:\"_id\"`"+`
+}
+
+client, err := mongox.NewClient(cfg.MongoDB.MongoxConfig())
 if err != nil {
     panic(err)
 }
 defer client.Disconnect(context.Background())
 
 db := mongox.Database(client, cfg.MongoDB.Database)
-collection := db.Collection("documents")
+documents := mongox.NewCollection[Document](db, "documents")
+_, err = documents.UpsertByID(context.Background(), "doc-1", &Document{ID: "doc-1"})
+if err != nil {
+    panic(err)
+}
 `+"```"+`
 
 详细教程见 `+"`docs/mongodb.md`"+`。
@@ -1394,6 +1404,8 @@ db.documents.find()
 `+"```yaml"+`
 mongodb:
   uri: mongodb://127.0.0.1:27017
+  username: ""
+  password: ""
   database: app
   app_name: app-service
   min_pool_size: 0
@@ -1405,7 +1417,9 @@ mongodb:
 本地环境变量：
 
 `+"```bash"+`
-export APP_MONGODB_URI='mongodb://bw:bw-secret@127.0.0.1:27017/xiaolanshu?authSource=admin'
+export APP_MONGODB_URI='mongodb://127.0.0.1:27017/xiaolanshu?authSource=admin'
+export APP_MONGODB_USERNAME='bw'
+export APP_MONGODB_PASSWORD='bw-secret'
 export APP_MONGODB_DATABASE='xiaolanshu'
 export APP_MONGODB_APP_NAME='app-service'
 `+"```"+`
@@ -1415,7 +1429,11 @@ export APP_MONGODB_APP_NAME='app-service'
 ## 5. Go 初始化
 
 `+"```go"+`
-client, err := mongox.NewClient(cfg.MongoDB)
+type Document struct {
+    ID string `+"`bson:\"_id\"`"+`
+}
+
+client, err := mongox.NewClient(cfg.MongoDB.MongoxConfig())
 if err != nil {
     return err
 }
@@ -1426,16 +1444,25 @@ if err := mongox.Ping(context.Background(), client); err != nil {
 }
 
 db := mongox.Database(client, cfg.MongoDB.Database)
-collection := db.Collection("documents")
+documents := mongox.NewCollection[Document](db, "documents")
 `+"```"+`
 
 ## 6. Repo 层建议
 
-建议把 MongoDB 代码放在 `+"`internal/<service>/repo`"+`，不要在 handler 里直接操作集合：
+建议把 MongoDB 代码放在 `+"`internal/<service>/repo`"+`，不要在 handler 或 service 里直接操作集合。repo 层通过 `+"`mongox.NewCollection[T]`"+` 复用公共 CRUD 操作：
 
 `+"```text"+`
 handler -> service -> model.Repository
 repo -> MongoDB collection
+`+"```"+`
+
+`+"```go"+`
+_, err := documents.UpsertByID(ctx, "doc-1", &Document{ID: "doc-1"})
+if err != nil {
+    return err
+}
+
+document, err := documents.FindByID(ctx, "doc-1")
 `+"```"+`
 
 示例结构：

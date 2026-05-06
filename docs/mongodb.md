@@ -2,6 +2,8 @@
 
 这份文档用于教学，不只是告诉你“配置什么参数”，而是按真实学习路径带你从零开始理解 MongoDB，并把它接入 `bw-cli` 生成的 Go 微服务项目。
 
+如果你已经了解 MongoDB，只想看脚手架项目里如何调用 `pkg/mongox`、如何在 note/order/audit 等不同服务中落地，请直接看 [MongoDB 调用示例全流程](mongo-call-examples.md)。
+
 学完后你应该能做到：
 
 - 知道 MongoDB 和 MySQL/PostgreSQL 的核心区别。
@@ -16,7 +18,7 @@
 
 MongoDB 是文档型数据库。它保存的不是“表中的一行”，而是一个个 JSON 风格的文档。MongoDB 实际存储格式是 BSON，可以理解成支持更多数据类型的二进制 JSON。
 
-关系型数据库常见结构：
+关系型数据库（例如 MySQL、PostgreSQL）常见结构：
 
 ```text
 database
@@ -102,16 +104,7 @@ go version
 go1.25+
 ```
 
-### 3.2 检查 Docker
-
-```bash
-docker version
-docker compose version
-```
-
-如果这两个命令不可用，先安装 Docker Desktop。
-
-### 3.3 检查 bw-cli 项目
+### 3.2 检查 bw-cli 项目
 
 如果你还没有生成项目，先安装脚手架命令：
 
@@ -141,62 +134,31 @@ bw-cli demo test_cli_demo \
 cd test_cli
 ```
 
-## 4. 本地启动 MongoDB
+## 4. 准备 MongoDB 连接
 
-脚手架的 `docker-compose.yml` 已经内置了 MongoDB：
+你只需要准备一个当前机器可以访问的 MongoDB 实例，然后把连接信息写入 `configs/config.yaml`：
 
 ```yaml
 mongodb:
-  image: mongo:7
-  environment:
-    MONGO_INITDB_ROOT_USERNAME: bw
-    MONGO_INITDB_ROOT_PASSWORD: bw-secret
-    MONGO_INITDB_DATABASE: xiaolanshu
-  volumes:
-    - mongodb_data:/data/db
-  ports:
-    - "27017:27017"
+  uri: mongodb://127.0.0.1:27017
+  username: ""
+  password: ""
+  database: xiaolanshu
+  app_name: bw-cli
+  min_pool_size: 0
+  max_pool_size: 100
+  connect_timeout_seconds: 10
+  server_selection_timeout_seconds: 5
 ```
 
-启动 MongoDB：
-
-```bash
-docker compose up -d mongodb
-```
-
-查看容器：
-
-```bash
-docker compose ps mongodb
-```
-
-查看日志：
-
-```bash
-docker compose logs -f mongodb
-```
-
-连接串：
-
-```text
-mongodb://bw:bw-secret@127.0.0.1:27017/xiaolanshu?authSource=admin
-```
-
-说明：
-
-- `bw`：用户名。
-- `bw-secret`：密码。
-- `127.0.0.1:27017`：本机访问 MongoDB。
-- `xiaolanshu`：业务数据库。
-- `authSource=admin`：使用 root 用户时，认证库是 `admin`。
+如果 MongoDB 开启了账号密码，直接填写 `username` 和 `password`。如果需要副本集、认证库或其他连接参数，把完整连接串写在 `uri` 中。
 
 ## 5. 使用 mongosh 做第一次连接
 
-进入容器内执行 `mongosh`：
+使用配置文件中的连接信息执行 `mongosh`：
 
 ```bash
-docker compose exec mongodb mongosh \
-  'mongodb://bw:bw-secret@127.0.0.1:27017/xiaolanshu?authSource=admin'
+mongosh 'mongodb://127.0.0.1:27017/xiaolanshu'
 ```
 
 连接后执行：
@@ -403,6 +365,8 @@ db.note_documents.find({ author_id: "user-1" })
 ```yaml
 mongodb:
   uri: mongodb://127.0.0.1:27017
+  username: ""
+  password: ""
   database: xiaolanshu
   app_name: bw-cli
   min_pool_size: 0
@@ -416,6 +380,8 @@ mongodb:
 | 字段 | 说明 |
 | --- | --- |
 | `uri` | MongoDB 连接串 |
+| `username` | MongoDB 用户名。为空时不单独设置认证信息 |
+| `password` | MongoDB 密码。启用认证时直接通过配置文件读取 |
 | `database` | 默认业务数据库 |
 | `app_name` | 客户端名称，便于监控识别 |
 | `min_pool_size` | 最小连接池数量 |
@@ -423,27 +389,7 @@ mongodb:
 | `connect_timeout_seconds` | TCP 建连超时 |
 | `server_selection_timeout_seconds` | 选择可用节点超时 |
 
-本地使用 compose 里的 MongoDB 时，建议用环境变量覆盖：
-
-```bash
-export APP_MONGODB_URI='mongodb://bw:bw-secret@127.0.0.1:27017/xiaolanshu?authSource=admin'
-export APP_MONGODB_DATABASE='xiaolanshu'
-export APP_MONGODB_APP_NAME='app-service'
-```
-
-生产环境示例：
-
-```bash
-export APP_MONGODB_URI='mongodb://app:replace-with-real-password@mongo-1.example.com:27017,mongo-2.example.com:27017/app?replicaSet=rs0&authSource=admin'
-export APP_MONGODB_DATABASE='app'
-export APP_MONGODB_APP_NAME='app-service'
-export APP_MONGODB_MIN_POOL_SIZE=2
-export APP_MONGODB_MAX_POOL_SIZE=100
-export APP_MONGODB_CONNECT_TIMEOUT_SECONDS=10
-export APP_MONGODB_SERVER_SELECTION_TIMEOUT_SECONDS=5
-```
-
-生产密码不要写进 `configs/config.yaml`，应该通过环境变量、Kubernetes Secret 或配置中心注入。
+服务启动时会读取这组配置，并通过 `cfg.MongoDB.MongoxConfig()` 转换成公共连接配置。不同环境需要不同 MongoDB 地址时，维护对应环境的配置文件即可。
 
 ## 9. 脚手架内置的 mongox 包
 
@@ -451,21 +397,26 @@ export APP_MONGODB_SERVER_SELECTION_TIMEOUT_SECONDS=5
 
 ```text
 pkg/mongox
+  ├── collection.go
+  ├── collection_test.go
   ├── mongox.go
   └── mongox_test.go
 ```
 
-它做三件事：
+它做四件事：
 
 - 定义 MongoDB 连接配置。
 - 创建官方 driver 的 `mongo.Client`。
 - 提供 `Ping` 方法验证连接。
+- 提供公共 `Collection[T]` 操作类，封装常见 CRUD，业务仓储不需要散落调用 driver。
 
 核心用法：
 
 ```go
 client, err := mongox.NewClient(mongox.Config{
     URI:                    cfg.MongoDB.URI,
+    Username:               cfg.MongoDB.Username,
+    Password:               cfg.MongoDB.Password,
     Database:               cfg.MongoDB.Database,
     AppName:                cfg.MongoDB.AppName,
     MinPoolSize:            cfg.MongoDB.MinPoolSize,
@@ -476,6 +427,46 @@ client, err := mongox.NewClient(mongox.Config{
 ```
 
 注意：`mongo.Client` 是连接池对象，一个进程创建一次即可。不要每个请求创建一次。
+
+公共操作类用法：
+
+```go
+type NoteDocument struct {
+    ID      string `bson:"_id"`
+    Title   string `bson:"title"`
+    Content string `bson:"content"`
+}
+
+db := mongox.Database(client, cfg.MongoDB.Database)
+notes := mongox.NewCollection[NoteDocument](db, "notes")
+
+_, err = notes.UpsertByID(ctx, "note-1", &NoteDocument{
+    ID:      "note-1",
+    Title:   "MongoDB note",
+    Content: "stored by mongox.Collection",
+})
+if err != nil {
+    return err
+}
+
+note, err := notes.FindByID(ctx, "note-1")
+if err != nil {
+    return err
+}
+```
+
+`Collection[T]` 当前提供：
+
+| 方法 | 作用 |
+| --- | --- |
+| `Insert` | 插入单条文档 |
+| `UpsertByID` | 按 `_id` 替换保存，不存在则新增 |
+| `ReplaceByID` / `ReplaceOne` | 替换已有文档 |
+| `FindByID` / `FindOne` | 查询单条文档，未找到返回 `mongox.ErrNotFound` |
+| `FindMany` | 查询多条文档，支持 `options.Find()` |
+| `UpdateOne` | 执行 `$set`、`$inc` 等局部更新 |
+| `DeleteByID` / `DeleteOne` | 删除文档 |
+| `Count` | 统计文档数量 |
 
 ## 10. 在服务启动时创建 MongoDB client
 
@@ -502,6 +493,8 @@ import (
 func openMongo(cfg *config.Config, log *zap.Logger) *mongo.Client {
     client, err := mongox.NewClient(mongox.Config{
         URI:                    cfg.MongoDB.URI,
+        Username:               cfg.MongoDB.Username,
+        Password:               cfg.MongoDB.Password,
         Database:               cfg.MongoDB.Database,
         AppName:                cfg.MongoDB.AppName,
         MinPoolSize:            cfg.MongoDB.MinPoolSize,
@@ -534,6 +527,21 @@ defer func() {
     }
 }()
 ```
+
+note 服务还提供了一个可手动运行的 MongoDB 操作示例：
+
+```bash
+APP_RUN_NOTE_MONGODB_EXAMPLE=true go test ./cmd/note -run TestRunMongoCollectionExampleUsesCurrentConfig -v
+```
+
+这个示例会读取当前仓库的 `configs/config.yaml`，使用其中的 `mongodb.uri`、`mongodb.username`、`mongodb.password` 和 `mongodb.database` 创建客户端，然后通过 `mongox.NewCollection[T]` 对 `note_mongodb_examples` 集合执行：
+
+1. `UpsertByID` 写入或替换示例文档。
+2. `FindByID` 按 `_id` 查询示例文档。
+3. `UpdateOne` 局部更新示例文档。
+4. `Count` 统计当前 note 服务的示例文档数量。
+
+示例代码位于 `cmd/note/mongodb_example.go`。默认测试不会连接真实 MongoDB，只有显式设置 `APP_RUN_NOTE_MONGODB_EXAMPLE=true` 才会执行数据写入。
 
 ## 11. DDD 中 MongoDB 代码应该放在哪里
 
@@ -629,6 +637,7 @@ import (
     "go.mongodb.org/mongo-driver/v2/mongo/options"
 
     "github.com/BwCloudWeGo/bw-cli/internal/note/model"
+    "github.com/BwCloudWeGo/bw-cli/pkg/mongox"
 )
 
 type noteDocumentRecord struct {
@@ -645,11 +654,14 @@ type noteDocumentRecord struct {
 
 type NoteMongoRepository struct {
     collection *mongo.Collection
+    documents  *mongox.Collection[noteDocumentRecord]
 }
 
 func NewNoteMongoRepository(client *mongo.Client, database string) *NoteMongoRepository {
+    db := mongox.Database(client, database)
     return &NoteMongoRepository{
-        collection: client.Database(database).Collection("note_documents"),
+        collection: db.Collection("note_documents"),
+        documents:  mongox.NewCollection[noteDocumentRecord](db, "note_documents"),
     }
 }
 ```
@@ -755,7 +767,7 @@ func (r *NoteMongoRepository) Save(ctx context.Context, doc model.NoteDocument) 
         "updated_at": record.UpdatedAt,
     }
 
-    _, err := r.collection.UpdateOne(
+    _, err := r.documents.UpdateOne(
         ctx,
         bson.M{"note_id": record.NoteID},
         bson.M{
@@ -781,19 +793,18 @@ func (r *NoteMongoRepository) Save(ctx context.Context, doc model.NoteDocument) 
 
 ```go
 func (r *NoteMongoRepository) FindByNoteID(ctx context.Context, noteID string) (model.NoteDocument, error) {
-    var record noteDocumentRecord
-    err := r.collection.FindOne(ctx, bson.M{"note_id": noteID}).Decode(&record)
+    record, err := r.documents.FindOne(ctx, bson.M{"note_id": noteID})
     if err != nil {
         return model.NoteDocument{}, err
     }
-    return toNoteDocument(record), nil
+    return toNoteDocument(*record), nil
 }
 ```
 
-如果没查到，driver 返回 `mongo.ErrNoDocuments`。业务层可以把它转换成自己的业务错误：
+如果没查到，公共操作类会返回 `mongox.ErrNotFound`。业务层可以把它转换成自己的业务错误：
 
 ```go
-if errors.Is(err, mongo.ErrNoDocuments) {
+if errors.Is(err, mongox.ErrNotFound) {
     return model.NoteDocument{}, apperrors.NewNotFound("note document not found")
 }
 ```
@@ -808,7 +819,7 @@ func (r *NoteMongoRepository) ListByAuthor(ctx context.Context, authorID string,
         limit = 20
     }
 
-    cursor, err := r.collection.Find(
+    records, err := r.documents.FindMany(
         ctx,
         bson.M{"author_id": authorID},
         options.Find().
@@ -816,12 +827,6 @@ func (r *NoteMongoRepository) ListByAuthor(ctx context.Context, authorID string,
             SetLimit(limit),
     )
     if err != nil {
-        return nil, err
-    }
-    defer cursor.Close(ctx)
-
-    var records []noteDocumentRecord
-    if err := cursor.All(ctx, &records); err != nil {
         return nil, err
     }
 
@@ -836,14 +841,14 @@ func (r *NoteMongoRepository) ListByAuthor(ctx context.Context, authorID string,
 注意：
 
 - `limit` 要有限制，避免一次查太多。
-- `Find` 返回 cursor，必须 `defer cursor.Close(ctx)`。
+- `mongox.Collection.FindMany` 会负责 cursor 解码和关闭。
 - 查询字段和排序字段要匹配索引。
 
 ## 19. 删除文档
 
 ```go
 func (r *NoteMongoRepository) DeleteByNoteID(ctx context.Context, noteID string) error {
-    _, err := r.collection.DeleteOne(ctx, bson.M{"note_id": noteID})
+    _, err := r.documents.DeleteOne(ctx, bson.M{"note_id": noteID})
     return err
 }
 ```
@@ -851,7 +856,7 @@ func (r *NoteMongoRepository) DeleteByNoteID(ctx context.Context, noteID string)
 如果业务需要软删除，不要直接删除，可以更新状态：
 
 ```go
-_, err := r.collection.UpdateOne(
+_, err := r.documents.UpdateOne(
     ctx,
     bson.M{"note_id": noteID},
     bson.M{"$set": bson.M{"status": "deleted", "updated_at": time.Now()}},
@@ -976,74 +981,52 @@ return err
 
 ## 23. 写一个集成测试
 
-MongoDB 集成测试依赖本地服务，不应该默认强制运行。推荐用环境变量控制。
+MongoDB 集成测试依赖本地服务，不应该默认强制运行。推荐用显式开关控制。
 
-文件：`internal/note/repo/mongo_repository_test.go`
+文件：`cmd/note/mongodb_example_test.go`
 
 ```go
-package repo_test
+package main
 
 import (
     "context"
     "os"
+    "path/filepath"
     "testing"
-    "time"
 
     "github.com/stretchr/testify/require"
+    "go.uber.org/zap"
 
-    "github.com/BwCloudWeGo/bw-cli/internal/note/model"
-    "github.com/BwCloudWeGo/bw-cli/internal/note/repo"
-    "github.com/BwCloudWeGo/bw-cli/pkg/mongox"
+    "github.com/BwCloudWeGo/bw-cli/pkg/config"
 )
 
-func TestNoteMongoRepositorySaveAndFind(t *testing.T) {
-    uri := os.Getenv("APP_MONGODB_URI")
-    if uri == "" {
-        t.Skip("APP_MONGODB_URI is required for mongodb integration test")
-    }
-    database := os.Getenv("APP_MONGODB_DATABASE")
-    if database == "" {
-        database = "xiaolanshu_test"
+func TestRunMongoCollectionExampleUsesCurrentConfig(t *testing.T) {
+    if os.Getenv("APP_RUN_NOTE_MONGODB_EXAMPLE") != "true" {
+        t.Skip("set APP_RUN_NOTE_MONGODB_EXAMPLE=true to run this MongoDB example against configs/config.yaml")
     }
 
-    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-    defer cancel()
+    previous := config.GlobalConfig
+    defer func() { config.GlobalConfig = previous }()
 
-    client, err := mongox.NewClient(mongox.Config{URI: uri, Database: database})
+    configPath := filepath.Join("..", "..", "configs", "config.yaml")
+    require.NoError(t, config.InitGlobal(configPath))
+    cfg := config.MustGlobal()
+
+    document, err := runMongoCollectionExample(context.Background(), cfg, zap.NewNop())
     require.NoError(t, err)
-    defer client.Disconnect(ctx)
-
-    repository := repo.NewNoteMongoRepository(client, database)
-    require.NoError(t, repository.EnsureIndexes(ctx))
-
-    doc := model.NoteDocument{
-        NoteID:   "note-test-1",
-        AuthorID: "user-test-1",
-        Title:    "MongoDB integration test",
-        Content:  "hello mongodb",
-        Status:   "draft",
-        Tags:     []string{"test"},
-    }
-
-    require.NoError(t, repository.Save(ctx, doc))
-
-    got, err := repository.FindByNoteID(ctx, doc.NoteID)
-    require.NoError(t, err)
-    require.Equal(t, doc.NoteID, got.NoteID)
-    require.Equal(t, doc.Title, got.Title)
+    require.NotNil(t, document)
+    require.Equal(t, cfg.App.NoteServiceName, document.Service)
 }
 ```
 
 运行：
 
 ```bash
-docker compose up -d mongodb
-
-export APP_MONGODB_URI='mongodb://bw:bw-secret@127.0.0.1:27017/xiaolanshu_test?authSource=admin'
-export APP_MONGODB_DATABASE='xiaolanshu_test'
-
-go test ./internal/note/repo -run TestNoteMongoRepositorySaveAndFind -v
+export APP_RUN_NOTE_MONGODB_EXAMPLE=true
+go test ./cmd/note -run TestRunMongoCollectionExampleUsesCurrentConfig -v
 ```
+
+运行前确认 `configs/config.yaml` 中的 `mongodb.*` 已经指向可访问的 MongoDB。
 
 ## 24. 常见错误排查
 
@@ -1057,10 +1040,9 @@ server selection error: context deadline exceeded
 
 排查：
 
-- MongoDB 是否启动：`docker compose ps mongodb`
-- 端口是否正确：`27017`
-- 在宿主机访问用 `127.0.0.1:27017`
-- 在 compose 容器内访问用 `mongodb:27017`
+- MongoDB 服务是否已经启动。
+- `configs/config.yaml` 中的 `mongodb.uri` 地址和端口是否正确。
+- 当前服务所在机器是否能访问该地址。
 - 副本集名称是否正确
 
 ### 24.2 authentication failed
@@ -1069,7 +1051,7 @@ server selection error: context deadline exceeded
 
 - 用户名是否正确。
 - 密码是否正确。
-- `authSource` 是否正确。使用本教程 compose 里的 root 用户时，应该是 `authSource=admin`。
+- `uri` 中的认证库参数是否正确。
 - URI 是否被 shell 特殊字符影响。复杂密码建议 URL encode。
 
 ### 24.3 no documents in result
@@ -1154,9 +1136,9 @@ defer cursor.Close(ctx)
 
 ## 26. 上线前检查清单
 
-- MongoDB URI 不写入 Git。
-- 生产密码来自环境变量、密钥系统或配置中心。
-- URI 中设置了正确的 `authSource`。
+- MongoDB 配置文件按环境管理，生产配置不要混入本地默认配置。
+- 生产密码只写入部署环境实际使用的安全配置文件。
+- URI 中设置了正确的认证库参数。
 - 副本集环境中设置了正确的 `replicaSet`。
 - 关键查询都有索引。
 - 大列表接口限制了 `limit`。

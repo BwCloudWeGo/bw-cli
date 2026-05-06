@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 
 	notev1 "github.com/BwCloudWeGo/bw-cli/api/gen/note/v1"
+	"github.com/BwCloudWeGo/bw-cli/internal/note/dto"
 	"github.com/BwCloudWeGo/bw-cli/internal/note/model"
 	"github.com/BwCloudWeGo/bw-cli/internal/note/service"
 	apperrors "github.com/BwCloudWeGo/bw-cli/pkg/errors"
@@ -26,7 +27,7 @@ func NewServer(svc *service.Service, log *zap.Logger) *Server {
 
 // CreateNote handles the note creation RPC.
 func (s *Server) CreateNote(ctx context.Context, req *notev1.CreateNoteRequest) (*notev1.NoteResponse, error) {
-	note, err := s.svc.Create(ctx, service.CreateNoteCommand{
+	note, err := s.svc.Create(ctx, dto.CreateNoteCommand{
 		AuthorID: req.GetAuthorId(),
 		Title:    req.GetTitle(),
 		Content:  req.GetContent(),
@@ -49,7 +50,7 @@ func (s *Server) GetNote(ctx context.Context, req *notev1.GetNoteRequest) (*note
 
 // PublishNote handles the note publish RPC.
 func (s *Server) PublishNote(ctx context.Context, req *notev1.PublishNoteRequest) (*notev1.NoteResponse, error) {
-	note, err := s.svc.PublishSubmitted(ctx, service.PublishNoteCommand{
+	note, err := s.svc.PublishSubmitted(ctx, dto.PublishNoteCommand{
 		ID:         req.GetId(),
 		AuthorID:   req.GetAuthorId(),
 		Title:      req.GetTitle(),
@@ -66,7 +67,7 @@ func (s *Server) PublishNote(ctx context.Context, req *notev1.PublishNoteRequest
 	return toProto(note), nil
 }
 
-func toProto(note *service.NoteDTO) *notev1.NoteResponse {
+func toProto(note *dto.NoteDTO) *notev1.NoteResponse {
 	return &notev1.NoteResponse{
 		Id:         note.ID,
 		AuthorId:   note.AuthorID,

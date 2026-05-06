@@ -21,10 +21,10 @@ import (
 
 func main() {
 	// Load all runtime settings from YAML/env before constructing dependencies.
-	cfg, err := config.Load("configs/config.yaml")
-	if err != nil {
+	if err := config.InitGlobal("configs/config.yaml"); err != nil {
 		panic(err)
 	}
+	cfg := config.MustGlobal()
 	cfg.Log.Service = cfg.App.GatewayServiceName
 	cfg.Log = logger.WithDailyFileName(cfg.Log, time.Now())
 
