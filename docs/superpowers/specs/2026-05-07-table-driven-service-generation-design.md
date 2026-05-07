@@ -22,7 +22,7 @@ bw-cli service goods --table goods --tidy
 新增参数：
 
 ```bash
-bw-cli service <service-name> --table <table-name> [--schema <schema>] [--config configs/config.yaml] [--port 9100] [--tidy]
+bw-cli service <service-name> --table <table-name> [--schema <schema>] [--port 9100] [--tidy]
 ```
 
 参数说明：
@@ -31,10 +31,11 @@ bw-cli service <service-name> --table <table-name> [--schema <schema>] [--config
 | --- | --- | --- |
 | `--table` | 指定要读取的数据库表名 | 空，表示使用默认示例字段 |
 | `--schema` | PostgreSQL schema 或 MySQL database 辅助过滤 | PostgreSQL 默认 `public`，MySQL 默认当前 database |
-| `--config` | 指定配置文件路径 | `configs/config.yaml` |
 | `--port` | 生成服务默认 gRPC 端口 | `9100` |
 | `--skip-proto` | 跳过 proto 生成 | false |
 | `--tidy` | 生成后执行 `go mod tidy` | false |
+
+配置文件路径固定为项目根目录的 `configs/config.yaml`。`bw-cli service` 已经通过 `--dir` 确定项目根目录，因此不再提供 `--config` 参数，避免用户每次生成服务时重复指定固定路径。
 
 ## 数据源选择
 
@@ -198,7 +199,7 @@ handler -> service -> model.Repository -> repo -> database/mongox
 
 单元测试：
 
-- 解析 `--table`、`--schema`、`--config` 参数。
+- 解析 `--table`、`--schema` 参数。
 - SQLite introspection 读取临时库表字段。
 - MySQL/PostgreSQL SQL 构造和字段映射通过 fake rows 或纯函数测试覆盖。
 - 字段命名、类型映射、Create/Update 输入字段过滤。
@@ -208,7 +209,7 @@ handler -> service -> model.Repository -> repo -> database/mongox
 集成验证：
 
 - 使用临时 SQLite 数据库创建 `goods` 表。
-- 执行 `bw-cli service goods --table goods --config <tmp-config> --skip-proto`。
+- 执行 `bw-cli service goods --table goods --skip-proto`。
 - 在生成项目中执行 `go test ./internal/goods/...`。
 
 ## 文档更新
