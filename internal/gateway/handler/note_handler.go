@@ -51,17 +51,6 @@ func (h *NoteHandler) Get(c *gin.Context) {
 	httpx.OK(c, resp)
 }
 
-// Publish proxies the note publish command.
-func (h *NoteHandler) Publish(c *gin.Context) {
-	resp, err := h.client.PublishNote(outgoingContext(c), &notev1.PublishNoteRequest{Id: c.Param("id")})
-	if err != nil {
-		httpx.Error(c, apperrors.FromGRPC(err))
-		return
-	}
-	h.log.Info("gateway note publish proxied", zap.String("request_id", httpx.RequestID(c)), zap.String("note_id", resp.GetId()), zap.String("user_id", resp.GetAuthorId()))
-	httpx.OK(c, resp)
-}
-
 // PublishNote handles note publish requests submitted via JSON body.
 func (h *NoteHandler) PublishNote(c *gin.Context) {
 	var req request.PublishNoteRequest

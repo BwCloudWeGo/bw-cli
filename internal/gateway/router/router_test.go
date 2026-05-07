@@ -47,7 +47,6 @@ func TestRouterUsesConfiguredCORSAndVersionedBusinessRoutes(t *testing.T) {
 	requireRoute(t, registeredRoutes, http.MethodGet, "/api/v1/users/:id")
 	requireRoute(t, registeredRoutes, http.MethodPost, "/api/v1/notes")
 	requireRoute(t, registeredRoutes, http.MethodGet, "/api/v1/notes/:id")
-	requireRoute(t, registeredRoutes, http.MethodPost, "/api/v1/notes/:id/publish")
 	requireRoute(t, registeredRoutes, http.MethodPost, "/api/v1/notes/publishNote")
 }
 

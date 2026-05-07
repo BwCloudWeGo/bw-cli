@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.uber.org/zap"
 
 	"github.com/BwCloudWeGo/bw-cli/internal/note/model"
@@ -32,30 +31,30 @@ type NoteDocument struct {
 	UpdatedAt   time.Time  `bson:"updated_at"`
 }
 
-// NoteDocumentStore 描述 note 仓储实际依赖的 MongoDB 集合操作。
-// 通过小接口隔离公共 mongox.Collection，单元测试可以注入 fake，而业务代码仍复用公共封装。
-type NoteDocumentStore interface {
-	UpsertByID(ctx context.Context, id any, document *NoteDocument, opts ...options.Lister[options.ReplaceOptions]) (*mongo.UpdateResult, error)
-	FindByID(ctx context.Context, id any, opts ...options.Lister[options.FindOneOptions]) (*NoteDocument, error)
+// MongoCollectionName 声明 NoteDocument 对应的 MongoDB 集合名称。
+// 业务仓储通过 mongox.NewDocumentStore[NoteDocument] 创建公共文档操作类时，
+// 会自动读取该集合名称，避免每个业务仓储重复手写 NewCollection 和集合名传参。
+func (NoteDocument) MongoCollectionName() string {
+	return noteCollectionName
 }
 
 // MongoRepository 通过公共 MongoDB 操作类持久化 note 聚合。
 // 它实现 model.Repository，service 层只依赖接口，不关心底层使用 MongoDB 还是其他数据库。
 type MongoRepository struct {
-	notes NoteDocumentStore
+	notes mongox.DocumentSaverFinder[NoteDocument]
 	log   *zap.Logger
 }
 
 // NewMongoRepository 使用配置好的 MongoDB 数据库创建 note 仓储。
-// 这里集中指定集合名称，业务其他层不需要知道 MongoDB collection 细节。
+// 集合名称由 NoteDocument.MongoCollectionName 提供，业务只需要传入文档结构体类型。
 func NewMongoRepository(db *mongo.Database, loggers ...*zap.Logger) *MongoRepository {
 	log := optionalLogger(loggers...)
-	return NewMongoRepositoryWithStore(mongox.NewCollection[NoteDocument](db, noteCollectionName, log), log)
+	return NewMongoRepositoryWithStore(mongox.NewDocumentStore[NoteDocument](db, log), log)
 }
 
 // NewMongoRepositoryWithStore 用于测试时注入集合操作实现。
 // 生产代码通常调用 NewMongoRepository 即可。
-func NewMongoRepositoryWithStore(store NoteDocumentStore, loggers ...*zap.Logger) *MongoRepository {
+func NewMongoRepositoryWithStore(store mongox.DocumentSaverFinder[NoteDocument], loggers ...*zap.Logger) *MongoRepository {
 	return &MongoRepository{notes: store, log: optionalLogger(loggers...)}
 }
 

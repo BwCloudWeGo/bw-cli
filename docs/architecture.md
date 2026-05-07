@@ -193,7 +193,7 @@ database.driver=postgresql
 database.driver=pg
 ```
 
-MongoDB 是文档数据库，不走 Gorm 入口。业务服务需要 MongoDB 时，从 `config.MongoDB` 读取配置并调用 `mongox.NewClient` 创建客户端，再在 `repo` 层通过 `mongox.NewCollection[T]` 复用公共 CRUD 操作类，业务层只依赖仓储接口。
+MongoDB 是文档数据库，不走 Gorm 入口。业务服务需要 MongoDB 时，从 `config.MongoDB` 读取配置并调用 `mongox.NewClient` 创建客户端，再在 `repo` 层定义文档结构体并实现 `MongoCollectionName()`，然后通过 `mongox.NewDocumentStore[T]` 复用公共 CRUD 操作类，业务层只依赖仓储接口。
 
 文件上传通过 `pkg/filex` 进入，业务层只依赖 `filex.Uploader` 接口。上传前会校验文件大小、扩展名和 MIME 类型，默认最大 100 MB，默认支持 Word、PDF、常见图片、视频和音频格式。当前存储 provider 支持：
 
@@ -231,7 +231,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 bw-cli service <service> --tidy
 ```
 
-命令会创建 proto、cmd、model、service、repo、handler、gateway request/handler/router 和服务文档。需要手工扩展时按以下步骤：
+命令会创建 proto、cmd、model、service、repo、handler、gateway request/handler/router 和服务文档。repo 层默认生成 `gorm_repository.go` 和 `mongo_repository.go`：Gorm 仓储默认启用，MongoDB 仓储已通过 `MongoCollectionName()` 和 `mongox.NewDocumentStore[T]` 接好基础 CRUD，后续可在 main 中替换注入。需要手工扩展时按以下步骤：
 
 1. 在 `api/proto/<service>/v1` 添加 proto。
 2. 运行 `make proto`。

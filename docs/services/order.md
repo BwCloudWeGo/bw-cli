@@ -16,7 +16,7 @@ internal/order/model                      # 领域实体和仓储接口
 internal/order/dto/command.go             # 业务用例入参命令
 internal/order/dto/order.go               # 业务用例出参 DTO 和转换
 internal/order/service/service.go         # 业务流程编排
-internal/order/repo                       # Gorm 仓储实现
+internal/order/repo                       # Gorm 和 MongoDB 仓储实现
 internal/order/handler                    # gRPC 入站适配器
 ~~~
 
@@ -46,6 +46,8 @@ $env:APP_ORDER_GRPC_PORT="9100"; make run-order
 ~~~text
 proto RPC -> handler -> service -> model.Repository -> repo(Gorm) -> database
 ~~~
+
+默认启动使用 `repo/gorm_repository.go`，无需改配置即可运行。命令同时生成 `repo/mongo_repository.go`，MongoDB 仓储已通过 `mongox.NewDocumentStore[OrderDocument]` 接好基础 CRUD；需要切换 MongoDB 时，只替换 `cmd/order/main.go` 中注入的 repository。
 
 用户可以直接把示例字段 `Name`、`Description` 替换成真实业务字段，或者在此基础上新增业务方法。
 
@@ -186,7 +188,14 @@ func NewService(repo model.Repository, log *zap.Logger) *Service {
 
 ## repo 层：数据库在哪里操作，如何操作
 
-数据库操作只放在 `internal/order/repo`。启动入口 `cmd/order/main.go` 打开数据库并注入 repo：
+数据库操作只放在 `internal/order/repo`。脚手架会同时生成两个仓储实现：
+
+~~~text
+internal/order/repo/gorm_repository.go   # 默认启用，适合 MySQL/PostgreSQL/SQLite
+internal/order/repo/mongo_repository.go  # 已封装 DocumentStore，适合文档存储
+~~~
+
+启动入口 `cmd/order/main.go` 默认打开 Gorm 数据库并注入 repo：
 
 ~~~go
 db, err := database.Open(cfg.Database, cfg.MySQL, cfg.PostgreSQL, log)
@@ -217,6 +226,46 @@ type GormRepository struct {
 func AutoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(&OrderModel{})
 }
+~~~
+
+MongoDB 仓储也已经生成，核心是文档结构体自己声明 collection 名称，然后直接创建公共 `DocumentStore`：
+
+~~~go
+type OrderDocument struct {
+	ID          string    `bson:"_id"`
+	Name        string    `bson:"name"`
+	Description string    `bson:"description"`
+	CreatedAt   time.Time `bson:"created_at"`
+	UpdatedAt   time.Time `bson:"updated_at"`
+}
+
+func (OrderDocument) MongoCollectionName() string {
+	return "orders"
+}
+
+type MongoRepository struct {
+	documents *mongox.DocumentStore[OrderDocument]
+}
+
+func NewMongoRepository(db *mongo.Database, log *zap.Logger) *MongoRepository {
+	return &MongoRepository{
+		documents: mongox.NewDocumentStore[OrderDocument](db, log),
+	}
+}
+~~~
+
+切换到 MongoDB 时，在 `cmd/order/main.go` 中用配置文件创建 Mongo client 和 database，然后把 repo 注入改成：
+
+~~~go
+mongoClient, err := mongox.NewClient(cfg.MongoDB.MongoxConfig())
+if err != nil {
+	log.Fatal("create mongodb client failed", zap.Error(err))
+}
+defer mongoClient.Disconnect(context.Background())
+
+mongoDB := mongox.Database(mongoClient, cfg.MongoDB.Database)
+repo := orderrepo.NewMongoRepository(mongoDB, log)
+svc := orderservice.NewService(repo, log)
 ~~~
 
 数据库操作规则：

@@ -22,6 +22,8 @@ type fakeNoteDocumentStore struct {
 	findErr      error
 }
 
+var _ mongox.CollectionNamed = NoteDocument{}
+
 func (s *fakeNoteDocumentStore) UpsertByID(ctx context.Context, id any, document *NoteDocument, opts ...options.Lister[options.ReplaceOptions]) (*mongo.UpdateResult, error) {
 	s.upsertID = id
 	s.upsertDocument = document

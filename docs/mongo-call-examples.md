@@ -1,6 +1,6 @@
 # MongoDB 调用示例全流程
 
-这份文档专门说明脚手架项目中如何调用 `pkg/mongox` 公共 MongoDB 封装。它不是 MongoDB 基础教学；基础概念、本地安装、`mongosh` CRUD、索引原理见 [MongoDB 从 0 到 1 教学教程](mongodb.md)。
+这份文档专门说明脚手架项目中如何调用 `pkg/mongox` 公共 MongoDB 封装。重点是业务服务如何通过配置文件、启动入口、repo 层和公共 `DocumentStore` 完成真实读写。
 
 本文关注真实业务接入流程：
 
@@ -8,7 +8,7 @@
 - 服务启动时如何初始化 MongoDB client。
 - `repo` 层如何封装集合操作。
 - `service` 层如何调用仓储接口。
-- 不同服务如何复用同一套 `mongox.Collection[T]`。
+- 不同服务如何复用同一套 `mongox.DocumentStore[T]`。
 - 如何写单元测试和本地联调。
 
 ## 1. 调用规则
@@ -26,9 +26,9 @@ handler -> service -> model.Repository -> repo -> pkg/mongox -> MongoDB
 | `cmd/<service>` | 可以初始化 client | 读取配置、创建 MongoDB client、Ping、选择 database、注入 repo |
 | `handler` | 不可以 | 只把 gRPC/HTTP 请求转换成 `dto.Command` |
 | `dto` | 不可以 | 只定义业务入参和业务出参 |
-| `service` | 不可以直接调 driver 或 `mongox.Collection` | 编排业务流程，只依赖 `model.Repository` |
+| `service` | 不可以直接调 driver 或 `mongox.DocumentStore` | 编排业务流程，只依赖 `model.Repository` |
 | `model` | 不可以 | 定义领域实体、业务错误、仓储接口 |
-| `repo` | 可以 | 定义 MongoDB 文档结构，调用 `mongox.Collection[T]` 做 CRUD |
+| `repo` | 可以 | 定义 MongoDB 文档结构，调用 `mongox.DocumentStore[T]` 做 CRUD |
 | `pkg/mongox` | 可以 | 公共 MongoDB client 和 collection 操作封装 |
 
 这样做的目的很简单：业务逻辑不和 MongoDB driver 耦合，后续切换 MySQL、PostgreSQL、MongoDB 或写 fake repository 都更轻。
@@ -115,7 +115,7 @@ auditRepo := auditrepo.NewMongoRepository(mongoDB, log)
 
 ## 4. 公共操作类怎么用
 
-`mongox.NewCollection[T]` 是公共 MongoDB 操作类入口。`T` 是集合文档结构体，通常定义在业务服务的 `repo` 包中。
+`mongox.NewDocumentStore[T]` 是业务仓储推荐使用的公共 MongoDB 操作类入口。`T` 是集合文档结构体，通常定义在业务服务的 `repo` 包中，并通过 `MongoCollectionName()` 声明集合名称。
 
 ```go
 type NoteDocument struct {
@@ -127,7 +127,11 @@ type NoteDocument struct {
     UpdatedAt time.Time `bson:"updated_at"`
 }
 
-notes := mongox.NewCollection[NoteDocument](mongoDB, "notes", log)
+func (NoteDocument) MongoCollectionName() string {
+    return "notes"
+}
+
+notes := mongox.NewDocumentStore[NoteDocument](mongoDB, log)
 ```
 
 目前公共操作类支持：
@@ -232,20 +236,23 @@ type NoteDocument struct {
 ```go
 const noteCollectionName = "notes"
 
-type NoteDocumentStore interface {
-    UpsertByID(ctx context.Context, id any, document *NoteDocument, opts ...options.Lister[options.ReplaceOptions]) (*mongo.UpdateResult, error)
-    FindByID(ctx context.Context, id any, opts ...options.Lister[options.FindOneOptions]) (*NoteDocument, error)
+func (NoteDocument) MongoCollectionName() string {
+    return noteCollectionName
 }
 
 type MongoRepository struct {
-    notes NoteDocumentStore
+    notes mongox.DocumentSaverFinder[NoteDocument]
     log   *zap.Logger
 }
 
 func NewMongoRepository(db *mongo.Database, loggers ...*zap.Logger) *MongoRepository {
     log := optionalLogger(loggers...)
-    store := mongox.NewCollection[NoteDocument](db, noteCollectionName, log)
+    store := mongox.NewDocumentStore[NoteDocument](db, log)
     return NewMongoRepositoryWithStore(store, log)
+}
+
+func NewMongoRepositoryWithStore(store mongox.DocumentSaverFinder[NoteDocument], loggers ...*zap.Logger) *MongoRepository {
+    return &MongoRepository{notes: store, log: optionalLogger(loggers...)}
 }
 
 func (r *MongoRepository) Save(ctx context.Context, note *model.Note) error {
@@ -319,8 +326,12 @@ type OrderDocument struct {
     UpdatedAt   time.Time `bson:"updated_at"`
 }
 
+func (OrderDocument) MongoCollectionName() string {
+    return orderCollectionName
+}
+
 type MongoRepository struct {
-    orders *mongox.Collection[OrderDocument]
+    orders *mongox.DocumentStore[OrderDocument]
     log    *zap.Logger
 }
 
@@ -329,7 +340,7 @@ func NewMongoRepository(db *mongo.Database, log *zap.Logger) *MongoRepository {
         log = zap.NewNop()
     }
     return &MongoRepository{
-        orders: mongox.NewCollection[OrderDocument](db, orderCollectionName, log),
+        orders: mongox.NewDocumentStore[OrderDocument](db, log),
         log:    log,
     }
 }
@@ -450,18 +461,22 @@ type AuditEventDocument struct {
     Metadata   map[string]any `bson:"metadata"`
     CreatedAt  time.Time      `bson:"created_at"`
 }
+
+func (AuditEventDocument) MongoCollectionName() string {
+    return "audit_events"
+}
 ```
 
 ### 7.2 写入审计事件
 
 ```go
 type MongoRepository struct {
-    events *mongox.Collection[AuditEventDocument]
+    events *mongox.DocumentStore[AuditEventDocument]
 }
 
 func NewMongoRepository(db *mongo.Database, log *zap.Logger) *MongoRepository {
     return &MongoRepository{
-        events: mongox.NewCollection[AuditEventDocument](db, "audit_events", log),
+        events: mongox.NewDocumentStore[AuditEventDocument](db, log),
     }
 }
 
@@ -543,7 +558,7 @@ mongoDB := mongox.Database(mongoClient, cfg.MongoDB.Database)
 
 ## 9. 索引在哪里创建
 
-CRUD 优先使用 `mongox.Collection[T]`。索引属于数据库结构初始化，可以放在 repo 包中单独写函数，然后在 `cmd/<service>/main.go` 启动时调用。
+CRUD 优先使用 `mongox.DocumentStore[T]`。索引属于数据库结构初始化，可以放在 repo 包中单独写函数，然后在 `cmd/<service>/main.go` 启动时调用。
 
 示例：
 
@@ -579,14 +594,14 @@ if err := noterepo.EnsureNoteIndexes(context.Background(), mongoDB); err != nil 
 
 ## 10. 单元测试怎么写
 
-不要在 service 单测里连真实 MongoDB。service 单测使用 fake repository；repo 单测使用 fake `NoteDocumentStore` 或者只测转换逻辑。
+不要在 service 单测里连真实 MongoDB。service 单测使用 fake repository；repo 单测使用 fake `mongox.DocumentSaverFinder[NoteDocument]` 或者只测转换逻辑。
 
-note 仓储当前已经用了小接口隔离公共集合操作：
+note 仓储当前已经用了公共小接口隔离 MongoDB 操作：
 
 ```go
-type NoteDocumentStore interface {
-    UpsertByID(ctx context.Context, id any, document *NoteDocument, opts ...options.Lister[options.ReplaceOptions]) (*mongo.UpdateResult, error)
-    FindByID(ctx context.Context, id any, opts ...options.Lister[options.FindOneOptions]) (*NoteDocument, error)
+type DocumentSaverFinder[T any] interface {
+    UpsertByID(ctx context.Context, id any, document *T, opts ...options.Lister[options.ReplaceOptions]) (*mongo.UpdateResult, error)
+    FindByID(ctx context.Context, id any, opts ...options.Lister[options.FindOneOptions]) (*T, error)
 }
 ```
 
@@ -604,13 +619,14 @@ require.Equal(t, note.ID, store.upsertID)
 require.Equal(t, note.Title, store.upsertDocument.Title)
 ```
 
-公共操作类本身在 `pkg/mongox/collection_test.go` 中覆盖：
+公共操作类本身在 `pkg/mongox/collection_test.go` 和 `pkg/mongox/document_store_test.go` 中覆盖：
 
 - `FindByID` 能正确解码文档。
 - 查不到时转换成 `mongox.ErrNotFound`。
 - `UpsertByID` 会自动带 `upsert=true`。
 - `FindMany` 能解码多条文档。
 - 写入错误会原样返回给业务仓储。
+- `DocumentStore` 会把 `Insert`、`UpsertByID`、`FindByID`、`FindMany`、`UpdateOne`、`DeleteByID`、`Count` 等操作完整转发到底层集合。
 
 ## 11. 本地真实 MongoDB 联调
 
@@ -619,7 +635,7 @@ require.Equal(t, note.Title, store.upsertDocument.Title)
 ```bash
 export APP_RUN_NOTE_MONGODB_EXAMPLE=true
 
-go test ./cmd/note -run TestRunMongoCollectionExampleUsesCurrentConfig -v
+go test ./cmd/note -run TestRunMongoDocumentStoreExampleUsesCurrentConfig -v
 ```
 
 运行前请先确认 `configs/config.yaml` 中的 `mongodb.*` 可以连接到本地或测试环境 MongoDB。这个测试会读取当前配置，调用 `cmd/note/mongodb_example.go`，对 `note_mongodb_examples` 集合执行：
@@ -656,22 +672,22 @@ func (h *Handler) Create(c *gin.Context) {
 ```text
 handler 组装 dto.Command
 service 编排业务
-repo 调用 mongox.Collection
+repo 调用 mongox.DocumentStore
 ```
 
-### 12.2 在 service 里直接 new collection
+### 12.2 在 service 里直接 new DocumentStore
 
 错误写法：
 
 ```go
 func (s *Service) Create(ctx context.Context, cmd dto.CreateCommand) error {
-    notes := mongox.NewCollection[NoteDocument](s.mongoDB, "notes")
+    notes := mongox.NewDocumentStore[NoteDocument](s.mongoDB)
     _, err := notes.Insert(ctx, document)
     return err
 }
 ```
 
-正确做法：把 `mongox.NewCollection` 放进 `repo`，service 只依赖 `model.Repository`。
+正确做法：把 `mongox.NewDocumentStore` 放进 `repo`，service 只依赖 `model.Repository`。
 
 ### 12.3 把 bson tag 写到领域模型上
 
@@ -687,7 +703,7 @@ type Note struct {
 
 ### 12.4 忘记处理 ErrNotFound
 
-`mongox.Collection` 查询不到时返回 `mongox.ErrNotFound`。repo 层要转换成业务错误：
+`mongox.DocumentStore` 查询不到时返回 `mongox.ErrNotFound`。repo 层要转换成业务错误：
 
 ```go
 if errors.Is(err, mongox.ErrNotFound) {
@@ -705,11 +721,12 @@ handler 再把业务错误转换成 HTTP/gRPC 错误码。
 2. 在 `cmd/<service>/main.go` 中创建 MongoDB client、Ping、获取 database。
 3. 在 `internal/<service>/model/repository.go` 定义业务需要的仓储接口。
 4. 在 `internal/<service>/repo/mongo_repository.go` 定义 MongoDB 文档结构。
-5. 在 repo 中调用 `mongox.NewCollection[T](db, "<collection>", log)`。
-6. 在 repo 中完成领域模型和文档模型转换。
-7. 在 repo 中把 `mongox.ErrNotFound` 转成领域错误。
-8. 在 `service` 中继续依赖 `model.Repository`，不要直接依赖 MongoDB。
-9. 在 `handler` 中只做请求转换和错误映射。
-10. 为 repo 写 fake 单测，为真实 MongoDB 写显式开关的集成测试。
+5. 在文档结构体上实现 `MongoCollectionName() string`，声明集合名称。
+6. 在 repo 中调用 `mongox.NewDocumentStore[T](db, log)`。
+7. 在 repo 中完成领域模型和文档模型转换。
+8. 在 repo 中把 `mongox.ErrNotFound` 转成领域错误。
+9. 在 `service` 中继续依赖 `model.Repository`，不要直接依赖 MongoDB。
+10. 在 `handler` 中只做请求转换和错误映射。
+11. 为 repo 写 fake 单测，为真实 MongoDB 写显式开关的集成测试。
 
-做到这 10 步，MongoDB 就能在不同业务服务中稳定复用，而且不会破坏脚手架的 DDD 分层。
+做到这 11 步，MongoDB 就能在不同业务服务中稳定复用，而且不会破坏脚手架的 DDD 分层。

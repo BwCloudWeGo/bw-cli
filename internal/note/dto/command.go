@@ -11,7 +11,6 @@ type CreateNoteCommand struct {
 // PublishNoteCommand 是发布笔记用例的完整入参。
 // 它承接外部请求字段，但不包含任何协议对象或数据库对象。
 type PublishNoteCommand struct {
-	ID         string
 	AuthorID   string
 	Title      string
 	Content    string

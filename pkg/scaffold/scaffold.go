@@ -715,7 +715,7 @@ docs           # 使用和架构文档
 bw-cli service order --tidy
 `+"```"+`
 
-命令会生成 `+"`cmd/order`"+`、`+"`api/proto/order`"+`、`+"`internal/order/model`"+`、`+"`internal/order/dto`"+`、`+"`internal/order/service/service.go`"+`、`+"`repo`"+`、`+"`handler`"+`、gateway request/handler/router 和 `+"`docs/services/order.md`"+`。生成后的服务默认带 Create/Get/List/Update/Delete 基础 CRUD，端口默认值写在 `+"`cmd/order/main.go`"+`，不需要修改 `+"`configs/config.yaml`"+`。
+命令会生成 `+"`cmd/order`"+`、`+"`api/proto/order`"+`、`+"`internal/order/model`"+`、`+"`internal/order/dto`"+`、`+"`internal/order/service/service.go`"+`、`+"`repo/gorm_repository.go`"+`、`+"`repo/mongo_repository.go`"+`、`+"`handler`"+`、gateway request/handler/router 和 `+"`docs/services/order.md`"+`。生成后的服务默认带 Create/Get/List/Update/Delete 基础 CRUD，端口默认值写在 `+"`cmd/order/main.go`"+`，不需要修改 `+"`configs/config.yaml`"+`。默认启动使用 Gorm，MongoDB 仓储已通过 `+"`mongox.NewDocumentStore[T]`"+` 预先接好。
 
 需要指定端口时使用：
 
@@ -861,7 +861,7 @@ internal/comment/model      # 领域实体、业务错误、Repository 接口
 internal/comment/dto/command.go      # 业务用例入参命令
 internal/comment/dto/comment.go      # 业务用例出参 DTO 和转换
 internal/comment/service/service.go  # 业务流程编排
-internal/comment/repo       # 数据库访问，默认 Gorm
+internal/comment/repo       # 数据库访问，默认 Gorm，同时生成 MongoDB 实现
 internal/comment/handler    # gRPC 协议转换
 internal/gateway/request/comment_request.go
 internal/gateway/handler/comment_handler.go
@@ -874,6 +874,8 @@ docs/services/comment.md    # 单服务详细开发说明
 `+"```text"+`
 gRPC client -> proto -> handler -> service -> model.Repository -> repo(Gorm) -> database
 `+"```"+`
+
+默认启动使用 `+"`repo/gorm_repository.go`"+`。如果业务更适合 MongoDB，生成的 `+"`repo/mongo_repository.go`"+` 已经包含 `+"`MongoCollectionName()`"+`、`+"`mongox.NewDocumentStore[T]`"+` 和基础 CRUD 方法，只需要在服务 main 中改为注入 `+"`repo.NewMongoRepository`"+`。
 
 HTTP 入口也已挂载：
 
@@ -1228,7 +1230,7 @@ func generatedToolkitDoc(module string) string {
 | `+"`pkg/database`"+` | SQLite/MySQL/PostgreSQL Gorm 统一入口 |
 | `+"`pkg/mysqlx`"+` | MySQL Gorm 初始化 |
 | `+"`pkg/postgresx`"+` | PostgreSQL Gorm 初始化 |
-| `+"`pkg/mongox`"+` | MongoDB 官方 driver 初始化和公共 Collection CRUD 操作 |
+| `+"`pkg/mongox`"+` | MongoDB 官方 driver 初始化和公共 DocumentStore CRUD 操作 |
 | `+"`pkg/redisx`"+` | Redis client 初始化 |
 | `+"`pkg/esx`"+` | Elasticsearch client 初始化 |
 | `+"`pkg/kafkax`"+` | Kafka reader/writer 初始化 |
@@ -1300,6 +1302,10 @@ type Document struct {
     ID string `+"`bson:\"_id\"`"+`
 }
 
+func (Document) MongoCollectionName() string {
+    return "documents"
+}
+
 client, err := mongox.NewClient(cfg.MongoDB.MongoxConfig())
 if err != nil {
     panic(err)
@@ -1307,7 +1313,7 @@ if err != nil {
 defer client.Disconnect(context.Background())
 
 db := mongox.Database(client, cfg.MongoDB.Database)
-documents := mongox.NewCollection[Document](db, "documents")
+documents := mongox.NewDocumentStore[Document](db)
 _, err = documents.UpsertByID(context.Background(), "doc-1", &Document{ID: "doc-1"})
 if err != nil {
     panic(err)
@@ -1365,28 +1371,25 @@ MongoDB 是文档数据库，保存的是 BSON 文档。关系型数据库常见
 
 不建议用 MongoDB 承担强事务账务、复杂 join 报表或必须依赖外键约束的核心关系模型。
 
-## 2. 本地启动
+## 2. 准备连接信息
 
-项目内置 `+"`docker-compose.yml`"+`，可直接启动 MongoDB：
+脚手架不在文档中假设固定的 MongoDB 启动方式。你可以使用公司测试环境、本机已安装的 MongoDB 或云数据库，只需要拿到可连接的地址、账号、密码和 database 名称，然后写入 `+"`configs/config.yaml`"+`。
 
-`+"```bash"+`
-docker compose up -d mongodb
-docker compose ps mongodb
-`+"```"+`
-
-连接串：
+示例连接信息：
 
 `+"```text"+`
-mongodb://bw:bw-secret@127.0.0.1:27017/xiaolanshu?authSource=admin
+uri: mongodb://127.0.0.1:27017
+username: app_user
+password: app_password
+database: app
 `+"```"+`
 
 ## 3. mongosh 入门
 
-进入容器：
+如果本机已经安装 `+"`mongosh`"+`，可以用配置文件中的连接信息进入数据库验证连通性：
 
 `+"```bash"+`
-docker compose exec mongodb mongosh \
-  'mongodb://bw:bw-secret@127.0.0.1:27017/xiaolanshu?authSource=admin'
+mongosh 'mongodb://app_user:app_password@127.0.0.1:27017/app?authSource=app'
 `+"```"+`
 
 基础命令：
@@ -1397,6 +1400,12 @@ db.getName()
 show collections
 db.documents.insertOne({ title: "hello", created_at: new Date() })
 db.documents.find()
+`+"```"+`
+
+如果你的数据库没有启用账号密码，则连接串可以不带用户名和密码：
+
+`+"```text"+`
+mongodb://127.0.0.1:27017/app
 `+"```"+`
 
 ## 4. 项目配置
@@ -1414,23 +1423,17 @@ mongodb:
   server_selection_timeout_seconds: 5
 `+"```"+`
 
-本地环境变量：
-
-`+"```bash"+`
-export APP_MONGODB_URI='mongodb://127.0.0.1:27017/xiaolanshu?authSource=admin'
-export APP_MONGODB_USERNAME='bw'
-export APP_MONGODB_PASSWORD='bw-secret'
-export APP_MONGODB_DATABASE='xiaolanshu'
-export APP_MONGODB_APP_NAME='app-service'
-`+"```"+`
-
-生产密码不要写进 YAML，应该使用环境变量、Kubernetes Secret 或配置中心。
+服务启动时只读取 `+"`configs/config.yaml`"+` 中的 `+"`mongodb.*`"+` 配置。需要账号密码时，填写 `+"`username`"+`、`+"`password`"+`；需要连接副本集或指定认证库时，把完整连接串写入 `+"`uri`"+`。
 
 ## 5. Go 初始化
 
 `+"```go"+`
 type Document struct {
     ID string `+"`bson:\"_id\"`"+`
+}
+
+func (Document) MongoCollectionName() string {
+    return "documents"
 }
 
 client, err := mongox.NewClient(cfg.MongoDB.MongoxConfig())
@@ -1444,12 +1447,12 @@ if err := mongox.Ping(context.Background(), client); err != nil {
 }
 
 db := mongox.Database(client, cfg.MongoDB.Database)
-documents := mongox.NewCollection[Document](db, "documents")
+documents := mongox.NewDocumentStore[Document](db)
 `+"```"+`
 
 ## 6. Repo 层建议
 
-建议把 MongoDB 代码放在 `+"`internal/<service>/repo`"+`，不要在 handler 或 service 里直接操作集合。repo 层通过 `+"`mongox.NewCollection[T]`"+` 复用公共 CRUD 操作：
+建议把 MongoDB 代码放在 `+"`internal/<service>/repo`"+`，不要在 handler 或 service 里直接操作集合。repo 层通过 `+"`mongox.NewDocumentStore[T]`"+` 复用公共 CRUD 操作，集合名称由文档结构体的 `+"`MongoCollectionName()`"+` 统一声明：
 
 `+"```text"+`
 handler -> service -> model.Repository
@@ -1495,7 +1498,7 @@ _, err := collection.Indexes().CreateOne(ctx, mongo.IndexModel{
 
 ## 8. 测试建议
 
-轻量单元测试可以测 repo 的参数转换和错误处理；集成测试再连接真实 MongoDB。CI 中建议用 docker compose 或 testcontainers 启动临时 MongoDB。
+轻量单元测试可以测 repo 的参数转换和错误处理；集成测试再连接真实 MongoDB。CI 中建议使用独立测试库或测试环境 MongoDB，连接信息统一写入测试配置文件。
 `, module)
 }
 

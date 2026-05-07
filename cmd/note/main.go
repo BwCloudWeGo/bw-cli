@@ -37,18 +37,21 @@ func main() {
 	}
 	defer log.Sync()
 
-	// The note service stores note documents in MongoDB through the shared mongox helper.
+	//  1. 实例化mongodb
 	mongoClient, err := mongox.NewClient(cfg.MongoDB.MongoxConfig())
 	if err != nil {
 		log.Fatal("create mongodb client failed", zap.Error(err))
 	}
 	defer disconnectMongo(mongoClient, log)
+	// 2. 测试是否能调通
 	if err := mongox.Ping(context.Background(), mongoClient); err != nil {
 		log.Fatal("ping mongodb failed", zap.Error(err))
 	}
+	// 3. 设置mongodb要操作的数据库
 	mongoDB := mongox.Database(mongoClient, cfg.MongoDB.Database)
-
+	// 4. 在note服务中实例化 对mongo的操作类
 	repo := noterepo.NewMongoRepository(mongoDB, log)
+	// 5. 要让程序在service层能够调用上面的操作类
 	svc := noteservice.NewService(repo)
 	server := grpc.NewServer(grpc.UnaryInterceptor(grpcx.UnaryServerInterceptor(log)))
 	notev1.RegisterNoteServiceServer(server, notehandler.NewServer(svc, log))

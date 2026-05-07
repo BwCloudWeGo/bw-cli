@@ -15,7 +15,7 @@
 | `pkg/database` | 根据配置打开 SQLite/MySQL/PostgreSQL Gorm | `cmd/*/main.go` |
 | `pkg/mysqlx` | MySQL Gorm 初始化和连接池 | 独立 MySQL 项目 |
 | `pkg/postgresx` | PostgreSQL Gorm 初始化和连接池 | 独立 PostgreSQL 项目 |
-| `pkg/mongox` | MongoDB 官方 driver 初始化、Ping、Database 获取、公共 Collection CRUD 操作 | `repo` 层 |
+| `pkg/mongox` | MongoDB 官方 driver 初始化、Ping、Database 获取、公共 DocumentStore CRUD 操作 | `repo` 层 |
 | `pkg/redisx` | Redis client 初始化和 Ping | 缓存、分布式锁、限流 |
 | `pkg/esx` | Elasticsearch client 初始化 | 搜索、索引同步 |
 | `pkg/kafkax` | Kafka reader/writer 初始化 | 事件发布和消费 |
@@ -299,7 +299,7 @@ db, err := postgresx.Open(cfg)
 2. 进程启动时调用 `mongox.NewClient`。
 3. 调用 `mongox.Ping` 验证连接。
 4. 使用 `mongox.Database` 获取业务数据库。
-5. 在 `repo` 层使用 `mongox.NewCollection[T]` 封装 collection CRUD。
+5. 在 `repo` 层为文档结构实现 `MongoCollectionName()`，再使用 `mongox.NewDocumentStore[T]` 封装 collection CRUD。
 6. 进程退出时调用 `Disconnect`。
 
 示例：
@@ -308,6 +308,10 @@ db, err := postgresx.Open(cfg)
 type NoteDocument struct {
     ID    string `bson:"_id"`
     Title string `bson:"title"`
+}
+
+func (NoteDocument) MongoCollectionName() string {
+    return "notes"
 }
 
 if err := config.InitGlobal("configs/config.yaml"); err != nil {
@@ -326,7 +330,7 @@ if err := mongox.Ping(context.Background(), client); err != nil {
 }
 
 db := mongox.Database(client, cfg.MongoDB.Database)
-notes := mongox.NewCollection[NoteDocument](db, "notes")
+notes := mongox.NewDocumentStore[NoteDocument](db)
 
 _, err = notes.UpsertByID(context.Background(), "note-1", &NoteDocument{
     ID:    "note-1",
@@ -339,7 +343,7 @@ if err != nil {
 note, err := notes.FindByID(context.Background(), "note-1")
 ```
 
-脚手架内调用示例见 [MongoDB 调用示例全流程](mongo-call-examples.md)，基础教学见 [MongoDB 从 0 到 1 教学教程](mongodb.md)。
+脚手架内调用示例见 [MongoDB 调用示例全流程](mongo-call-examples.md)。
 
 ## 10. Redis：`pkg/redisx`
 

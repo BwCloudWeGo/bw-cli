@@ -419,7 +419,7 @@ mongodb:
 
 服务启动时只读取 `configs/config.yaml` 中的 `mongodb.*` 配置。需要账号密码时，填写 `username`、`password`；需要连接副本集或指定认证库时，把完整连接串写入 `uri`。
 
-脚手架调用全流程见 [MongoDB 调用示例全流程](mongo-call-examples.md)，基础建模、索引、仓储和查询教学见 [MongoDB 使用教程](mongodb.md)。
+脚手架调用全流程见 [MongoDB 调用示例全流程](mongo-call-examples.md)。
 
 业务仓储不要直接散落调用 MongoDB driver。推荐统一使用 `pkg/mongox` 提供的公共操作类：
 
@@ -429,8 +429,12 @@ type NoteDocument struct {
     Title string `bson:"title"`
 }
 
+func (NoteDocument) MongoCollectionName() string {
+    return "notes"
+}
+
 db := mongox.Database(client, cfg.MongoDB.Database)
-notes := mongox.NewCollection[NoteDocument](db, "notes")
+notes := mongox.NewDocumentStore[NoteDocument](db)
 
 _, err := notes.UpsertByID(ctx, "note-1", &NoteDocument{ID: "note-1", Title: "MongoDB note"})
 note, err := notes.FindByID(ctx, "note-1")
@@ -914,7 +918,8 @@ internal/comment/model
 internal/comment/dto/command.go
 internal/comment/dto/comment.go
 internal/comment/service/service.go
-internal/comment/repo
+internal/comment/repo/gorm_repository.go
+internal/comment/repo/mongo_repository.go
 internal/comment/handler
 docs/services/comment.md
 ```
@@ -974,6 +979,8 @@ HTTP client
   -> internal/comment/repo(Gorm)
   -> database.Open(cfg.Database, cfg.MySQL, cfg.PostgreSQL, log)
 ```
+
+默认启动使用 `repo/gorm_repository.go`。脚手架同时生成 `repo/mongo_repository.go`，里面已经通过 `MongoCollectionName()` 和 `mongox.NewDocumentStore[T]` 接好基础 CRUD。业务需要 MongoDB 时，在 `cmd/comment/main.go` 中用配置文件创建 Mongo client 和 database，然后把 repository 注入改为 `repo.NewMongoRepository(mongoDB, log)`。
 
 服务端口不需要写进配置文件。`cmd/comment/main.go` 内置默认端口 `9103`，也支持环境变量覆盖：
 

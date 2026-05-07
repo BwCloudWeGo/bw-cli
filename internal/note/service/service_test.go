@@ -32,7 +32,7 @@ func (r *memoryNoteRepo) FindByID(_ context.Context, id string) (*model.Note, er
 	return note, nil
 }
 
-func TestCreateAndPublishNote(t *testing.T) {
+func TestCreateNote(t *testing.T) {
 	svc := service.NewService(newMemoryNoteRepo())
 
 	note, err := svc.Create(context.Background(), dto.CreateNoteCommand{
@@ -43,14 +43,10 @@ func TestCreateAndPublishNote(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, model.NoteStatusDraft, note.Status)
 
-	published, err := svc.Publish(context.Background(), note.ID)
-	require.NoError(t, err)
-	require.Equal(t, model.NoteStatusPublished, published.Status)
-
 	found, err := svc.Get(context.Background(), note.ID)
 	require.NoError(t, err)
-	require.Equal(t, published.ID, found.ID)
-	require.Equal(t, model.NoteStatusPublished, found.Status)
+	require.Equal(t, note.ID, found.ID)
+	require.Equal(t, model.NoteStatusDraft, found.Status)
 }
 
 func TestPublishSubmittedCreatesPublishedNote(t *testing.T) {

@@ -38,24 +38,9 @@ func (s *Service) Get(ctx context.Context, id string) (*dto.NoteDTO, error) {
 	return dto.FromNote(note), nil
 }
 
-// Publish 发布已存在的笔记。
-func (s *Service) Publish(ctx context.Context, id string) (*dto.NoteDTO, error) {
-	note, err := s.repo.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	note.Publish()
-	if err := s.repo.Save(ctx, note); err != nil {
-		return nil, err
-	}
-	return dto.FromNote(note), nil
-}
-
 // PublishSubmitted 根据完整提交内容创建或发布笔记。
 func (s *Service) PublishSubmitted(ctx context.Context, cmd dto.PublishNoteCommand) (*dto.NoteDTO, error) {
-	if cmd.ID != "" {
-		return s.Publish(ctx, cmd.ID)
-	}
+	// 1. 数据库中的模型和传入的参数进行校验并且赋值
 	note, err := model.NewNote(cmd.AuthorID, cmd.Title, cmd.Content)
 	if err != nil {
 		return nil, err
@@ -69,8 +54,10 @@ func (s *Service) PublishSubmitted(ctx context.Context, cmd dto.PublishNoteComma
 		note.Publish()
 	}
 
+    // 2. 已经拿到了最终要入库的数据结构 直接进行入库即可
 	if err := s.repo.Save(ctx, note); err != nil {
 		return nil, err
 	}
+	// 3. 在最终返回之前要进行数据的二次处理
 	return dto.FromNote(note), nil
 }

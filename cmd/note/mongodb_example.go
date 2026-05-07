@@ -15,7 +15,7 @@ import (
 const noteMongoExampleCollection = "note_mongodb_examples"
 
 // noteMongoExampleDocument 是 note 服务的 MongoDB 示例文档结构。
-// 这个结构只用于演示公共 mongox.Collection 的调用方式，不参与正式笔记业务表结构。
+// 这个结构只用于演示公共 mongox.DocumentStore 的调用方式，不参与正式笔记业务表结构。
 type noteMongoExampleDocument struct {
 	ID        string    `bson:"_id"`
 	Service   string    `bson:"service"`
@@ -25,14 +25,20 @@ type noteMongoExampleDocument struct {
 	UpdatedAt time.Time `bson:"updated_at"`
 }
 
-// runMongoCollectionExample 演示 note 服务如何读取当前配置中的 mongodb.*，
-// 并通过公共 mongox.Collection 类完成一次完整的数据操作。
+// MongoCollectionName 声明示例文档对应的 MongoDB 集合名称。
+// 业务侧只要让文档结构实现该方法，就可以直接使用 mongox.NewDocumentStore 创建通用操作类。
+func (noteMongoExampleDocument) MongoCollectionName() string {
+	return noteMongoExampleCollection
+}
+
+// runMongoDocumentStoreExample 演示 note 服务如何读取当前配置中的 mongodb.*，
+// 并通过公共 mongox.DocumentStore 类完成一次完整的数据操作。
 //
 // 这个函数不会在 main 中自动执行，避免服务每次启动都写入示例数据。
 // 本地验证时可以执行：
 //
-//	APP_RUN_NOTE_MONGODB_EXAMPLE=true go test ./cmd/note -run TestRunMongoCollectionExampleUsesCurrentConfig -v
-func runMongoCollectionExample(ctx context.Context, cfg *config.Config, log *zap.Logger) (*noteMongoExampleDocument, error) {
+//	APP_RUN_NOTE_MONGODB_EXAMPLE=true go test ./cmd/note -run TestRunMongoDocumentStoreExampleUsesCurrentConfig -v
+func runMongoDocumentStoreExample(ctx context.Context, cfg *config.Config, log *zap.Logger) (*noteMongoExampleDocument, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is nil")
 	}
@@ -52,14 +58,14 @@ func runMongoCollectionExample(ctx context.Context, cfg *config.Config, log *zap
 	}
 
 	db := mongox.Database(mongoClient, cfg.MongoDB.Database)
-	examples := mongox.NewCollection[noteMongoExampleDocument](db, noteMongoExampleCollection, log)
+	examples := mongox.NewDocumentStore[noteMongoExampleDocument](db, log)
 	now := time.Now().UTC()
 	documentID := fmt.Sprintf("%s:mongox-example", cfg.App.NoteServiceName)
 	document := &noteMongoExampleDocument{
 		ID:        documentID,
 		Service:   cfg.App.NoteServiceName,
 		Title:     "note mongodb example",
-		Content:   "created by mongox.Collection UpsertByID",
+		Content:   "created by mongox.DocumentStore UpsertByID",
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -77,7 +83,7 @@ func runMongoCollectionExample(ctx context.Context, cfg *config.Config, log *zap
 	// UpdateOne：演示局部更新，适合只更新少量字段的业务场景。
 	if _, err := examples.UpdateOne(ctx, bson.M{"_id": document.ID}, bson.M{
 		"$set": bson.M{
-			"content":    "updated by mongox.Collection UpdateOne",
+			"content":    "updated by mongox.DocumentStore UpdateOne",
 			"updated_at": time.Now().UTC(),
 		},
 	}); err != nil {

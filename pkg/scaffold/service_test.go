@@ -30,6 +30,7 @@ func TestAddServiceWritesCompleteServiceStructure(t *testing.T) {
 	require.FileExists(t, filepath.Join(root, "internal", "order_item", "service", "service.go"))
 	require.FileExists(t, filepath.Join(root, "internal", "order_item", "service", "service_test.go"))
 	require.FileExists(t, filepath.Join(root, "internal", "order_item", "repo", "gorm_repository.go"))
+	require.FileExists(t, filepath.Join(root, "internal", "order_item", "repo", "mongo_repository.go"))
 	require.FileExists(t, filepath.Join(root, "internal", "order_item", "handler", "server.go"))
 	require.FileExists(t, filepath.Join(root, "internal", "gateway", "request", "order_item_request.go"))
 	require.FileExists(t, filepath.Join(root, "internal", "gateway", "handler", "order_item_handler.go"))
@@ -93,6 +94,14 @@ func TestAddServiceWritesCompleteServiceStructure(t *testing.T) {
 	require.Contains(t, repoFile, "func (r *GormRepository) List")
 	require.Contains(t, repoFile, "func (r *GormRepository) Delete")
 
+	mongoRepoFile := readString(t, filepath.Join(root, "internal", "order_item", "repo", "mongo_repository.go"))
+	require.Contains(t, mongoRepoFile, "func (OrderItemDocument) MongoCollectionName() string")
+	require.Contains(t, mongoRepoFile, "mongox.NewDocumentStore[OrderItemDocument](db, log)")
+	require.Contains(t, mongoRepoFile, "documents *mongox.DocumentStore[OrderItemDocument]")
+	require.Contains(t, mongoRepoFile, "func (r *MongoRepository) Save")
+	require.Contains(t, mongoRepoFile, "func (r *MongoRepository) List")
+	require.Contains(t, mongoRepoFile, "func (r *MongoRepository) Delete")
+
 	handlerFile := readString(t, filepath.Join(root, "internal", "order_item", "handler", "server.go"))
 	require.Contains(t, handlerFile, "func (s *Server) CreateOrderItem")
 	require.Contains(t, handlerFile, "func (s *Server) GetOrderItem")
@@ -136,6 +145,8 @@ func TestAddServiceWritesCompleteServiceStructure(t *testing.T) {
 	require.Contains(t, doc, "APP_ORDER_ITEM_GRPC_TARGET")
 	require.Contains(t, doc, "基础 CRUD")
 	require.Contains(t, doc, "数据库操作只放在 `internal/order_item/repo`")
+	require.Contains(t, doc, "repo/mongo_repository.go")
+	require.Contains(t, doc, "mongox.NewDocumentStore[OrderItemDocument]")
 	require.Contains(t, doc, "/api/v1/order_items")
 }
 

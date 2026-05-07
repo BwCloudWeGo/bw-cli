@@ -316,7 +316,8 @@ internal/order/model
 internal/order/dto/command.go
 internal/order/dto/order.go
 internal/order/service/service.go
-internal/order/repo
+internal/order/repo/gorm_repository.go
+internal/order/repo/mongo_repository.go
 internal/order/handler
 docs/services/order.md
 ```
@@ -344,6 +345,8 @@ APP_ORDER_GRPC_PORT=9104 make run-order
 ```text
 HTTP client -> gateway router/handler -> gRPC client -> proto -> handler -> service -> model.Repository -> repo(Gorm) -> database
 ```
+
+默认启动使用 `repo/gorm_repository.go`。命令也会生成 `repo/mongo_repository.go`，其中已经包含 `MongoCollectionName()`、`mongox.NewDocumentStore[T]` 和基础 CRUD 方法；如果该服务需要改用 MongoDB，只需要在 `cmd/order/main.go` 中改为注入 `repo.NewMongoRepository`。
 
 默认提供：
 
@@ -414,8 +417,7 @@ $env:APP_ORDER_GRPC_PORT="9101"; make run-order
 │   ├── user         # 用户服务
 │   └── note         # 笔记服务
 ├── pkg              # 可复用基础包
-├── Makefile
-└── docker-compose.yml
+└── Makefile
 ```
 
 业务服务统一四层：
@@ -660,14 +662,18 @@ type NoteDocument struct {
     Title string `bson:"title"`
 }
 
+func (NoteDocument) MongoCollectionName() string {
+    return "notes"
+}
+
 db := mongox.Database(client, cfg.MongoDB.Database)
-notes := mongox.NewCollection[NoteDocument](db, "notes")
+notes := mongox.NewDocumentStore[NoteDocument](db)
 
 _, err := notes.UpsertByID(ctx, "note-1", &NoteDocument{ID: "note-1", Title: "MongoDB note"})
 note, err := notes.FindByID(ctx, "note-1")
 ```
 
-MongoDB 调用实战见 [MongoDB 调用示例全流程](docs/mongo-call-examples.md)，基础教学见 [MongoDB 从 0 到 1 教学教程](docs/mongodb.md)。
+MongoDB 调用实战见 [MongoDB 调用示例全流程](docs/mongo-call-examples.md)。
 
 ### 7.5 文件上传
 
@@ -762,7 +768,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 | `pkg/httpx` | HTTP 响应封装 |
 | `pkg/mysqlx` | MySQL/Gorm 初始化 |
 | `pkg/postgresx` | PostgreSQL/Gorm 初始化 |
-| `pkg/mongox` | MongoDB 官方 driver 初始化和公共 Collection CRUD 操作 |
+| `pkg/mongox` | MongoDB 官方 driver 初始化和公共 DocumentStore CRUD 操作 |
 | `pkg/redisx` | Redis 客户端初始化 |
 | `pkg/esx` | Elasticsearch 客户端初始化 |
 | `pkg/kafkax` | Kafka reader/writer 初始化 |
@@ -834,4 +840,3 @@ export APP_GRPC_NOTE_TARGET='127.0.0.1:9102'
 - [详细使用说明](docs/usage.md)：发布 `bw-cli`、安装命令、生成项目、初始化依赖、配置服务、启动验证和扩展业务。
 - [工具组件总览与调用流程](docs/toolkit.md)：配置、日志、中间件、数据库、MongoDB、Redis、ES、Kafka、文件上传等公共工具的调用方式。
 - [MongoDB 调用示例全流程](docs/mongo-call-examples.md)：配置、初始化、repo 封装、note/order/audit 多服务调用示例和测试方式。
-- [MongoDB 从 0 到 1 教学教程](docs/mongodb.md)：概念、本地启动、命令行 CRUD、Go 接入、仓储封装、索引、分页、事务、测试和排错。

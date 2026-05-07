@@ -48,10 +48,10 @@ func (s *Server) GetNote(ctx context.Context, req *notev1.GetNoteRequest) (*note
 	return toProto(note), nil
 }
 
-// PublishNote handles the note publish RPC.
+// PublishNote  发布笔记的rpc接口
 func (s *Server) PublishNote(ctx context.Context, req *notev1.PublishNoteRequest) (*notev1.NoteResponse, error) {
+	// 1. 不要直接把proto带过来的参数进行使用  要进行二次处理  然后拿到最终要真实操作的数据
 	note, err := s.svc.PublishSubmitted(ctx, dto.PublishNoteCommand{
-		ID:         req.GetId(),
 		AuthorID:   req.GetAuthorId(),
 		Title:      req.GetTitle(),
 		Content:    req.GetContent(),

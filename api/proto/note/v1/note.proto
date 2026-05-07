@@ -21,16 +21,15 @@ message GetNoteRequest {
 }
 
 message PublishNoteRequest {
-  string id = 1;
-  string author_id = 2;
-  string title = 3;
-  string content = 4;
+  string author_id = 1;
+  string title = 2;
+  string content = 3;
   // 0=图文 1=视频
-  int32 note_type = 5;
+  int32 note_type = 4;
   // 0=公开 1=私密
-  int32 permission = 6;
-  repeated string topic_ids = 7;
-  int32 status = 8;
+  int32 permission = 5;
+  repeated string topic_ids = 6;
+  int32 status = 7;
 }
 
 message NoteResponse {
