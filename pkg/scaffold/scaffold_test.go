@@ -116,6 +116,8 @@ func TestInitWithoutDemoRemovesDemoServicesAndWritesCleanGateway(t *testing.T) {
 	requireNoPath(t, filepath.Join(target, "api", "gen", "note"))
 	requireNoPath(t, filepath.Join(target, "api", "gen", "content"))
 	requireNoPath(t, filepath.Join(target, "docs", "superpowers"))
+	requireNoPath(t, filepath.Join(target, "internal", "gateway", "router", "order_routes.go"))
+	requireNoPath(t, filepath.Join(target, "internal", "gateway", "router", "order_report_routes.go"))
 
 	gatewayMain := readString(t, filepath.Join(target, "cmd", "gateway", "main.go"))
 	require.Contains(t, gatewayMain, "github.com/acme/clean/internal/gateway/router")
@@ -135,6 +137,8 @@ func TestInitWithoutDemoRemovesDemoServicesAndWritesCleanGateway(t *testing.T) {
 	require.Contains(t, v1File, "api.Group(\"/v1\")")
 	require.NotContains(t, v1File, "registerUserRoutes")
 	require.NotContains(t, v1File, "registerNoteRoutes")
+	require.NotContains(t, v1File, "registerOrderRoutes")
+	require.NotContains(t, v1File, "registerOrderReportRoutes")
 
 	makefile := readString(t, filepath.Join(target, "Makefile"))
 	require.Contains(t, makefile, "$(GO) run ./tools/protogen")
@@ -237,32 +241,34 @@ run-gateway:
   user_service_name: user-service
   note_service_name: note-service
 `,
-		"cmd/gateway/main.go":                      "package main\n\nimport _ \"old/module/internal/gateway/client\"\n",
-		"cmd/bw-cli/main.go":                       "package main\n",
-		"cmd/user/main.go":                         "package main\n",
-		"cmd/note/main.go":                         "package main\n",
-		"internal/gateway/client/clients.go":       "package client\n",
-		"internal/gateway/handler/common.go":       "package handler\n",
-		"internal/gateway/handler/user_handler.go": "package handler\n",
-		"internal/gateway/handler/note_handler.go": "package handler\n",
-		"internal/gateway/request/user_request.go": "package request\n",
-		"internal/gateway/request/note_request.go": "package request\n",
-		"internal/gateway/router/router.go":        "package router\n\nimport _ \"old/module/internal/gateway/client\"\n",
-		"internal/gateway/router/v1.go":            "package router\n\nfunc registerAPIRoutes() { registerUserRoutes(); registerNoteRoutes() }\n",
-		"internal/gateway/router/user_routes.go":   "package router\n\nfunc registerUserRoutes() {}\n",
-		"internal/gateway/router/note_routes.go":   "package router\n\nfunc registerNoteRoutes() {}\n",
-		"internal/gateway/router/router_test.go":   "package router\n",
-		"internal/user/model/user.go":              "package model\n",
-		"internal/note/model/note.go":              "package model\n",
-		"internal/content/model/content.go":        "package model\n",
-		"pkg/scaffold/scaffold.go":                 "package scaffold\n",
-		"tools/protogen/main.go":                   "package main\n\nconst noProtoMessage = \"No proto files found\"\n",
-		"api/proto/user/v1/user.proto":             "option go_package = \"old/module/api/gen/user/v1;userv1\";\n",
-		"api/proto/note/v1/content.proto":          "option go_package = \"old/module/api/gen/note/v1;notev1\";\n",
-		"api/proto/content/v1/content.proto":       "option go_package = \"old/module/api/gen/content/v1;contentv1\";\n",
-		"api/gen/user/v1/user.pb.go":               "package userv1\n",
-		"api/gen/note/v1/note.pb.go":               "package notev1\n",
-		"api/gen/content/v1/content.pb.go":         "package contentv1\n",
+		"cmd/gateway/main.go":                            "package main\n\nimport _ \"old/module/internal/gateway/client\"\n",
+		"cmd/bw-cli/main.go":                             "package main\n",
+		"cmd/user/main.go":                               "package main\n",
+		"cmd/note/main.go":                               "package main\n",
+		"internal/gateway/client/clients.go":             "package client\n",
+		"internal/gateway/handler/common.go":             "package handler\n",
+		"internal/gateway/handler/user_handler.go":       "package handler\n",
+		"internal/gateway/handler/note_handler.go":       "package handler\n",
+		"internal/gateway/request/user_request.go":       "package request\n",
+		"internal/gateway/request/note_request.go":       "package request\n",
+		"internal/gateway/router/router.go":              "package router\n\nimport _ \"old/module/internal/gateway/client\"\n",
+		"internal/gateway/router/v1.go":                  "package router\n\nfunc registerAPIRoutes() { registerUserRoutes(); registerNoteRoutes(); registerOrderRoutes(); registerOrderReportRoutes() }\n",
+		"internal/gateway/router/user_routes.go":         "package router\n\nfunc registerUserRoutes() {}\n",
+		"internal/gateway/router/note_routes.go":         "package router\n\nfunc registerNoteRoutes() {}\n",
+		"internal/gateway/router/order_routes.go":        "package router\n\nfunc registerOrderRoutes() {}\n",
+		"internal/gateway/router/order_report_routes.go": "package router\n\nfunc registerOrderReportRoutes() {}\n",
+		"internal/gateway/router/router_test.go":         "package router\n",
+		"internal/user/model/user.go":                    "package model\n",
+		"internal/note/model/note.go":                    "package model\n",
+		"internal/content/model/content.go":              "package model\n",
+		"pkg/scaffold/scaffold.go":                       "package scaffold\n",
+		"tools/protogen/main.go":                         "package main\n\nconst noProtoMessage = \"No proto files found\"\n",
+		"api/proto/user/v1/user.proto":                   "option go_package = \"old/module/api/gen/user/v1;userv1\";\n",
+		"api/proto/note/v1/content.proto":                "option go_package = \"old/module/api/gen/note/v1;notev1\";\n",
+		"api/proto/content/v1/content.proto":             "option go_package = \"old/module/api/gen/content/v1;contentv1\";\n",
+		"api/gen/user/v1/user.pb.go":                     "package userv1\n",
+		"api/gen/note/v1/note.pb.go":                     "package notev1\n",
+		"api/gen/content/v1/content.pb.go":               "package contentv1\n",
 	}
 	for rel, content := range files {
 		path := filepath.Join(root, rel)

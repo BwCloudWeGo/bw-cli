@@ -168,13 +168,14 @@ func stripDemo(root string, module string) error {
 		filepath.Join("internal", "gateway", "client"),
 		filepath.Join("internal", "gateway", "handler"),
 		filepath.Join("internal", "gateway", "request"),
-		filepath.Join("internal", "gateway", "router", "user_routes.go"),
-		filepath.Join("internal", "gateway", "router", "note_routes.go"),
 		filepath.Join("internal", "gateway", "router", "router_test.go"),
 	} {
 		if err := os.RemoveAll(filepath.Join(root, rel)); err != nil {
 			return err
 		}
+	}
+	if err := removeGatewayBusinessRoutes(root); err != nil {
+		return err
 	}
 	if err := writeCleanGateway(root, module); err != nil {
 		return err
@@ -187,6 +188,19 @@ func stripDemo(root string, module string) error {
 	}
 	if err := writeCleanDocs(root, module); err != nil {
 		return err
+	}
+	return nil
+}
+
+func removeGatewayBusinessRoutes(root string) error {
+	matches, err := filepath.Glob(filepath.Join(root, "internal", "gateway", "router", "*_routes.go"))
+	if err != nil {
+		return err
+	}
+	for _, path := range matches {
+		if err := os.RemoveAll(path); err != nil {
+			return err
+		}
 	}
 	return nil
 }
