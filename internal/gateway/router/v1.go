@@ -15,4 +15,5 @@ func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger) 
 
 	registerUserRoutes(v1, handler.NewUserHandler(clients.User, log))
 	registerNoteRoutes(v1, handler.NewNoteHandler(clients.Note, log))
+	registerOrderReportRoutes(v1, handler.NewOrderReportHandler(log))
 }

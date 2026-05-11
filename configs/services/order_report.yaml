@@ -1,0 +1,14 @@
+table: demo_orders
+resource: order_report
+readonly_fields:
+  - id
+  - created_at
+  - updated_at
+relations:
+  - name: demo_order_items
+    table: demo_order_items
+    type: has_many
+    local_field: id
+    foreign_field: order_id
+    methods:
+      - ListDemoOrderItemsByOrderID

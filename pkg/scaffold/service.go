@@ -69,6 +69,7 @@ type serviceTemplateData struct {
 	ProtoResponseFields    string
 	HandlerCreateFields    string
 	HandlerUpdateFields    string
+	HandlerRelationMethods string
 	ToProtoFields          string
 	GormModelFields        string
 	ToRecordFields         string
@@ -119,6 +120,7 @@ type serviceRelation struct {
 	ToRecordFields      string
 	ToDomainFields      string
 	ProtoResponse       string
+	ToProtoFields       string
 	QueryInterface      string
 	QueryImplementation string
 	ServiceMethod       string
@@ -398,6 +400,7 @@ func buildTableDrivenFragments(data *serviceTemplateData, metadata RelationalSch
 	data.ProtoRelationMethods = renderRelationProtoMethods(data.Relations)
 	data.ProtoRelationMessages = renderRelationProtoMessages(data.Relations)
 	data.QueryInterfaceMethods = renderRelationQueryInterface(data.Relations)
+	data.HandlerRelationMethods = renderRelationHandlerMethods(data.GoPackage, data.Pascal, data.Relations)
 }
 
 func stringSet(values []string) map[string]bool {
@@ -557,7 +560,7 @@ func renderRequestAssignments(fields []serviceField, source string) string {
 		b.WriteString(": ")
 		b.WriteString(source)
 		b.WriteString(".Get")
-		b.WriteString(field.GoName)
+		b.WriteString(toProtoGoName(field.ProtoName))
 		b.WriteString("(),\n")
 	}
 	return b.String()
@@ -567,7 +570,7 @@ func renderProtoAssignments(fields []serviceField, source string) string {
 	var b strings.Builder
 	for _, field := range fields {
 		b.WriteString("\t\t")
-		b.WriteString(field.GoName)
+		b.WriteString(toProtoGoName(field.ProtoName))
 		b.WriteString(": ")
 		b.WriteString(source)
 		b.WriteString(".")
@@ -616,10 +619,25 @@ func renderProtoRequestAssignments(fields []serviceField, source string) string 
 			value = "id"
 		}
 		b.WriteString("\t\t")
-		b.WriteString(field.GoName)
+		b.WriteString(toProtoGoName(field.ProtoName))
 		b.WriteString(": ")
 		b.WriteString(value)
 		b.WriteString(",\n")
+	}
+	return b.String()
+}
+
+func toProtoGoName(protoName string) string {
+	parts := strings.FieldsFunc(strings.TrimSpace(protoName), func(r rune) bool {
+		return r == '_' || r == '-' || r == ' '
+	})
+	var b strings.Builder
+	for _, part := range parts {
+		part = strings.ToLower(strings.TrimSpace(part))
+		if part == "" {
+			continue
+		}
+		b.WriteString(toPascal([]string{part}))
 	}
 	return b.String()
 }
@@ -720,10 +738,11 @@ func buildServiceRelations(data *serviceTemplateData, relations []RelationMetada
 			ToRecordFields:    renderAssignments(fields, "item", ""),
 			ToDomainFields:    renderAssignments(fields, "record", ""),
 			ProtoResponse:     renderProtoFields(fields, 1),
+			ToProtoFields:     renderProtoAssignments(fields, "item"),
 		}
 		item.QueryInterface = fmt.Sprintf("\t%s(ctx context.Context, id %s) ([]*%s, error)\n", item.MethodName, item.LocalGoType, item.Pascal)
 		item.QueryImplementation = renderRelationQueryImplementation(item)
-		item.ServiceMethod = renderRelationServiceMethod(item)
+		item.ServiceMethod = renderRelationServiceMethod(item, data.Pascal)
 		result = append(result, item)
 	}
 	return result
@@ -845,7 +864,7 @@ func renderRelationQueryImplementation(relation serviceRelation) string {
 `, relation.MethodName, relation.LocalGoType, relation.Pascal, relation.Pascal, relation.ForeignColumnName, relation.Pascal, relation.Pascal)
 }
 
-func renderRelationServiceMethod(relation serviceRelation) string {
+func renderRelationServiceMethod(relation serviceRelation, invalidPascal string) string {
 	return fmt.Sprintf(`func (s *Service) %s(ctx context.Context, id %s) ([]*dto.%sDTO, error) {
 	if s.queries == nil {
 		return nil, model.ErrInvalid%s
@@ -860,7 +879,32 @@ func renderRelationServiceMethod(relation serviceRelation) string {
 	}
 	return output, nil
 }
-`, relation.MethodName, relation.LocalGoType, relation.Pascal, relation.Pascal, relation.MethodName, relation.Pascal, relation.Pascal)
+`, relation.MethodName, relation.LocalGoType, relation.Pascal, invalidPascal, relation.MethodName, relation.Pascal, relation.Pascal)
+}
+
+func renderRelationHandlerMethods(goPackage string, mainPascal string, relations []serviceRelation) string {
+	var b strings.Builder
+	for _, relation := range relations {
+		fmt.Fprintf(&b, `func (s *Server) %s(ctx context.Context, req *%s.%sRequest) (*%s.%sResponse, error) {
+	items, err := s.svc.%s(ctx, req.GetId())
+	if err != nil {
+		return nil, map%sError(err)
+	}
+	resp := &%s.%sResponse{Items: make([]*%s.%sResponse, 0, len(items))}
+	for _, item := range items {
+		resp.Items = append(resp.Items, to%sProto(item))
+	}
+	return resp, nil
+}
+
+func to%sProto(item *dto.%sDTO) *%s.%sResponse {
+	return &%s.%sResponse{
+%s	}
+}
+
+`, relation.MethodName, goPackage, relation.MethodName, goPackage, relation.MethodName, relation.MethodName, mainPascal, goPackage, relation.MethodName, goPackage, relation.Pascal, relation.Pascal, relation.Pascal, relation.Pascal, goPackage, relation.Pascal, goPackage, relation.Pascal, relation.ToProtoFields)
+	}
+	return b.String()
 }
 
 func (relation serviceRelation) LocalGoTypeToProto() string {
@@ -1201,7 +1245,8 @@ func patchGatewayRouter(root string, data serviceTemplateData) error {
 	if strings.Contains(v1Text, "func registerAPIRoutes(r *gin.Engine)") {
 		return os.WriteFile(v1Path, []byte(renderServiceTemplate(cleanGatewayV1WithServiceTemplate, data)), 0o644)
 	}
-	if !strings.Contains(v1Text, "func registerAPIRoutes(r *gin.Engine, log *zap.Logger)") {
+	if !strings.Contains(v1Text, "func registerAPIRoutes(r *gin.Engine, log *zap.Logger)") &&
+		!strings.Contains(v1Text, "func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger)") {
 		return nil
 	}
 	if strings.Contains(v1Text, "\n\t_ = v1\n") {
@@ -2879,6 +2924,8 @@ func toProto(item *dto.{{ .Pascal }}DTO) *{{ .GoPackage }}.{{ .Pascal }}Response
 {{ .ToProtoFields }}	}
 }
 
+{{ .HandlerRelationMethods }}
+
 func map{{ .Pascal }}Error(err error) error {
 	switch {
 	case stderrors.Is(err, model.ErrInvalid{{ .Pascal }}):
@@ -3147,6 +3194,7 @@ var _ = strconv.IntSize
 const tableDrivenGatewayHandlerTemplate = `package handler
 
 import (
+	"strconv"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -3201,12 +3249,17 @@ func (h *{{ .Pascal }}Handler) Create(c *gin.Context) {
 }
 
 func (h *{{ .Pascal }}Handler) Get(c *gin.Context) {
+	id, err := parse{{ .Pascal }}ID(c.Param("id"))
+	if err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_id", err.Error()))
+		return
+	}
 	client, err := h.grpcClient()
 	if err != nil {
 		httpx.Error(c, apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_grpc_client_error", "{{ .Dir }} grpc client error", err))
 		return
 	}
-	resp, err := client.Get{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Get{{ .Pascal }}Request{Id: c.Param("id")})
+	resp, err := client.Get{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Get{{ .Pascal }}Request{Id: id})
 	if err != nil {
 		httpx.Error(c, apperrors.FromGRPC(err))
 		return
@@ -3234,6 +3287,11 @@ func (h *{{ .Pascal }}Handler) List(c *gin.Context) {
 }
 
 func (h *{{ .Pascal }}Handler) Update(c *gin.Context) {
+	id, err := parse{{ .Pascal }}ID(c.Param("id"))
+	if err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_id", err.Error()))
+		return
+	}
 	var req request.Update{{ .Pascal }}Request
 	if err := c.ShouldBindJSON(&req); err != nil {
 		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
@@ -3255,12 +3313,17 @@ func (h *{{ .Pascal }}Handler) Update(c *gin.Context) {
 }
 
 func (h *{{ .Pascal }}Handler) Delete(c *gin.Context) {
+	id, err := parse{{ .Pascal }}ID(c.Param("id"))
+	if err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_id", err.Error()))
+		return
+	}
 	client, err := h.grpcClient()
 	if err != nil {
 		httpx.Error(c, apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_grpc_client_error", "{{ .Dir }} grpc client error", err))
 		return
 	}
-	resp, err := client.Delete{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Delete{{ .Pascal }}Request{Id: c.Param("id")})
+	resp, err := client.Delete{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Delete{{ .Pascal }}Request{Id: id})
 	if err != nil {
 		httpx.Error(c, apperrors.FromGRPC(err))
 		return
@@ -3282,6 +3345,10 @@ func (h *{{ .Pascal }}Handler) grpcClient() ({{ .GoPackage }}.{{ .Pascal }}Servi
 	})
 	return h.client, h.err
 }
+
+{{ .GatewayParseID }}
+
+var _ = strconv.IntSize
 `
 
 const gatewayRoutesTemplate = `package router

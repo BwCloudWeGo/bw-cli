@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package order_report.v1;
+
+option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/order_report/v1;orderreportv1";
+
+// OrderReportService is generated from the demo_orders table.
+service OrderReportService {
+  rpc CreateOrderReport(CreateOrderReportRequest) returns (OrderReportResponse);
+  rpc GetOrderReport(GetOrderReportRequest) returns (OrderReportResponse);
+  rpc ListOrderReports(ListOrderReportsRequest) returns (ListOrderReportsResponse);
+  rpc UpdateOrderReport(UpdateOrderReportRequest) returns (OrderReportResponse);
+  rpc DeleteOrderReport(DeleteOrderReportRequest) returns (DeleteOrderReportResponse);
+  rpc ListDemoOrderItemsByOrderID(ListDemoOrderItemsByOrderIDRequest) returns (ListDemoOrderItemsByOrderIDResponse);
+
+}
+
+message CreateOrderReportRequest {
+  string customer_name = 1;
+  string status = 2;
+  string total_amount = 3;
+}
+
+message GetOrderReportRequest {
+  int32 id = 1;
+}
+
+message ListOrderReportsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message UpdateOrderReportRequest {
+  int32 id = 1;
+  string customer_name = 2;
+  string status = 3;
+  string total_amount = 4;
+}
+
+message DeleteOrderReportRequest {
+  int32 id = 1;
+}
+
+message OrderReportResponse {
+  int32 id = 1;
+  string customer_name = 2;
+  string status = 3;
+  string total_amount = 4;
+  string created_at = 5;
+  string updated_at = 6;
+}
+
+message ListOrderReportsResponse {
+  repeated OrderReportResponse items = 1;
+  int64 total = 2;
+}
+
+message DeleteOrderReportResponse {
+  bool success = 1;
+}
+
+message DemoOrderItemResponse {
+  int32 id = 1;
+  int32 order_id = 2;
+  string sku = 3;
+  string product_name = 4;
+  int32 quantity = 5;
+  string unit_price = 6;
+  string created_at = 7;
+}
+
+message ListDemoOrderItemsByOrderIDRequest {
+  int32 id = 1;
+}
+
+message ListDemoOrderItemsByOrderIDResponse {
+  repeated DemoOrderItemResponse items = 1;
+}
+

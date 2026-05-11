@@ -353,6 +353,10 @@ relations:
 
 	relationService := readString(t, filepath.Join(root, "internal", "order", "service", "relation_service.go"))
 	require.Contains(t, relationService, "func (s *Service) ListOrderItemsByOrderID")
+
+	handlerFile := readString(t, filepath.Join(root, "internal", "order", "handler", "server.go"))
+	require.Contains(t, handlerFile, "func (s *Server) ListOrderItemsByOrderID")
+	require.Contains(t, handlerFile, "func toOrderItemProto")
 }
 
 func TestAddServiceTableDrivenModeFailsBeforeWritingWhenConfigUnavailable(t *testing.T) {
