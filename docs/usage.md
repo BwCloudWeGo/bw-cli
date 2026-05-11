@@ -988,6 +988,46 @@ HTTP client
 APP_COMMENT_GRPC_PORT
 ```
 
+### 10.1.1 从已有关系型表生成
+
+如果新服务已经有数据库表，先配置 `configs/config.yaml` 中的关系型数据库，然后指定主表：
+
+```bash
+bw-cli service comment --table comments --tidy
+```
+
+命令会在写文件前连接数据库并校验表结构。校验失败时不会生成半套文件。支持：
+
+- `sqlite`：读取 `database.dsn`
+- `mysql`：读取 `mysql.dsn`
+- `postgres`：读取 `postgresql.dsn`
+
+多表关系使用 YAML：
+
+```yaml
+table: comments
+readonly_fields:
+  - id
+  - created_at
+  - updated_at
+exclude_fields:
+  - internal_note
+relations:
+  - name: comment_likes
+    table: comment_likes
+    type: has_many
+    local_field: id
+    foreign_field: comment_id
+```
+
+执行：
+
+```bash
+bw-cli service comment --table comments --schema configs/services/comment.yaml --tidy
+```
+
+主表生成完整 CRUD。关联表生成内部 `model`、`dto`、`repo/query_repository.go` 和 `service/relation_service.go`，并在 proto 中追加关系查询 RPC。第一版只支持单字段主键、单字段关联和 `has_one`、`has_many`、`belongs_to`；默认不生成 SQL join，而是生成按关联字段查询的 Gorm 方法。
+
 gateway 调用服务的目标地址也不需要写进配置文件，默认是 `127.0.0.1:9103`，需要覆盖时设置：
 
 ```bash

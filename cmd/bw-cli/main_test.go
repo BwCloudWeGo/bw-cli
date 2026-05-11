@@ -49,3 +49,18 @@ func TestParseServiceOptionsSupportsSkipProto(t *testing.T) {
 	require.Equal(t, "comment", opts.Name)
 	require.False(t, opts.RunProto)
 }
+
+func TestParseServiceOptionsSupportsTableDrivenFlags(t *testing.T) {
+	opts, err := parseServiceOptions([]string{
+		"order",
+		"--table", "orders",
+		"--schema", "configs/services/order.yaml",
+		"--yes",
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, "order", opts.Name)
+	require.Equal(t, "orders", opts.Table)
+	require.Equal(t, "configs/services/order.yaml", opts.SchemaPath)
+	require.True(t, opts.AssumeYes)
+}

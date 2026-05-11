@@ -358,6 +358,45 @@ UpdateOrder
 DeleteOrder
 ```
 
+### 5.1 按已有数据库表生成服务
+
+如果项目已经在 `configs/config.yaml` 中配置了关系型数据库，可以让 `service` 命令先校验表结构，再按字段生成代码：
+
+```bash
+bw-cli service order --table orders --tidy
+```
+
+支持的 `database.driver` 为 `sqlite`、`mysql`、`postgres`。命令会在写文件前检查：
+
+- 当前配置是否能连接数据库。
+- 主表是否存在。
+- 主表是否只有一个主键。
+- 字段类型能否映射到 Go/proto 类型。
+
+多表关系建议放在 YAML 中：
+
+```yaml
+table: orders
+readonly_fields:
+  - id
+  - created_at
+  - updated_at
+relations:
+  - name: order_items
+    table: order_items
+    type: has_many
+    local_field: id
+    foreign_field: order_id
+```
+
+执行：
+
+```bash
+bw-cli service order --table orders --schema configs/services/order.yaml --tidy
+```
+
+主表会生成完整 CRUD；关联表只生成内部 model/dto/repo 和关系查询方法，例如 `ListOrderItemsByOrderID`。第一版只支持单字段主键和单字段关联，不会默认生成复杂 SQL join。表字段默认全部暴露到生成代码中，需要排除字段时使用 `exclude_fields`。
+
 用户可以直接把示例字段 `Name`、`Description` 替换成真实业务字段，或者在现有 CRUD 上继续增加业务方法。
 
 如果项目包含 gateway，命令会同步生成：
