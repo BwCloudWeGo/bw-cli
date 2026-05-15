@@ -14,22 +14,19 @@ import (
 
 func TestJWTAuthAcceptsBearerTokenAndSetsClaims(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	token, err := middleware.GenerateToken(middleware.JWTConfig{
+	jwtMiddleware := middleware.NewJWT(middleware.JWTConfig{
 		Secret:        "unit-test-secret",
 		Issuer:        "xiaolanshu",
 		ExpireSeconds: 3600,
-	}, middleware.JWTClaims{
+	})
+	token, err := jwtMiddleware.GenerateToken(middleware.JWTClaims{
 		UserID: "user-1",
 		Role:   "admin",
 	})
 	require.NoError(t, err)
 
 	r := gin.New()
-	r.Use(middleware.JWTAuth(middleware.JWTConfig{
-		Secret:        "unit-test-secret",
-		Issuer:        "xiaolanshu",
-		ExpireSeconds: 3600,
-	}))
+	r.Use(jwtMiddleware.Auth())
 	r.GET("/me", func(c *gin.Context) {
 		claims := middleware.ClaimsFromContext(c)
 		c.JSON(http.StatusOK, gin.H{"user_id": claims.UserID, "role": claims.Role})
@@ -46,12 +43,13 @@ func TestJWTAuthAcceptsBearerTokenAndSetsClaims(t *testing.T) {
 
 func TestJWTAuthRejectsMissingToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	r.Use(middleware.JWTAuth(middleware.JWTConfig{
+	jwtMiddleware := middleware.NewJWT(middleware.JWTConfig{
 		Secret:        "unit-test-secret",
 		Issuer:        "xiaolanshu",
 		ExpireSeconds: int64(time.Hour.Seconds()),
-	}))
+	})
+	r := gin.New()
+	r.Use(jwtMiddleware.Auth())
 	r.GET("/me", func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})

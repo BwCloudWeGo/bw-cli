@@ -175,9 +175,9 @@ logs/note-service-2026-04-28.log
 - `RequestID`：生成或透传 `X-Request-ID`。
 - `RequestLogger`：记录 HTTP 请求日志。
 - `CORS`：支持来源、方法、请求头、凭证和 max age 配置。
-- `JWTAuth`：解析 Bearer token，并把 claims 写入 Gin context。
+- `JWT.Auth`：解析 Bearer token，并把 claims 写入 Gin context。
 
-JWT token 可以通过 `middleware.GenerateToken` 生成。密钥必须来自 `configs/config.yaml` 或环境变量，默认不提供假密钥。
+JWT token 可以通过 `middleware.NewJWT(cfg).GenerateToken` 生成。密钥必须来自 `configs/config.yaml` 或环境变量，默认不提供假密钥。
 
 ## 外部组件封装
 

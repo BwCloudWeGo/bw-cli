@@ -146,7 +146,7 @@ log:
 2. 注册 `RequestID`，保证每个请求都有 `X-Request-ID`。
 3. 注册 `RequestLogger`，输出 HTTP 请求日志。
 4. 注册 `CORS`。
-5. 对需要鉴权的路由组注册 `JWTAuth`。
+5. 对需要鉴权的路由组注册 `JWT` 实例的 `Auth` 方法。
 
 示例：
 
@@ -156,14 +156,15 @@ r.Use(middleware.RequestID())
 r.Use(middleware.RequestLogger(log))
 r.Use(middleware.CORS(cfg.Middleware.CORS))
 
+jwtMiddleware := middleware.NewJWT(cfg.Middleware.JWT)
 auth := r.Group("/api/v1")
-auth.Use(middleware.JWTAuth(cfg.Middleware.JWT))
+auth.Use(jwtMiddleware.Auth())
 ```
 
 生成 JWT：
 
 ```go
-token, err := middleware.GenerateToken(cfg.Middleware.JWT, middleware.JWTClaims{
+token, err := jwtMiddleware.GenerateToken(middleware.JWTClaims{
     UserID: "user-id-from-database",
     Role:   "admin",
 })

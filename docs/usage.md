@@ -647,7 +647,8 @@ export APP_MIDDLEWARE_JWT_EXPIRE_SECONDS=7200
 cfg := middleware.DefaultJWTConfig()
 cfg.Secret = os.Getenv("APP_MIDDLEWARE_JWT_SECRET")
 
-token, err := middleware.GenerateToken(cfg, middleware.JWTClaims{
+jwtMiddleware := middleware.NewJWT(cfg)
+token, err := jwtMiddleware.GenerateToken(middleware.JWTClaims{
     UserID: "user-1",
     Role:   "admin",
 })
