@@ -6,6 +6,7 @@
 
 - `bw-cli new` 生成 Gin + gRPC + Gorm 的干净项目。
 - `bw-cli service` 在项目中新增可启动的 CRUD 服务骨架。
+- `bw-cli service --table/--schema` 可按已有关系型表生成服务代码。
 - 公共包覆盖配置、日志、错误、HTTP 响应、中间件、数据库、MongoDB、Redis、ES、Kafka、文件上传等基础能力。
 - `tools/protogen` 用 Go 实现 proto 扫描和生成，避免 Makefile 依赖平台特定 shell 写法。
 
@@ -73,6 +74,12 @@ curl http://localhost:8080/healthz
 bw-cli service order --port 9103 --tidy
 ```
 
+也可以按已有关系型表生成：
+
+```bash
+bw-cli service order --table orders --schema configs/services/order.yaml --tidy
+```
+
 命令会生成：
 
 ```text
@@ -89,7 +96,7 @@ internal/gateway/router/order_routes.go
 docs/services/order.md
 ```
 
-生成后的服务默认包含 Create/Get/List/Update/Delete 基础 CRUD，默认使用 Gorm 仓储，同时生成 MongoDB 仓储实现供业务切换。
+生成后的服务默认包含基础 CRUD，默认使用 Gorm 仓储，同时生成 MongoDB 仓储实现供业务切换。
 
 ## 目录
 
@@ -104,4 +111,4 @@ tools/protogen             # 平台中立 proto 生成器
 docs                       # 使用、架构和工具说明
 ```
 
-更多细节见 [使用说明](/Users/fuyx/kiro/xiaolanshu/docs/usage.md)、[架构说明](/Users/fuyx/kiro/xiaolanshu/docs/architecture.md) 和 [工具组件](/Users/fuyx/kiro/xiaolanshu/docs/toolkit.md)。
+更多细节见 [使用说明](/Users/fuyx/kiro/xiaolanshu/docs/usage.md)、[架构说明](/Users/fuyx/kiro/xiaolanshu/docs/architecture.md)、[工具组件](/Users/fuyx/kiro/xiaolanshu/docs/toolkit.md) 和 [表驱动服务生成](/Users/fuyx/kiro/xiaolanshu/docs/table-driven-service.md)。

@@ -78,6 +78,14 @@ export APP_DATABASE_DRIVER=postgres
 bw-cli service comment --port 9103 --tidy
 ```
 
+按已有关系型表生成：
+
+```bash
+bw-cli service comment --table comments --schema configs/services/comment.yaml --tidy
+```
+
+表驱动模式会在写文件前连接数据库并校验表结构；校验失败时不会生成半套文件。更多规则见 [表驱动服务生成](/Users/fuyx/kiro/xiaolanshu/docs/table-driven-service.md)。
+
 生成内容：
 
 ```text

@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 
 	"github.com/BwCloudWeGo/bw-cli/pkg/scaffold"
 )
@@ -241,6 +243,141 @@ func TestAddServiceRejectsInvalidName(t *testing.T) {
 	require.Contains(t, err.Error(), "service name")
 }
 
+func TestAddServiceGeneratesFieldsFromSQLiteTable(t *testing.T) {
+	root := t.TempDir()
+	writeServiceProject(t, root)
+	dbPath := filepath.Join(root, "data", "app.db")
+	writeSQLiteConfig(t, root, dbPath)
+	createSQLiteSchema(t, dbPath, `
+CREATE TABLE orders (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	user_id TEXT NOT NULL,
+	total_amount DECIMAL(10,2) NOT NULL,
+	status TEXT NOT NULL,
+	created_at DATETIME,
+	updated_at DATETIME
+);`)
+	schemaPath := filepath.Join(root, "configs", "services", "order.yaml")
+	require.NoError(t, os.MkdirAll(filepath.Dir(schemaPath), 0o755))
+	require.NoError(t, os.WriteFile(schemaPath, []byte(`readonly_fields:
+  - id
+  - created_at
+  - updated_at
+`), 0o644))
+
+	err := scaffold.AddService(scaffold.ServiceOptions{
+		RootDir:    root,
+		Name:       "order",
+		Table:      "orders",
+		SchemaPath: schemaPath,
+		RunProto:   false,
+	})
+
+	require.NoError(t, err)
+
+	modelFile := readString(t, filepath.Join(root, "internal", "order", "model", "order.go"))
+	require.Contains(t, modelFile, "ID          int32")
+	require.Contains(t, modelFile, "UserID      string")
+	require.Contains(t, modelFile, "TotalAmount string")
+	require.Contains(t, modelFile, "Status      string")
+	require.Contains(t, modelFile, "CreatedAt   time.Time")
+
+	commandFile := readString(t, filepath.Join(root, "internal", "order", "dto", "command.go"))
+	require.NotContains(t, commandFile, "CreatedAt")
+	require.Contains(t, commandFile, "UserID      string")
+	require.Contains(t, commandFile, "TotalAmount string")
+	require.Contains(t, commandFile, "Status      string")
+
+	proto := readString(t, filepath.Join(root, "api", "proto", "order", "v1", "order.proto"))
+	require.Contains(t, proto, "string user_id = 1;")
+	require.Contains(t, proto, "string total_amount = 2;")
+	require.Contains(t, proto, "int32 id = 1;")
+
+	repoFile := readString(t, filepath.Join(root, "internal", "order", "repo", "gorm_repository.go"))
+	require.Contains(t, repoFile, "ID          int32")
+	require.Contains(t, repoFile, "`gorm:\"column:id;primaryKey\"`")
+	require.Contains(t, repoFile, "return \"orders\"")
+	require.Contains(t, repoFile, "Where(\"id = ?\", id)")
+
+	gatewayRequestFile := readString(t, filepath.Join(root, "internal", "gateway", "request", "order_request.go"))
+	require.Contains(t, gatewayRequestFile, "UserID      string `json:\"user_id\"")
+	require.NotContains(t, gatewayRequestFile, "CreatedAt")
+}
+
+func TestAddServiceGeneratesRelationQueryFiles(t *testing.T) {
+	root := t.TempDir()
+	writeServiceProject(t, root)
+	dbPath := filepath.Join(root, "data", "app.db")
+	writeSQLiteConfig(t, root, dbPath)
+	createSQLiteSchema(t, dbPath, `
+CREATE TABLE orders (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, status TEXT NOT NULL);
+CREATE TABLE order_items (id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER NOT NULL, sku TEXT NOT NULL);
+`)
+	schemaPath := filepath.Join(root, "configs", "services", "order.yaml")
+	require.NoError(t, os.MkdirAll(filepath.Dir(schemaPath), 0o755))
+	require.NoError(t, os.WriteFile(schemaPath, []byte(`readonly_fields:
+  - id
+relations:
+  - name: order_items
+    table: order_items
+    type: has_many
+    local_field: id
+    foreign_field: order_id
+`), 0o644))
+
+	err := scaffold.AddService(scaffold.ServiceOptions{
+		RootDir:    root,
+		Name:       "order",
+		Table:      "orders",
+		SchemaPath: schemaPath,
+		RunProto:   false,
+	})
+
+	require.NoError(t, err)
+	require.FileExists(t, filepath.Join(root, "internal", "order", "model", "order_item.go"))
+	require.FileExists(t, filepath.Join(root, "internal", "order", "dto", "order_item.go"))
+	require.FileExists(t, filepath.Join(root, "internal", "order", "repo", "query_repository.go"))
+	require.FileExists(t, filepath.Join(root, "internal", "order", "service", "relation_service.go"))
+
+	proto := readString(t, filepath.Join(root, "api", "proto", "order", "v1", "order.proto"))
+	require.Contains(t, proto, "rpc ListOrderItemsByOrderID")
+	require.Contains(t, proto, "message OrderItemResponse")
+
+	repositoryFile := readString(t, filepath.Join(root, "internal", "order", "model", "repository.go"))
+	require.Contains(t, repositoryFile, "type QueryRepository interface")
+	require.Contains(t, repositoryFile, "ListOrderItemsByOrderID")
+
+	queryRepo := readString(t, filepath.Join(root, "internal", "order", "repo", "query_repository.go"))
+	require.Contains(t, queryRepo, "func (r *GormRepository) ListOrderItemsByOrderID")
+	require.Contains(t, queryRepo, `Where("order_id = ?", id)`)
+
+	relationService := readString(t, filepath.Join(root, "internal", "order", "service", "relation_service.go"))
+	require.Contains(t, relationService, "func (s *Service) ListOrderItemsByOrderID")
+
+	handlerFile := readString(t, filepath.Join(root, "internal", "order", "handler", "server.go"))
+	require.Contains(t, handlerFile, "func (s *Server) ListOrderItemsByOrderID")
+	require.Contains(t, handlerFile, "func toOrderItemProto")
+}
+
+func TestAddServiceTableDrivenModeFailsBeforeWritingWhenConfigUnavailable(t *testing.T) {
+	root := t.TempDir()
+	writeServiceProject(t, root)
+	configPath := filepath.Join(root, "configs", "config.yaml")
+	require.NoError(t, os.MkdirAll(filepath.Dir(configPath), 0o755))
+	require.NoError(t, os.WriteFile(configPath, []byte("database:\n  driver: mysql\nmysql:\n  dsn: \"\"\n"), 0o644))
+
+	err := scaffold.AddService(scaffold.ServiceOptions{
+		RootDir:  root,
+		Name:     "order",
+		Table:    "orders",
+		RunProto: false,
+	})
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "configure configs/config.yaml")
+	require.NoFileExists(t, filepath.Join(root, "cmd", "order", "main.go"))
+}
+
 func writeServiceProject(t *testing.T, root string) {
 	t.Helper()
 	files := map[string]string{
@@ -287,4 +424,19 @@ func registerAPIRoutes(r *gin.Engine) {
 		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
 		require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
 	}
+}
+
+func writeSQLiteConfig(t *testing.T, root string, dbPath string) {
+	t.Helper()
+	configPath := filepath.Join(root, "configs", "config.yaml")
+	require.NoError(t, os.MkdirAll(filepath.Dir(configPath), 0o755))
+	require.NoError(t, os.WriteFile(configPath, []byte("database:\n  driver: sqlite\n  dsn: "+dbPath+"\n"), 0o644))
+}
+
+func createSQLiteSchema(t *testing.T, dbPath string, schemaSQL string) {
+	t.Helper()
+	require.NoError(t, os.MkdirAll(filepath.Dir(dbPath), 0o755))
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, db.Exec(schemaSQL).Error)
 }

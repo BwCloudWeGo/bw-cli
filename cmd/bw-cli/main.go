@@ -120,6 +120,9 @@ func parseServiceOptions(args []string) (scaffold.ServiceOptions, error) {
 	port := fs.Int("port", 9100, "default gRPC port for the generated service")
 	skipProto := fs.Bool("skip-proto", false, "skip proto code generation after writing files")
 	tidy := fs.Bool("tidy", false, "run go mod tidy after generating service")
+	table := fs.String("table", "", "primary relational table used for table-driven service generation")
+	schemaPath := fs.String("schema", "", "YAML file describing table-driven service fields and relations")
+	assumeYes := fs.Bool("yes", false, "confirm interactive fallback prompts")
 
 	serviceArg, parseArgs := splitTargetArg(args)
 	if err := fs.Parse(parseArgs); err != nil {
@@ -136,11 +139,14 @@ func parseServiceOptions(args []string) (scaffold.ServiceOptions, error) {
 		return scaffold.ServiceOptions{}, err
 	}
 	return scaffold.ServiceOptions{
-		RootDir:  root,
-		Name:     serviceArg,
-		Port:     *port,
-		RunProto: !*skipProto,
-		RunTidy:  *tidy,
+		RootDir:    root,
+		Name:       serviceArg,
+		Port:       *port,
+		RunProto:   !*skipProto,
+		RunTidy:    *tidy,
+		Table:      *table,
+		SchemaPath: *schemaPath,
+		AssumeYes:  *assumeYes,
 	}, nil
 }
 
@@ -155,5 +161,5 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "usage:")
 	fmt.Fprintln(os.Stderr, "  bw-cli new <target-dir> --module github.com/acme/demo [--tidy]")
 	fmt.Fprintln(os.Stderr, "  bw-cli new <target-dir> --module github.com/acme/demo --source . [--tidy]")
-	fmt.Fprintln(os.Stderr, "  bw-cli service <service-name> [--dir .] [--port 9100] [--tidy]")
+	fmt.Fprintln(os.Stderr, "  bw-cli service <service-name> [--dir .] [--port 9100] [--table table] [--schema file] [--tidy]")
 }

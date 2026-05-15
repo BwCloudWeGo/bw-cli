@@ -11,6 +11,12 @@ import (
 	"strings"
 	"text/template"
 	"unicode"
+
+	"go.uber.org/zap"
+	"gorm.io/gorm"
+
+	"github.com/BwCloudWeGo/bw-cli/pkg/config"
+	"github.com/BwCloudWeGo/bw-cli/pkg/database"
 )
 
 const defaultServicePort = 9100
@@ -19,11 +25,14 @@ var serviceNamePattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_-]*$`)
 
 // ServiceOptions controls bw-cli service generation inside an existing project.
 type ServiceOptions struct {
-	RootDir  string
-	Name     string
-	Port     int
-	RunProto bool
-	RunTidy  bool
+	RootDir    string
+	Name       string
+	Port       int
+	RunProto   bool
+	RunTidy    bool
+	Table      string
+	SchemaPath string
+	AssumeYes  bool
 }
 
 type serviceTemplateData struct {
@@ -39,6 +48,82 @@ type serviceTemplateData struct {
 	EnvPrefix    string
 	Port         int
 	TableName    string
+	TableDriven  bool
+	Fields       []serviceField
+	Writable     []serviceField
+	PrimaryKey   serviceField
+
+	ModelImports           string
+	ModelFields            string
+	NewParams              string
+	NewAssignments         string
+	UpdateParams           string
+	UpdateAssignments      string
+	CommandCreateFields    string
+	CommandUpdateFields    string
+	DTOImports             string
+	DTOFields              string
+	DTOAssignments         string
+	ProtoCreateFields      string
+	ProtoUpdateFields      string
+	ProtoResponseFields    string
+	HandlerCreateFields    string
+	HandlerUpdateFields    string
+	HandlerRelationMethods string
+	ToProtoFields          string
+	GormModelFields        string
+	ToRecordFields         string
+	ToDomainFields         string
+	MongoDocumentFields    string
+	ToDocumentFields       string
+	ToDomainDocumentFields string
+	GatewayCreateFields    string
+	GatewayUpdateFields    string
+	GatewayCreateProto     string
+	GatewayUpdateProto     string
+	GatewayParseID         string
+	ServiceTestCreate      string
+	ServiceTestUpdate      string
+	ServiceTestAssertField string
+	Relations              []serviceRelation
+	ProtoRelationMethods   string
+	ProtoRelationMessages  string
+	QueryInterfaceMethods  string
+}
+
+type serviceField struct {
+	ColumnName string
+	GoName     string
+	GoType     string
+	ProtoName  string
+	ProtoType  string
+	Readonly   bool
+	PrimaryKey bool
+}
+
+type serviceRelation struct {
+	Name                string
+	TableName           string
+	Dir                 string
+	Pascal              string
+	GoIdent             string
+	Type                string
+	MethodName          string
+	LocalColumnName     string
+	ForeignColumnName   string
+	LocalGoType         string
+	Fields              []serviceField
+	ModelFields         string
+	DTOFields           string
+	DTOAssignments      string
+	GormModelFields     string
+	ToRecordFields      string
+	ToDomainFields      string
+	ProtoResponse       string
+	ToProtoFields       string
+	QueryInterface      string
+	QueryImplementation string
+	ServiceMethod       string
 }
 
 // AddService creates a complete gRPC service skeleton in an existing bw-cli project.
@@ -53,6 +138,9 @@ func AddService(opts ServiceOptions) error {
 	}
 	data, err := buildServiceTemplateData(module, opts.Name, opts.Port)
 	if err != nil {
+		return err
+	}
+	if err := applyTableDrivenOptions(root, opts, &data); err != nil {
 		return err
 	}
 	if err := ensureServiceDoesNotExist(root, data); err != nil {
@@ -129,6 +217,714 @@ func buildServiceTemplateData(module string, rawName string, port int) (serviceT
 	}, nil
 }
 
+func applyTableDrivenOptions(root string, opts ServiceOptions, data *serviceTemplateData) error {
+	if strings.TrimSpace(opts.Table) == "" && strings.TrimSpace(opts.SchemaPath) == "" {
+		return nil
+	}
+	schema, err := loadServiceSchema(absSchemaPath(root, opts.SchemaPath))
+	if err != nil {
+		return err
+	}
+	schema, err = mergeServiceSchema(schema, opts.Table, data.Dir)
+	if err != nil {
+		return err
+	}
+	if schema.Table == "" {
+		return fmt.Errorf("table is required for table-driven service generation")
+	}
+	db, driver, err := openConfiguredRelationalDB(root)
+	if err != nil {
+		var unavailable *tableDrivenConfigUnavailableError
+		if errors.As(err, &unavailable) && confirmDefaultTemplateFallback(opts) {
+			fmt.Fprintf(os.Stderr, "warning: %v; generating default service template instead\n", err)
+			return nil
+		}
+		return err
+	}
+	metadata, err := inspectRelationalSchema(db, driver, schema)
+	if err != nil {
+		return err
+	}
+	buildTableDrivenFragments(data, metadata, schema)
+	return nil
+}
+
+type tableDrivenConfigUnavailableError struct {
+	message string
+}
+
+func (err *tableDrivenConfigUnavailableError) Error() string {
+	return err.message
+}
+
+func newTableDrivenConfigUnavailableError(format string, args ...any) error {
+	return &tableDrivenConfigUnavailableError{message: fmt.Sprintf(format, args...)}
+}
+
+func confirmDefaultTemplateFallback(opts ServiceOptions) bool {
+	if !stdinIsTerminal() {
+		return false
+	}
+	if opts.AssumeYes {
+		return true
+	}
+	fmt.Fprint(os.Stderr, "table-driven service generation needs a configured relational database. Continue with the default template? [y/N]: ")
+	var answer string
+	if _, err := fmt.Fscan(os.Stdin, &answer); err != nil {
+		return false
+	}
+	answer = strings.ToLower(strings.TrimSpace(answer))
+	return answer == "y" || answer == "yes"
+}
+
+func stdinIsTerminal() bool {
+	info, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+	return info.Mode()&os.ModeCharDevice != 0
+}
+
+func absSchemaPath(root string, path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" || filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(root, path)
+}
+
+func openConfiguredRelationalDB(root string) (*gorm.DB, string, error) {
+	cfg, err := config.Load(filepath.Join(root, "configs", "config.yaml"))
+	if err != nil {
+		return nil, "", err
+	}
+	driver := strings.ToLower(strings.TrimSpace(cfg.Database.Driver))
+	switch driver {
+	case "sqlite":
+		if strings.TrimSpace(cfg.Database.DSN) == "" {
+			return nil, "", newTableDrivenConfigUnavailableError("sqlite database.dsn is empty; configure configs/config.yaml before using --table")
+		}
+		if !filepath.IsAbs(cfg.Database.DSN) {
+			cfg.Database.DSN = filepath.Join(root, cfg.Database.DSN)
+		}
+	case "mysql":
+		if strings.TrimSpace(cfg.MySQL.DSN) == "" {
+			return nil, "", newTableDrivenConfigUnavailableError("mysql.dsn is empty; configure configs/config.yaml before using --table")
+		}
+	case "postgres", "postgresql":
+		if strings.TrimSpace(cfg.PostgreSQL.DSN) == "" {
+			return nil, "", newTableDrivenConfigUnavailableError("postgresql.dsn is empty; configure configs/config.yaml before using --table")
+		}
+	default:
+		return nil, "", newTableDrivenConfigUnavailableError("unsupported database driver %q for table-driven service generation; configure configs/config.yaml before using --table", cfg.Database.Driver)
+	}
+	db, err := database.Open(cfg.Database, cfg.MySQL, cfg.PostgreSQL, zap.NewNop())
+	if err != nil {
+		return nil, "", err
+	}
+	return db, driver, nil
+}
+
+func buildTableDrivenFragments(data *serviceTemplateData, metadata RelationalSchemaMetadata, schema ServiceSchema) {
+	table := metadata.Primary
+	readonly := stringSet(schema.ReadonlyFields)
+	excluded := stringSet(schema.ExcludeFields)
+	fields := make([]serviceField, 0, len(table.Columns))
+	writable := make([]serviceField, 0, len(table.Columns))
+	for _, column := range table.Columns {
+		if excluded[column.ColumnName] {
+			continue
+		}
+		field := serviceField{
+			ColumnName: column.ColumnName,
+			GoName:     column.GoName,
+			GoType:     column.GoType,
+			ProtoName:  column.ProtoName,
+			ProtoType:  column.ProtoType,
+			Readonly:   readonly[column.ColumnName],
+			PrimaryKey: column.PrimaryKey,
+		}
+		fields = append(fields, field)
+		if column.PrimaryKey {
+			data.PrimaryKey = field
+		}
+		if !field.Readonly {
+			writable = append(writable, field)
+		}
+	}
+	data.TableDriven = true
+	data.TableName = table.TableName
+	data.Fields = fields
+	data.Writable = writable
+	if data.PrimaryKey.ColumnName == "" {
+		for _, field := range fields {
+			if field.PrimaryKey {
+				data.PrimaryKey = field
+				break
+			}
+		}
+	}
+	data.ModelImports = tableDrivenModelImports(fields)
+	data.ModelFields = renderStructFields(fields, nil)
+	data.NewParams = renderParams(writable)
+	data.NewAssignments = renderAssignments(writable, "", "")
+	data.UpdateParams = renderParams(writable)
+	data.UpdateAssignments = renderUpdateAssignments(writable)
+	data.CommandCreateFields = renderStructFields(writable, nil)
+	updateFields := append([]serviceField{data.PrimaryKey}, writable...)
+	data.CommandUpdateFields = renderStructFields(updateFields, nil)
+	data.DTOImports = tableDrivenDTOImports(fields)
+	data.DTOFields = renderDTOFields(fields)
+	data.DTOAssignments = renderDTOAssignments(fields, "item")
+	data.ProtoCreateFields = renderProtoFields(writable, 1)
+	data.ProtoUpdateFields = renderProtoFields(updateFields, 1)
+	data.ProtoResponseFields = renderProtoFields(fields, 1)
+	data.HandlerCreateFields = renderRequestAssignments(writable, "req")
+	data.HandlerUpdateFields = renderRequestAssignments(updateFields, "req")
+	data.ToProtoFields = renderProtoAssignments(fields, "item")
+	data.GormModelFields = renderGormFields(fields)
+	data.ToRecordFields = renderAssignments(fields, "item", "")
+	data.ToDomainFields = renderAssignments(fields, "record", "")
+	data.MongoDocumentFields = renderMongoFields(fields)
+	data.ToDocumentFields = renderAssignments(fields, "item", "")
+	data.ToDomainDocumentFields = renderAssignments(fields, "document", "")
+	data.GatewayCreateFields = renderGatewayRequestFields(writable)
+	data.GatewayUpdateFields = renderGatewayRequestFields(writable)
+	data.GatewayCreateProto = renderProtoRequestAssignments(writable, "req")
+	data.GatewayUpdateProto = renderProtoRequestAssignments(updateFields, "req")
+	data.GatewayParseID = renderGatewayParseID(data.Pascal, data.PrimaryKey)
+	data.ServiceTestCreate = renderTestCommand(writable, "first")
+	data.ServiceTestUpdate = renderTestCommand(writable, "updated")
+	data.ServiceTestAssertField = firstWritableAssertField(writable)
+	data.Relations = buildServiceRelations(data, metadata.Relations)
+	data.ProtoRelationMethods = renderRelationProtoMethods(data.Relations)
+	data.ProtoRelationMessages = renderRelationProtoMessages(data.Relations)
+	data.QueryInterfaceMethods = renderRelationQueryInterface(data.Relations)
+	data.HandlerRelationMethods = renderRelationHandlerMethods(data.GoPackage, data.Pascal, data.Relations)
+}
+
+func stringSet(values []string) map[string]bool {
+	set := make(map[string]bool, len(values))
+	for _, value := range values {
+		set[strings.TrimSpace(value)] = true
+	}
+	return set
+}
+
+func tableDrivenModelImports(fields []serviceField) string {
+	imports := []string{`"errors"`}
+	if hasGoType(fields, "time.Time") {
+		imports = append(imports, `"time"`)
+	}
+	return renderImportBlock(imports)
+}
+
+func tableDrivenDTOImports(fields []serviceField) string {
+	imports := []string{`"time"`}
+	imports = append(imports, "")
+	return strings.Join(imports, "\n")
+}
+
+func renderImportBlock(imports []string) string {
+	if len(imports) == 0 {
+		return ""
+	}
+	if len(imports) == 1 {
+		return "import " + imports[0] + "\n"
+	}
+	var b strings.Builder
+	b.WriteString("import (\n")
+	for _, imp := range imports {
+		if imp == "" {
+			b.WriteString("\n")
+			continue
+		}
+		b.WriteString("\t")
+		b.WriteString(imp)
+		b.WriteString("\n")
+	}
+	b.WriteString(")\n")
+	return b.String()
+}
+
+func hasGoType(fields []serviceField, goType string) bool {
+	for _, field := range fields {
+		if field.GoType == goType {
+			return true
+		}
+	}
+	return false
+}
+
+func renderStructFields(fields []serviceField, tagFn func(serviceField) string) string {
+	var b strings.Builder
+	for _, field := range fields {
+		b.WriteString("\t")
+		b.WriteString(field.GoName)
+		b.WriteString(" ")
+		b.WriteString(field.GoType)
+		if tagFn != nil {
+			b.WriteString(" ")
+			b.WriteString(tagFn(field))
+		}
+		b.WriteString("\n")
+	}
+	return b.String()
+}
+
+func renderDTOFields(fields []serviceField) string {
+	dtoFields := make([]serviceField, 0, len(fields))
+	for _, field := range fields {
+		if field.GoType == "time.Time" {
+			field.GoType = "string"
+		}
+		dtoFields = append(dtoFields, field)
+	}
+	return renderStructFields(dtoFields, nil)
+}
+
+func renderParams(fields []serviceField) string {
+	parts := make([]string, 0, len(fields))
+	for _, field := range fields {
+		parts = append(parts, lowerFirst(field.GoName)+" "+field.GoType)
+	}
+	return strings.Join(parts, ", ")
+}
+
+func renderAssignments(fields []serviceField, source string, fallback string) string {
+	var b strings.Builder
+	for _, field := range fields {
+		value := fallback
+		if source != "" {
+			value = source + "." + field.GoName
+		}
+		if value == "" {
+			value = lowerFirst(field.GoName)
+		}
+		b.WriteString("\t\t")
+		b.WriteString(field.GoName)
+		b.WriteString(": ")
+		b.WriteString(value)
+		b.WriteString(",\n")
+	}
+	return b.String()
+}
+
+func renderUpdateAssignments(fields []serviceField) string {
+	var b strings.Builder
+	for _, field := range fields {
+		b.WriteString("\titem.")
+		b.WriteString(field.GoName)
+		b.WriteString(" = ")
+		b.WriteString(lowerFirst(field.GoName))
+		b.WriteString("\n")
+	}
+	return b.String()
+}
+
+func renderDTOAssignments(fields []serviceField, source string) string {
+	var b strings.Builder
+	for _, field := range fields {
+		value := source + "." + field.GoName
+		if field.GoType == "time.Time" {
+			value = "formatTime(" + value + ")"
+		}
+		b.WriteString("\t\t")
+		b.WriteString(field.GoName)
+		b.WriteString(": ")
+		b.WriteString(value)
+		b.WriteString(",\n")
+	}
+	return b.String()
+}
+
+func renderProtoFields(fields []serviceField, start int) string {
+	var b strings.Builder
+	for i, field := range fields {
+		b.WriteString("  ")
+		b.WriteString(field.ProtoType)
+		b.WriteString(" ")
+		b.WriteString(field.ProtoName)
+		b.WriteString(" = ")
+		b.WriteString(fmt.Sprintf("%d", start+i))
+		b.WriteString(";\n")
+	}
+	return b.String()
+}
+
+func renderRequestAssignments(fields []serviceField, source string) string {
+	var b strings.Builder
+	for _, field := range fields {
+		b.WriteString("\t\t")
+		b.WriteString(field.GoName)
+		b.WriteString(": ")
+		b.WriteString(source)
+		b.WriteString(".Get")
+		b.WriteString(toProtoGoName(field.ProtoName))
+		b.WriteString("(),\n")
+	}
+	return b.String()
+}
+
+func renderProtoAssignments(fields []serviceField, source string) string {
+	var b strings.Builder
+	for _, field := range fields {
+		b.WriteString("\t\t")
+		b.WriteString(toProtoGoName(field.ProtoName))
+		b.WriteString(": ")
+		b.WriteString(source)
+		b.WriteString(".")
+		b.WriteString(field.GoName)
+		b.WriteString(",\n")
+	}
+	return b.String()
+}
+
+func renderGormFields(fields []serviceField) string {
+	return renderStructFields(fields, func(field serviceField) string {
+		tag := "column:" + field.ColumnName
+		if field.PrimaryKey {
+			tag += ";primaryKey"
+		}
+		return "`gorm:\"" + tag + "\"`"
+	})
+}
+
+func renderMongoFields(fields []serviceField) string {
+	return renderStructFields(fields, func(field serviceField) string {
+		name := field.ColumnName
+		if field.PrimaryKey {
+			name = "_id"
+		}
+		return "`bson:\"" + name + "\"`"
+	})
+}
+
+func renderGatewayRequestFields(fields []serviceField) string {
+	return renderStructFields(fields, func(field serviceField) string {
+		tag := "`json:\"" + field.ProtoName + "\""
+		if !field.Readonly && !field.PrimaryKey {
+			tag += " binding:\"required\""
+		}
+		tag += "`"
+		return tag
+	})
+}
+
+func renderProtoRequestAssignments(fields []serviceField, source string) string {
+	var b strings.Builder
+	for _, field := range fields {
+		value := source + "." + field.GoName
+		if field.PrimaryKey {
+			value = "id"
+		}
+		b.WriteString("\t\t")
+		b.WriteString(toProtoGoName(field.ProtoName))
+		b.WriteString(": ")
+		b.WriteString(value)
+		b.WriteString(",\n")
+	}
+	return b.String()
+}
+
+func toProtoGoName(protoName string) string {
+	parts := strings.FieldsFunc(strings.TrimSpace(protoName), func(r rune) bool {
+		return r == '_' || r == '-' || r == ' '
+	})
+	var b strings.Builder
+	for _, part := range parts {
+		part = strings.ToLower(strings.TrimSpace(part))
+		if part == "" {
+			continue
+		}
+		b.WriteString(toPascal([]string{part}))
+	}
+	return b.String()
+}
+
+func renderGatewayParseID(pascal string, field serviceField) string {
+	switch field.GoType {
+	case "int32":
+		return fmt.Sprintf(`func parse%sID(value string) (int32, error) {
+	parsed, err := strconv.ParseInt(value, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return int32(parsed), nil
+}
+`, pascal)
+	case "int64":
+		return fmt.Sprintf(`func parse%sID(value string) (int64, error) {
+	return strconv.ParseInt(value, 10, 64)
+}
+`, pascal)
+	default:
+		return fmt.Sprintf(`func parse%sID(value string) (string, error) {
+	return value, nil
+}
+`, pascal)
+	}
+}
+
+func renderTestCommand(fields []serviceField, seed string) string {
+	parts := make([]string, 0, len(fields))
+	for _, field := range fields {
+		parts = append(parts, field.GoName+": "+testValueForField(field, seed))
+	}
+	return strings.Join(parts, ", ")
+}
+
+func firstWritableAssertField(fields []serviceField) string {
+	if len(fields) == 0 {
+		return ""
+	}
+	return fields[0].GoName
+}
+
+func testValueForField(field serviceField, seed string) string {
+	switch field.GoType {
+	case "int32":
+		if seed == "updated" {
+			return "2"
+		}
+		return "1"
+	case "int64":
+		if seed == "updated" {
+			return "2"
+		}
+		return "1"
+	case "float64":
+		if seed == "updated" {
+			return "2.2"
+		}
+		return "1.1"
+	case "bool":
+		return "true"
+	case "[]byte":
+		return "[]byte(\"" + seed + "\")"
+	default:
+		return fmt.Sprintf("%q", seed+"-"+field.ProtoName)
+	}
+}
+
+func buildServiceRelations(data *serviceTemplateData, relations []RelationMetadata) []serviceRelation {
+	result := make([]serviceRelation, 0, len(relations))
+	for _, relation := range relations {
+		parts, err := splitServiceName(relation.Table.TableName)
+		if err != nil {
+			parts = []string{relation.Table.TableName}
+		}
+		dirParts := singularParts(parts)
+		dir := strings.Join(dirParts, "_")
+		pascal := toPascal(dirParts)
+		fields := serviceFieldsFromColumns(relation.Table.Columns, nil, nil)
+		method := firstNonEmpty(firstMethod(relation.Schema.Methods), defaultRelationMethodName(relation, pascal, data.Pascal+data.PrimaryKey.GoName))
+		item := serviceRelation{
+			Name:              relation.Schema.Name,
+			TableName:         relation.Table.TableName,
+			Dir:               dir,
+			Pascal:            pascal,
+			GoIdent:           lowerFirst(pascal),
+			Type:              relation.Schema.Type,
+			MethodName:        method,
+			LocalColumnName:   relation.LocalColumn.ColumnName,
+			ForeignColumnName: relation.ForeignColumn.ColumnName,
+			LocalGoType:       relation.LocalColumn.GoType,
+			Fields:            fields,
+			ModelFields:       renderStructFields(fields, nil),
+			DTOFields:         renderDTOFields(fields),
+			DTOAssignments:    renderDTOAssignments(fields, "item"),
+			GormModelFields:   renderGormFields(fields),
+			ToRecordFields:    renderAssignments(fields, "item", ""),
+			ToDomainFields:    renderAssignments(fields, "record", ""),
+			ProtoResponse:     renderProtoFields(fields, 1),
+			ToProtoFields:     renderProtoAssignments(fields, "item"),
+		}
+		item.QueryInterface = fmt.Sprintf("\t%s(ctx context.Context, id %s) ([]*%s, error)\n", item.MethodName, item.LocalGoType, item.Pascal)
+		item.QueryImplementation = renderRelationQueryImplementation(item)
+		item.ServiceMethod = renderRelationServiceMethod(item, data.Pascal)
+		result = append(result, item)
+	}
+	return result
+}
+
+func serviceFieldsFromColumns(columns []ColumnMetadata, readonly map[string]bool, excluded map[string]bool) []serviceField {
+	fields := make([]serviceField, 0, len(columns))
+	for _, column := range columns {
+		if excluded != nil && excluded[column.ColumnName] {
+			continue
+		}
+		fields = append(fields, serviceField{
+			ColumnName: column.ColumnName,
+			GoName:     column.GoName,
+			GoType:     column.GoType,
+			ProtoName:  column.ProtoName,
+			ProtoType:  column.ProtoType,
+			Readonly:   readonly != nil && readonly[column.ColumnName],
+			PrimaryKey: column.PrimaryKey,
+		})
+	}
+	return fields
+}
+
+func firstMethod(methods []string) string {
+	if len(methods) == 0 {
+		return ""
+	}
+	return methods[0]
+}
+
+func singularPascal(parts []string) string {
+	return toPascal(singularParts(parts))
+}
+
+func singularParts(parts []string) []string {
+	if len(parts) == 0 {
+		return nil
+	}
+	copyParts := append([]string(nil), parts...)
+	last := copyParts[len(copyParts)-1]
+	if strings.HasSuffix(last, "ies") && len(last) > 3 {
+		last = strings.TrimSuffix(last, "ies") + "y"
+	} else if strings.HasSuffix(last, "s") && len(last) > 1 {
+		last = strings.TrimSuffix(last, "s")
+	}
+	copyParts[len(copyParts)-1] = last
+	return copyParts
+}
+
+func defaultRelationMethodName(relation RelationMetadata, relatedPascal string, mainPKGoName string) string {
+	switch relation.Schema.Type {
+	case relationHasMany:
+		return "List" + toPascal(strings.FieldsFunc(relation.Table.TableName, func(r rune) bool { return r == '_' || r == '-' })) + "By" + mainPKGoName
+	default:
+		return "Get" + relatedPascal + "By" + mainPKGoName
+	}
+}
+
+func renderRelationProtoMethods(relations []serviceRelation) string {
+	var b strings.Builder
+	for _, relation := range relations {
+		b.WriteString("  rpc ")
+		b.WriteString(relation.MethodName)
+		b.WriteString("(")
+		b.WriteString(relation.MethodName)
+		b.WriteString("Request) returns (")
+		b.WriteString(relation.MethodName)
+		b.WriteString("Response);\n")
+	}
+	return b.String()
+}
+
+func renderRelationProtoMessages(relations []serviceRelation) string {
+	var b strings.Builder
+	for _, relation := range relations {
+		b.WriteString("\nmessage ")
+		b.WriteString(relation.Pascal)
+		b.WriteString("Response {\n")
+		b.WriteString(relation.ProtoResponse)
+		b.WriteString("}\n\nmessage ")
+		b.WriteString(relation.MethodName)
+		b.WriteString("Request {\n  ")
+		b.WriteString(relation.LocalGoTypeToProto())
+		b.WriteString(" id = 1;\n}\n\nmessage ")
+		b.WriteString(relation.MethodName)
+		b.WriteString("Response {\n  repeated ")
+		b.WriteString(relation.Pascal)
+		b.WriteString("Response items = 1;\n}\n")
+	}
+	return b.String()
+}
+
+func renderRelationQueryInterface(relations []serviceRelation) string {
+	if len(relations) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString("\n// QueryRepository defines relation query behavior required by the service layer.\ntype QueryRepository interface {\n")
+	for _, relation := range relations {
+		b.WriteString(relation.QueryInterface)
+	}
+	b.WriteString("}\n")
+	return b.String()
+}
+
+func renderRelationQueryImplementation(relation serviceRelation) string {
+	return fmt.Sprintf(`func (r *GormRepository) %s(ctx context.Context, id %s) ([]*model.%s, error) {
+	var records []%sModel
+	if err := r.db.WithContext(ctx).Where("%s = ?", id).Find(&records).Error; err != nil {
+		return nil, err
+	}
+	items := make([]*model.%s, 0, len(records))
+	for i := range records {
+		items = append(items, to%sDomain(&records[i]))
+	}
+	return items, nil
+}
+`, relation.MethodName, relation.LocalGoType, relation.Pascal, relation.Pascal, relation.ForeignColumnName, relation.Pascal, relation.Pascal)
+}
+
+func renderRelationServiceMethod(relation serviceRelation, invalidPascal string) string {
+	return fmt.Sprintf(`func (s *Service) %s(ctx context.Context, id %s) ([]*dto.%sDTO, error) {
+	if s.queries == nil {
+		return nil, model.ErrInvalid%s
+	}
+	items, err := s.queries.%s(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	output := make([]*dto.%sDTO, 0, len(items))
+	for _, item := range items {
+		output = append(output, dto.From%s(item))
+	}
+	return output, nil
+}
+`, relation.MethodName, relation.LocalGoType, relation.Pascal, invalidPascal, relation.MethodName, relation.Pascal, relation.Pascal)
+}
+
+func renderRelationHandlerMethods(goPackage string, mainPascal string, relations []serviceRelation) string {
+	var b strings.Builder
+	for _, relation := range relations {
+		fmt.Fprintf(&b, `func (s *Server) %s(ctx context.Context, req *%s.%sRequest) (*%s.%sResponse, error) {
+	items, err := s.svc.%s(ctx, req.GetId())
+	if err != nil {
+		return nil, map%sError(err)
+	}
+	resp := &%s.%sResponse{Items: make([]*%s.%sResponse, 0, len(items))}
+	for _, item := range items {
+		resp.Items = append(resp.Items, to%sProto(item))
+	}
+	return resp, nil
+}
+
+func to%sProto(item *dto.%sDTO) *%s.%sResponse {
+	return &%s.%sResponse{
+%s	}
+}
+
+`, relation.MethodName, goPackage, relation.MethodName, goPackage, relation.MethodName, relation.MethodName, mainPascal, goPackage, relation.MethodName, goPackage, relation.Pascal, relation.Pascal, relation.Pascal, relation.Pascal, goPackage, relation.Pascal, goPackage, relation.Pascal, relation.ToProtoFields)
+	}
+	return b.String()
+}
+
+func (relation serviceRelation) LocalGoTypeToProto() string {
+	for _, field := range relation.Fields {
+		if field.ColumnName == relation.ForeignColumnName {
+			return field.ProtoType
+		}
+	}
+	switch relation.LocalGoType {
+	case "int32":
+		return "int32"
+	case "int64":
+		return "int64"
+	case "bool":
+		return "bool"
+	default:
+		return "string"
+	}
+}
+
 func splitServiceName(rawName string) ([]string, error) {
 	name := strings.TrimSpace(rawName)
 	if name == "" {
@@ -191,17 +987,17 @@ func ensureServiceDoesNotExist(root string, data serviceTemplateData) error {
 
 func writeServiceFiles(root string, data serviceTemplateData) error {
 	files := map[string]string{
-		filepath.Join("api", "proto", data.Dir, "v1", data.ProtoFile):      renderServiceTemplate(serviceProtoTemplate, data),
+		filepath.Join("api", "proto", data.Dir, "v1", data.ProtoFile):      renderServiceTemplate(selectTemplate(data, serviceProtoTemplate, tableDrivenServiceProtoTemplate), data),
 		filepath.Join("cmd", data.Dir, "main.go"):                          renderServiceTemplate(serviceMainTemplate, data),
-		filepath.Join("internal", data.Dir, "model", data.Dir+".go"):       renderServiceTemplate(serviceModelTemplate, data),
-		filepath.Join("internal", data.Dir, "model", "repository.go"):      renderServiceTemplate(serviceRepositoryTemplate, data),
-		filepath.Join("internal", data.Dir, "dto", "command.go"):           renderServiceTemplate(serviceCommandTemplate, data),
-		filepath.Join("internal", data.Dir, "dto", data.Dir+".go"):         renderServiceTemplate(serviceDTOTemplate, data),
-		filepath.Join("internal", data.Dir, "service", "service.go"):       renderServiceTemplate(serviceUseCaseTemplate, data),
-		filepath.Join("internal", data.Dir, "service", "service_test.go"):  renderServiceTemplate(serviceUseCaseTestTemplate, data),
-		filepath.Join("internal", data.Dir, "repo", "gorm_repository.go"):  renderServiceTemplate(serviceGormRepoTemplate, data),
-		filepath.Join("internal", data.Dir, "repo", "mongo_repository.go"): renderServiceTemplate(serviceMongoRepoTemplate, data),
-		filepath.Join("internal", data.Dir, "handler", "server.go"):        renderServiceTemplate(serviceHandlerTemplate, data),
+		filepath.Join("internal", data.Dir, "model", data.Dir+".go"):       renderServiceTemplate(selectTemplate(data, serviceModelTemplate, tableDrivenServiceModelTemplate), data),
+		filepath.Join("internal", data.Dir, "model", "repository.go"):      renderServiceTemplate(selectTemplate(data, serviceRepositoryTemplate, tableDrivenServiceRepositoryTemplate), data),
+		filepath.Join("internal", data.Dir, "dto", "command.go"):           renderServiceTemplate(selectTemplate(data, serviceCommandTemplate, tableDrivenServiceCommandTemplate), data),
+		filepath.Join("internal", data.Dir, "dto", data.Dir+".go"):         renderServiceTemplate(selectTemplate(data, serviceDTOTemplate, tableDrivenServiceDTOTemplate), data),
+		filepath.Join("internal", data.Dir, "service", "service.go"):       renderServiceTemplate(selectTemplate(data, serviceUseCaseTemplate, tableDrivenServiceUseCaseTemplate), data),
+		filepath.Join("internal", data.Dir, "service", "service_test.go"):  renderServiceTemplate(selectTemplate(data, serviceUseCaseTestTemplate, tableDrivenServiceUseCaseTestTemplate), data),
+		filepath.Join("internal", data.Dir, "repo", "gorm_repository.go"):  renderServiceTemplate(selectTemplate(data, serviceGormRepoTemplate, tableDrivenServiceGormRepoTemplate), data),
+		filepath.Join("internal", data.Dir, "repo", "mongo_repository.go"): renderServiceTemplate(selectTemplate(data, serviceMongoRepoTemplate, tableDrivenServiceMongoRepoTemplate), data),
+		filepath.Join("internal", data.Dir, "handler", "server.go"):        renderServiceTemplate(selectTemplate(data, serviceHandlerTemplate, tableDrivenServiceHandlerTemplate), data),
 		filepath.Join("docs", "services", data.Dir+".md"):                  renderServiceTemplate(serviceDocTemplate, data),
 	}
 	for rel, content := range files {
@@ -209,7 +1005,30 @@ func writeServiceFiles(root string, data serviceTemplateData) error {
 			return err
 		}
 	}
+	for _, relation := range data.Relations {
+		relationFiles := map[string]string{
+			filepath.Join("internal", data.Dir, "model", relation.Dir+".go"):      renderRelationTemplate(tableDrivenRelationModelTemplate, data, relation),
+			filepath.Join("internal", data.Dir, "dto", relation.Dir+".go"):        renderRelationTemplate(tableDrivenRelationDTOTemplate, data, relation),
+			filepath.Join("internal", data.Dir, "repo", "query_repository.go"):    renderRelationCollectionTemplate(tableDrivenQueryRepositoryTemplate, data),
+			filepath.Join("internal", data.Dir, "service", "relation_service.go"): renderRelationCollectionTemplate(tableDrivenRelationServiceTemplate, data),
+		}
+		for rel, content := range relationFiles {
+			if exists(filepath.Join(root, rel)) {
+				continue
+			}
+			if err := writeNewFile(filepath.Join(root, rel), []byte(content)); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
+}
+
+func selectTemplate(data serviceTemplateData, fallback string, tableDriven string) string {
+	if data.TableDriven {
+		return tableDriven
+	}
+	return fallback
 }
 
 func writeGatewayServiceFiles(root string, data serviceTemplateData) error {
@@ -222,8 +1041,8 @@ func writeGatewayServiceFiles(root string, data serviceTemplateData) error {
 		return err
 	}
 	files := map[string]string{
-		filepath.Join("internal", "gateway", "request", data.Dir+"_request.go"): renderServiceTemplate(gatewayRequestTemplate, data),
-		filepath.Join("internal", "gateway", "handler", data.Dir+"_handler.go"): renderServiceTemplate(gatewayHandlerTemplate, data),
+		filepath.Join("internal", "gateway", "request", data.Dir+"_request.go"): renderServiceTemplate(selectTemplate(data, gatewayRequestTemplate, tableDrivenGatewayRequestTemplate), data),
+		filepath.Join("internal", "gateway", "handler", data.Dir+"_handler.go"): renderServiceTemplate(selectTemplate(data, gatewayHandlerTemplate, tableDrivenGatewayHandlerTemplate), data),
 		filepath.Join("internal", "gateway", "router", data.Dir+"_routes.go"):   renderServiceTemplate(gatewayRoutesTemplate, data),
 	}
 	for rel, content := range files {
@@ -284,6 +1103,29 @@ func renderServiceTemplate(body string, data serviceTemplateData) string {
 	return out.String()
 }
 
+func renderRelationTemplate(body string, data serviceTemplateData, relation serviceRelation) string {
+	values := struct {
+		Module string
+		Dir    string
+		serviceRelation
+	}{Module: data.Module, Dir: data.Dir, serviceRelation: relation}
+	tpl := template.Must(template.New("relation").Parse(body))
+	var out bytes.Buffer
+	if err := tpl.Execute(&out, values); err != nil {
+		panic(err)
+	}
+	return out.String()
+}
+
+func renderRelationCollectionTemplate(body string, data serviceTemplateData) string {
+	tpl := template.Must(template.New("relations").Parse(body))
+	var out bytes.Buffer
+	if err := tpl.Execute(&out, data); err != nil {
+		panic(err)
+	}
+	return out.String()
+}
+
 func addServiceMakeTarget(root string, serviceDir string) error {
 	path := filepath.Join(root, "Makefile")
 	if !exists(path) {
@@ -335,7 +1177,40 @@ func gofmtService(root string, serviceDir string) error {
 			args = append(args, rel)
 		}
 	}
+	for _, dir := range []string{
+		filepath.Join("internal", serviceDir, "model"),
+		filepath.Join("internal", serviceDir, "dto"),
+		filepath.Join("internal", serviceDir, "repo"),
+		filepath.Join("internal", serviceDir, "service"),
+	} {
+		fullDir := filepath.Join(root, dir)
+		if !exists(fullDir) {
+			continue
+		}
+		entries, err := os.ReadDir(fullDir)
+		if err != nil {
+			return err
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") {
+				continue
+			}
+			rel := filepath.Join(dir, entry.Name())
+			if !containsString(args, rel) {
+				args = append(args, rel)
+			}
+		}
+	}
 	return runProjectCommand(root, "gofmt", append([]string{"-w"}, args...)...)
+}
+
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
 }
 
 func patchGatewayRouter(root string, data serviceTemplateData) error {
@@ -370,7 +1245,8 @@ func patchGatewayRouter(root string, data serviceTemplateData) error {
 	if strings.Contains(v1Text, "func registerAPIRoutes(r *gin.Engine)") {
 		return os.WriteFile(v1Path, []byte(renderServiceTemplate(cleanGatewayV1WithServiceTemplate, data)), 0o644)
 	}
-	if !strings.Contains(v1Text, "func registerAPIRoutes(r *gin.Engine, log *zap.Logger)") {
+	if !strings.Contains(v1Text, "func registerAPIRoutes(r *gin.Engine, log *zap.Logger)") &&
+		!strings.Contains(v1Text, "func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger)") {
 		return nil
 	}
 	if strings.Contains(v1Text, "\n\t_ = v1\n") {
@@ -449,6 +1325,55 @@ message List{{ .Pascal }}sResponse {
 message Delete{{ .Pascal }}Response {
   bool success = 1;
 }
+`
+
+const tableDrivenServiceProtoTemplate = `syntax = "proto3";
+
+package {{ .ProtoPackage }};
+
+option go_package = "{{ .Module }}/api/gen/{{ .Dir }}/v1;{{ .GoPackage }}";
+
+// {{ .Pascal }}Service is generated from the {{ .TableName }} table.
+service {{ .Pascal }}Service {
+  rpc Create{{ .Pascal }}(Create{{ .Pascal }}Request) returns ({{ .Pascal }}Response);
+  rpc Get{{ .Pascal }}(Get{{ .Pascal }}Request) returns ({{ .Pascal }}Response);
+  rpc List{{ .Pascal }}s(List{{ .Pascal }}sRequest) returns (List{{ .Pascal }}sResponse);
+  rpc Update{{ .Pascal }}(Update{{ .Pascal }}Request) returns ({{ .Pascal }}Response);
+  rpc Delete{{ .Pascal }}(Delete{{ .Pascal }}Request) returns (Delete{{ .Pascal }}Response);
+{{ .ProtoRelationMethods }}
+}
+
+message Create{{ .Pascal }}Request {
+{{ .ProtoCreateFields }}}
+
+message Get{{ .Pascal }}Request {
+  {{ .PrimaryKey.ProtoType }} id = 1;
+}
+
+message List{{ .Pascal }}sRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message Update{{ .Pascal }}Request {
+{{ .ProtoUpdateFields }}}
+
+message Delete{{ .Pascal }}Request {
+  {{ .PrimaryKey.ProtoType }} id = 1;
+}
+
+message {{ .Pascal }}Response {
+{{ .ProtoResponseFields }}}
+
+message List{{ .Pascal }}sResponse {
+  repeated {{ .Pascal }}Response items = 1;
+  int64 total = 2;
+}
+
+message Delete{{ .Pascal }}Response {
+  bool success = 1;
+}
+{{ .ProtoRelationMessages }}
 `
 
 const serviceMainTemplate = `package main
@@ -613,6 +1538,33 @@ func (item *{{ .Pascal }}) Update(name string, description string) error {
 }
 `
 
+const tableDrivenServiceModelTemplate = `package model
+
+{{ .ModelImports }}
+var (
+	Err{{ .Pascal }}NotFound = errors.New("{{ .Dir }} not found")
+	ErrInvalid{{ .Pascal }} = errors.New("invalid {{ .Dir }}")
+)
+
+// {{ .Pascal }} is the aggregate root generated from the {{ .TableName }} table.
+type {{ .Pascal }} struct {
+{{ .ModelFields }}}
+
+// New{{ .Pascal }} creates an aggregate from writable table fields.
+func New{{ .Pascal }}({{ .NewParams }}) (*{{ .Pascal }}, error) {
+	return &{{ .Pascal }}{
+{{ .NewAssignments }}	}, nil
+}
+
+// Update changes writable fields while keeping readonly table fields untouched.
+func (item *{{ .Pascal }}) Update({{ .UpdateParams }}) error {
+	if item == nil {
+		return ErrInvalid{{ .Pascal }}
+	}
+{{ .UpdateAssignments }}	return nil
+}
+`
+
 const serviceRepositoryTemplate = `package model
 
 import "context"
@@ -624,6 +1576,52 @@ type Repository interface {
 	List(ctx context.Context, offset int, limit int) ([]*{{ .Pascal }}, int64, error)
 	Delete(ctx context.Context, id string) error
 }
+`
+
+const tableDrivenServiceRepositoryTemplate = `package model
+
+import "context"
+
+// Repository defines persistence behavior required by the {{ .Dir }} service layer.
+type Repository interface {
+	Save(ctx context.Context, item *{{ .Pascal }}) error
+	FindByID(ctx context.Context, id {{ .PrimaryKey.GoType }}) (*{{ .Pascal }}, error)
+	List(ctx context.Context, offset int, limit int) ([]*{{ .Pascal }}, int64, error)
+	Delete(ctx context.Context, id {{ .PrimaryKey.GoType }}) error
+}
+{{ .QueryInterfaceMethods }}
+`
+
+const tableDrivenRelationModelTemplate = `package model
+
+import "time"
+
+// {{ .Pascal }} is generated from the {{ .TableName }} relation table.
+type {{ .Pascal }} struct {
+{{ .ModelFields }}}
+
+var _ = time.Time{}
+`
+
+const tableDrivenRelationDTOTemplate = `package dto
+
+import (
+	"time"
+
+	"{{ .Module }}/internal/{{ .Dir }}/model"
+)
+
+// {{ .Pascal }}DTO is returned by relation query use cases.
+type {{ .Pascal }}DTO struct {
+{{ .DTOFields }}}
+
+// From{{ .Pascal }} converts a relation model into a DTO.
+func From{{ .Pascal }}(item *model.{{ .Pascal }}) *{{ .Pascal }}DTO {
+	return &{{ .Pascal }}DTO{
+{{ .DTOAssignments }}	}
+}
+
+var _ = time.RFC3339Nano
 `
 
 const serviceCommandTemplate = `package dto
@@ -642,6 +1640,23 @@ type UpdateCommand struct {
 }
 
 // ListCommand contains pagination input for listing {{ .Dir }} records.
+type ListCommand struct {
+	Page     int32
+	PageSize int32
+}
+`
+
+const tableDrivenServiceCommandTemplate = `package dto
+
+// CreateCommand contains writable input for creating a {{ .TableName }} record.
+type CreateCommand struct {
+{{ .CommandCreateFields }}}
+
+// UpdateCommand contains primary key and writable input for updating a {{ .TableName }} record.
+type UpdateCommand struct {
+{{ .CommandUpdateFields }}}
+
+// ListCommand contains pagination input for listing {{ .TableName }} records.
 type ListCommand struct {
 	Page     int32
 	PageSize int32
@@ -680,6 +1695,39 @@ func From{{ .Pascal }}(item *model.{{ .Pascal }}) *{{ .Pascal }}DTO {
 		CreatedAt:   formatTime(item.CreatedAt),
 		UpdatedAt:   formatTime(item.UpdatedAt),
 	}
+}
+
+// formatTime keeps zero time empty and serializes real values in a stable API format.
+func formatTime(value time.Time) string {
+	if value.IsZero() {
+		return ""
+	}
+	return value.Format(time.RFC3339Nano)
+}
+`
+
+const tableDrivenServiceDTOTemplate = `package dto
+
+import (
+	"time"
+
+	"{{ .Module }}/internal/{{ .Dir }}/model"
+)
+
+// {{ .Pascal }}DTO is returned by use cases and converted by handlers.
+type {{ .Pascal }}DTO struct {
+{{ .DTOFields }}}
+
+// List{{ .Pascal }}DTO contains paginated list output.
+type List{{ .Pascal }}DTO struct {
+	Items []*{{ .Pascal }}DTO
+	Total int64
+}
+
+// From{{ .Pascal }} converts a {{ .Dir }} aggregate into the service response DTO.
+func From{{ .Pascal }}(item *model.{{ .Pascal }}) *{{ .Pascal }}DTO {
+	return &{{ .Pascal }}DTO{
+{{ .DTOAssignments }}	}
 }
 
 // formatTime keeps zero time empty and serializes real values in a stable API format.
@@ -791,6 +1839,123 @@ func normalizePagination(page int32, pageSize int32) (int, int) {
 }
 `
 
+const tableDrivenServiceUseCaseTemplate = `package service
+
+import (
+	"context"
+
+	"go.uber.org/zap"
+
+	"{{ .Module }}/internal/{{ .Dir }}/dto"
+	"{{ .Module }}/internal/{{ .Dir }}/model"
+)
+
+// Service orchestrates {{ .Dir }} use cases.
+type Service struct {
+	repo    model.Repository
+	queries model.QueryRepository
+	log     *zap.Logger
+}
+
+// NewService constructs the {{ .Dir }} use-case service.
+func NewService(repo model.Repository, log *zap.Logger) *Service {
+	if log == nil {
+		log = zap.NewNop()
+	}
+	var queries model.QueryRepository
+	if queryRepo, ok := repo.(model.QueryRepository); ok {
+		queries = queryRepo
+	}
+	return &Service{repo: repo, queries: queries, log: log}
+}
+
+// Create creates a {{ .TableName }} record.
+func (s *Service) Create(ctx context.Context, cmd dto.CreateCommand) (*dto.{{ .Pascal }}DTO, error) {
+	item, err := model.New{{ .Pascal }}({{ range $i, $field := .Writable }}{{ if $i }}, {{ end }}cmd.{{ $field.GoName }}{{ end }})
+	if err != nil {
+		return nil, err
+	}
+	if err := s.repo.Save(ctx, item); err != nil {
+		return nil, err
+	}
+	s.log.Info("{{ .Dir }} created", zap.Any("aggregate_id", item.{{ .PrimaryKey.GoName }}), zap.String("use_case", "Create{{ .Pascal }}"))
+	return dto.From{{ .Pascal }}(item), nil
+}
+
+// Get returns one {{ .TableName }} record by id.
+func (s *Service) Get(ctx context.Context, id {{ .PrimaryKey.GoType }}) (*dto.{{ .Pascal }}DTO, error) {
+	item, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return dto.From{{ .Pascal }}(item), nil
+}
+
+// List returns paginated {{ .TableName }} records.
+func (s *Service) List(ctx context.Context, cmd dto.ListCommand) (*dto.List{{ .Pascal }}DTO, error) {
+	offset, limit := normalizePagination(cmd.Page, cmd.PageSize)
+	items, total, err := s.repo.List(ctx, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	output := &dto.List{{ .Pascal }}DTO{Items: make([]*dto.{{ .Pascal }}DTO, 0, len(items)), Total: total}
+	for _, item := range items {
+		output.Items = append(output.Items, dto.From{{ .Pascal }}(item))
+	}
+	return output, nil
+}
+
+// Update changes one {{ .TableName }} record by id.
+func (s *Service) Update(ctx context.Context, cmd dto.UpdateCommand) (*dto.{{ .Pascal }}DTO, error) {
+	item, err := s.repo.FindByID(ctx, cmd.{{ .PrimaryKey.GoName }})
+	if err != nil {
+		return nil, err
+	}
+	if err := item.Update({{ range $i, $field := .Writable }}{{ if $i }}, {{ end }}cmd.{{ $field.GoName }}{{ end }}); err != nil {
+		return nil, err
+	}
+	if err := s.repo.Save(ctx, item); err != nil {
+		return nil, err
+	}
+	s.log.Info("{{ .Dir }} updated", zap.Any("aggregate_id", item.{{ .PrimaryKey.GoName }}), zap.String("use_case", "Update{{ .Pascal }}"))
+	return dto.From{{ .Pascal }}(item), nil
+}
+
+// Delete removes one {{ .TableName }} record by id.
+func (s *Service) Delete(ctx context.Context, id {{ .PrimaryKey.GoType }}) error {
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return err
+	}
+	s.log.Info("{{ .Dir }} deleted", zap.Any("aggregate_id", id), zap.String("use_case", "Delete{{ .Pascal }}"))
+	return nil
+}
+
+func normalizePagination(page int32, pageSize int32) (int, int) {
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+	return int((page - 1) * pageSize), int(pageSize)
+}
+`
+
+const tableDrivenRelationServiceTemplate = `package service
+
+import (
+	"context"
+
+	"{{ .Module }}/internal/{{ .Dir }}/dto"
+	"{{ .Module }}/internal/{{ .Dir }}/model"
+)
+
+{{ range .Relations }}{{ .ServiceMethod }}
+{{ end }}`
+
 const serviceUseCaseTestTemplate = `package service
 
 import (
@@ -877,6 +2042,101 @@ func (r *fakeRepository) List(ctx context.Context, offset int, limit int) ([]*mo
 }
 
 func (r *fakeRepository) Delete(ctx context.Context, id string) error {
+	if _, ok := r.items[id]; !ok {
+		return model.Err{{ .Pascal }}NotFound
+	}
+	delete(r.items, id)
+	return nil
+}
+
+var _ model.Repository = (*fakeRepository)(nil)
+`
+
+const tableDrivenServiceUseCaseTestTemplate = `package service
+
+import (
+	"context"
+	"testing"
+
+	"{{ .Module }}/internal/{{ .Dir }}/dto"
+	"{{ .Module }}/internal/{{ .Dir }}/model"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+)
+
+func TestNewService(t *testing.T) {
+	svc := NewService(nil, zap.NewNop())
+
+	require.NotNil(t, svc)
+}
+
+func TestServiceCRUD(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeRepository()
+	svc := NewService(repo, zap.NewNop())
+
+	created, err := svc.Create(ctx, dto.CreateCommand{ {{ .ServiceTestCreate }} })
+	require.NoError(t, err)
+	require.NotZero(t, created.{{ .ServiceTestAssertField }})
+
+	got, err := svc.Get(ctx, created.{{ .PrimaryKey.GoName }})
+	require.NoError(t, err)
+	require.Equal(t, created.{{ .PrimaryKey.GoName }}, got.{{ .PrimaryKey.GoName }})
+
+	list, err := svc.List(ctx, dto.ListCommand{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), list.Total)
+	require.Len(t, list.Items, 1)
+
+	updated, err := svc.Update(ctx, dto.UpdateCommand{ {{ .PrimaryKey.GoName }}: created.{{ .PrimaryKey.GoName }}, {{ .ServiceTestUpdate }} })
+	require.NoError(t, err)
+	require.NotZero(t, updated.{{ .ServiceTestAssertField }})
+
+	require.NoError(t, svc.Delete(ctx, created.{{ .PrimaryKey.GoName }}))
+	_, err = svc.Get(ctx, created.{{ .PrimaryKey.GoName }})
+	require.ErrorIs(t, err, model.Err{{ .Pascal }}NotFound)
+}
+
+type fakeRepository struct {
+	items map[{{ .PrimaryKey.GoType }}]*model.{{ .Pascal }}
+}
+
+func newFakeRepository() *fakeRepository {
+	return &fakeRepository{items: make(map[{{ .PrimaryKey.GoType }}]*model.{{ .Pascal }})}
+}
+
+func (r *fakeRepository) Save(ctx context.Context, item *model.{{ .Pascal }}) error {
+	copy := *item
+	r.items[item.{{ .PrimaryKey.GoName }}] = &copy
+	return nil
+}
+
+func (r *fakeRepository) FindByID(ctx context.Context, id {{ .PrimaryKey.GoType }}) (*model.{{ .Pascal }}, error) {
+	item, ok := r.items[id]
+	if !ok {
+		return nil, model.Err{{ .Pascal }}NotFound
+	}
+	copy := *item
+	return &copy, nil
+}
+
+func (r *fakeRepository) List(ctx context.Context, offset int, limit int) ([]*model.{{ .Pascal }}, int64, error) {
+	items := make([]*model.{{ .Pascal }}, 0, len(r.items))
+	for _, item := range r.items {
+		copy := *item
+		items = append(items, &copy)
+	}
+	if offset > len(items) {
+		return nil, int64(len(items)), nil
+	}
+	end := offset + limit
+	if end > len(items) {
+		end = len(items)
+	}
+	return items[offset:end], int64(len(items)), nil
+}
+
+func (r *fakeRepository) Delete(ctx context.Context, id {{ .PrimaryKey.GoType }}) error {
 	if _, ok := r.items[id]; !ok {
 		return model.Err{{ .Pascal }}NotFound
 	}
@@ -1035,6 +2295,168 @@ func toDomain(record *{{ .Pascal }}Model) *model.{{ .Pascal }} {
 var _ model.Repository = (*GormRepository)(nil)
 `
 
+const tableDrivenServiceGormRepoTemplate = `package repo
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"go.uber.org/zap"
+	"gorm.io/gorm"
+
+	"{{ .Module }}/internal/{{ .Dir }}/model"
+)
+
+// {{ .Pascal }}Model is the Gorm persistence model for the {{ .TableName }} table.
+type {{ .Pascal }}Model struct {
+{{ .GormModelFields }}}
+
+func ({{ .Pascal }}Model) TableName() string {
+	return "{{ .TableName }}"
+}
+
+// GormRepository persists {{ .Dir }} aggregates with Gorm.
+type GormRepository struct {
+	db  *gorm.DB
+	log *zap.Logger
+}
+
+// NewGormRepository constructs a {{ .Dir }} repository with optional structured logging.
+func NewGormRepository(db *gorm.DB, loggers ...*zap.Logger) *GormRepository {
+	log := zap.NewNop()
+	if len(loggers) > 0 && loggers[0] != nil {
+		log = loggers[0]
+	}
+	return &GormRepository{db: db, log: log}
+}
+
+// AutoMigrate is intentionally a no-op for table-driven services because the table already exists.
+func AutoMigrate(db *gorm.DB) error {
+	return nil
+}
+
+// Save inserts or updates a {{ .Dir }} aggregate.
+func (r *GormRepository) Save(ctx context.Context, item *model.{{ .Pascal }}) error {
+	start := time.Now()
+	tx := r.db.WithContext(ctx).Save(toRecord(item))
+	r.logOperation("Save", tx.RowsAffected, start, tx.Error)
+	return tx.Error
+}
+
+// FindByID loads a {{ .Dir }} aggregate by id.
+func (r *GormRepository) FindByID(ctx context.Context, id {{ .PrimaryKey.GoType }}) (*model.{{ .Pascal }}, error) {
+	start := time.Now()
+	var record {{ .Pascal }}Model
+	tx := r.db.WithContext(ctx).Where("{{ .PrimaryKey.ColumnName }} = ?", id).First(&record)
+	err := tx.Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = model.Err{{ .Pascal }}NotFound
+	}
+	if err != nil {
+		r.logOperation("FindByID", tx.RowsAffected, start, err)
+		return nil, err
+	}
+	r.logOperation("FindByID", tx.RowsAffected, start, nil)
+	return toDomain(&record), nil
+}
+
+// List loads paginated {{ .Dir }} aggregates.
+func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*model.{{ .Pascal }}, int64, error) {
+	start := time.Now()
+	var total int64
+	countTx := r.db.WithContext(ctx).Model(&{{ .Pascal }}Model{}).Count(&total)
+	if countTx.Error != nil {
+		r.logOperation("Count", countTx.RowsAffected, start, countTx.Error)
+		return nil, 0, countTx.Error
+	}
+	var records []{{ .Pascal }}Model
+	tx := r.db.WithContext(ctx).
+		Order("{{ .PrimaryKey.ColumnName }} desc").
+		Offset(offset).
+		Limit(limit).
+		Find(&records)
+	if tx.Error != nil {
+		r.logOperation("List", tx.RowsAffected, start, tx.Error)
+		return nil, 0, tx.Error
+	}
+	items := make([]*model.{{ .Pascal }}, 0, len(records))
+	for i := range records {
+		items = append(items, toDomain(&records[i]))
+	}
+	r.logOperation("List", tx.RowsAffected, start, nil)
+	return items, total, nil
+}
+
+// Delete removes a {{ .Dir }} aggregate by id.
+func (r *GormRepository) Delete(ctx context.Context, id {{ .PrimaryKey.GoType }}) error {
+	start := time.Now()
+	tx := r.db.WithContext(ctx).Where("{{ .PrimaryKey.ColumnName }} = ?", id).Delete(&{{ .Pascal }}Model{})
+	err := tx.Error
+	if err == nil && tx.RowsAffected == 0 {
+		err = model.Err{{ .Pascal }}NotFound
+	}
+	r.logOperation("Delete", tx.RowsAffected, start, err)
+	return err
+}
+
+func (r *GormRepository) logOperation(operation string, rows int64, start time.Time, err error) {
+	fields := []zap.Field{
+		zap.String("repository", "{{ .Dir }}"),
+		zap.String("operation", operation),
+		zap.Int64("rows_affected", rows),
+		zap.Float64("latency_ms", float64(time.Since(start).Microseconds())/1000),
+	}
+	if err != nil {
+		fields = append(fields, zap.Error(err))
+		r.log.Warn("repository operation completed with error", fields...)
+		return
+	}
+	r.log.Info("repository operation completed", fields...)
+}
+
+func toRecord(item *model.{{ .Pascal }}) *{{ .Pascal }}Model {
+	return &{{ .Pascal }}Model{
+{{ .ToRecordFields }}	}
+}
+
+func toDomain(record *{{ .Pascal }}Model) *model.{{ .Pascal }} {
+	return &model.{{ .Pascal }}{
+{{ .ToDomainFields }}	}
+}
+
+var _ model.Repository = (*GormRepository)(nil)
+`
+
+const tableDrivenQueryRepositoryTemplate = `package repo
+
+import (
+	"context"
+	"time"
+
+	"{{ .Module }}/internal/{{ .Dir }}/model"
+)
+
+{{ range .Relations }}
+// {{ .Pascal }}Model is the Gorm persistence model for the {{ .TableName }} table.
+type {{ .Pascal }}Model struct {
+{{ .GormModelFields }}}
+
+func ({{ .Pascal }}Model) TableName() string {
+	return "{{ .TableName }}"
+}
+
+{{ .QueryImplementation }}
+func to{{ .Pascal }}Domain(record *{{ .Pascal }}Model) *model.{{ .Pascal }} {
+	return &model.{{ .Pascal }}{
+{{ .ToDomainFields }}	}
+}
+
+{{ end }}
+var _ = time.Time{}
+var _ model.QueryRepository = (*GormRepository)(nil)
+`
+
 const serviceMongoRepoTemplate = `package repo
 
 import (
@@ -1190,6 +2612,126 @@ func toDomainFromDocument(document *{{ .Pascal }}Document) *model.{{ .Pascal }} 
 var _ model.Repository = (*MongoRepository)(nil)
 `
 
+const tableDrivenServiceMongoRepoTemplate = `package repo
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.uber.org/zap"
+
+	"{{ .Module }}/internal/{{ .Dir }}/model"
+	"{{ .Module }}/pkg/mongox"
+)
+
+const {{ .GoIdent }}MongoCollectionName = "{{ .TableName }}"
+
+// {{ .Pascal }}Document is the MongoDB document for the {{ .Dir }} aggregate.
+type {{ .Pascal }}Document struct {
+{{ .MongoDocumentFields }}}
+
+func ({{ .Pascal }}Document) MongoCollectionName() string {
+	return {{ .GoIdent }}MongoCollectionName
+}
+
+// MongoRepository persists {{ .Dir }} aggregates with the shared mongox DocumentStore.
+type MongoRepository struct {
+	documents *mongox.DocumentStore[{{ .Pascal }}Document]
+	log       *zap.Logger
+}
+
+func NewMongoRepository(db *mongo.Database, loggers ...*zap.Logger) *MongoRepository {
+	log := zap.NewNop()
+	if len(loggers) > 0 && loggers[0] != nil {
+		log = loggers[0]
+	}
+	return &MongoRepository{documents: mongox.NewDocumentStore[{{ .Pascal }}Document](db, log), log: log}
+}
+
+func (r *MongoRepository) Save(ctx context.Context, item *model.{{ .Pascal }}) error {
+	start := time.Now()
+	_, err := r.documents.UpsertByID(ctx, item.{{ .PrimaryKey.GoName }}, toDocument(item))
+	r.logOperation("Save", item.{{ .PrimaryKey.GoName }}, 0, start, err)
+	return err
+}
+
+func (r *MongoRepository) FindByID(ctx context.Context, id {{ .PrimaryKey.GoType }}) (*model.{{ .Pascal }}, error) {
+	start := time.Now()
+	document, err := r.documents.FindByID(ctx, id)
+	if errors.Is(err, mongox.ErrNotFound) {
+		err = model.Err{{ .Pascal }}NotFound
+	}
+	r.logOperation("FindByID", id, 0, start, err)
+	if err != nil {
+		return nil, err
+	}
+	return toDomainFromDocument(document), nil
+}
+
+func (r *MongoRepository) List(ctx context.Context, offset int, limit int) ([]*model.{{ .Pascal }}, int64, error) {
+	start := time.Now()
+	filter := bson.M{}
+	total, err := r.documents.Count(ctx, filter)
+	if err != nil {
+		r.logOperation("Count", 0, 0, start, err)
+		return nil, 0, err
+	}
+	documents, err := r.documents.FindMany(ctx, filter, options.Find().SetSkip(int64(offset)).SetLimit(int64(limit)))
+	if err != nil {
+		r.logOperation("List", 0, total, start, err)
+		return nil, 0, err
+	}
+	items := make([]*model.{{ .Pascal }}, 0, len(documents))
+	for i := range documents {
+		items = append(items, toDomainFromDocument(&documents[i]))
+	}
+	r.logOperation("List", 0, total, start, nil)
+	return items, total, nil
+}
+
+func (r *MongoRepository) Delete(ctx context.Context, id {{ .PrimaryKey.GoType }}) error {
+	start := time.Now()
+	result, err := r.documents.DeleteByID(ctx, id)
+	if err == nil && result != nil && result.DeletedCount == 0 {
+		err = model.Err{{ .Pascal }}NotFound
+	}
+	r.logOperation("Delete", id, 0, start, err)
+	return err
+}
+
+func (r *MongoRepository) logOperation(operation string, id {{ .PrimaryKey.GoType }}, total int64, start time.Time, err error) {
+	fields := []zap.Field{
+		zap.String("repository", "{{ .Dir }}_mongo"),
+		zap.String("operation", operation),
+		zap.Any("aggregate_id", id),
+		zap.Int64("total", total),
+		zap.Float64("latency_ms", float64(time.Since(start).Microseconds())/1000),
+	}
+	if err != nil {
+		fields = append(fields, zap.Error(err))
+		r.log.Warn("mongodb repository operation completed with error", fields...)
+		return
+	}
+	r.log.Info("mongodb repository operation completed", fields...)
+}
+
+func toDocument(item *model.{{ .Pascal }}) *{{ .Pascal }}Document {
+	return &{{ .Pascal }}Document{
+{{ .ToDocumentFields }}	}
+}
+
+func toDomainFromDocument(document *{{ .Pascal }}Document) *model.{{ .Pascal }} {
+	return &model.{{ .Pascal }}{
+{{ .ToDomainDocumentFields }}	}
+}
+
+var _ model.Repository = (*MongoRepository)(nil)
+`
+
 const serviceHandlerTemplate = `package handler
 
 import (
@@ -1303,6 +2845,99 @@ func map{{ .Pascal }}Error(err error) error {
 }
 `
 
+const tableDrivenServiceHandlerTemplate = `package handler
+
+import (
+	"context"
+	stderrors "errors"
+
+	"go.uber.org/zap"
+
+	{{ .GoPackage }} "{{ .Module }}/api/gen/{{ .Dir }}/v1"
+	"{{ .Module }}/internal/{{ .Dir }}/dto"
+	"{{ .Module }}/internal/{{ .Dir }}/model"
+	"{{ .Module }}/internal/{{ .Dir }}/service"
+	apperrors "{{ .Module }}/pkg/errors"
+)
+
+// Server adapts {{ .Dir }} gRPC requests to service use cases.
+type Server struct {
+	{{ .GoPackage }}.Unimplemented{{ .Pascal }}ServiceServer
+	svc *service.Service
+	log *zap.Logger
+}
+
+func NewServer(svc *service.Service, log *zap.Logger) *Server {
+	if log == nil {
+		log = zap.NewNop()
+	}
+	return &Server{svc: svc, log: log}
+}
+
+func (s *Server) Create{{ .Pascal }}(ctx context.Context, req *{{ .GoPackage }}.Create{{ .Pascal }}Request) (*{{ .GoPackage }}.{{ .Pascal }}Response, error) {
+	item, err := s.svc.Create(ctx, dto.CreateCommand{
+{{ .HandlerCreateFields }}	})
+	if err != nil {
+		return nil, map{{ .Pascal }}Error(err)
+	}
+	return toProto(item), nil
+}
+
+func (s *Server) Get{{ .Pascal }}(ctx context.Context, req *{{ .GoPackage }}.Get{{ .Pascal }}Request) (*{{ .GoPackage }}.{{ .Pascal }}Response, error) {
+	item, err := s.svc.Get(ctx, req.GetId())
+	if err != nil {
+		return nil, map{{ .Pascal }}Error(err)
+	}
+	return toProto(item), nil
+}
+
+func (s *Server) List{{ .Pascal }}s(ctx context.Context, req *{{ .GoPackage }}.List{{ .Pascal }}sRequest) (*{{ .GoPackage }}.List{{ .Pascal }}sResponse, error) {
+	list, err := s.svc.List(ctx, dto.ListCommand{Page: req.GetPage(), PageSize: req.GetPageSize()})
+	if err != nil {
+		return nil, map{{ .Pascal }}Error(err)
+	}
+	resp := &{{ .GoPackage }}.List{{ .Pascal }}sResponse{Items: make([]*{{ .GoPackage }}.{{ .Pascal }}Response, 0, len(list.Items)), Total: list.Total}
+	for _, item := range list.Items {
+		resp.Items = append(resp.Items, toProto(item))
+	}
+	return resp, nil
+}
+
+func (s *Server) Update{{ .Pascal }}(ctx context.Context, req *{{ .GoPackage }}.Update{{ .Pascal }}Request) (*{{ .GoPackage }}.{{ .Pascal }}Response, error) {
+	item, err := s.svc.Update(ctx, dto.UpdateCommand{
+{{ .HandlerUpdateFields }}	})
+	if err != nil {
+		return nil, map{{ .Pascal }}Error(err)
+	}
+	return toProto(item), nil
+}
+
+func (s *Server) Delete{{ .Pascal }}(ctx context.Context, req *{{ .GoPackage }}.Delete{{ .Pascal }}Request) (*{{ .GoPackage }}.Delete{{ .Pascal }}Response, error) {
+	if err := s.svc.Delete(ctx, req.GetId()); err != nil {
+		return nil, map{{ .Pascal }}Error(err)
+	}
+	return &{{ .GoPackage }}.Delete{{ .Pascal }}Response{Success: true}, nil
+}
+
+func toProto(item *dto.{{ .Pascal }}DTO) *{{ .GoPackage }}.{{ .Pascal }}Response {
+	return &{{ .GoPackage }}.{{ .Pascal }}Response{
+{{ .ToProtoFields }}	}
+}
+
+{{ .HandlerRelationMethods }}
+
+func map{{ .Pascal }}Error(err error) error {
+	switch {
+	case stderrors.Is(err, model.ErrInvalid{{ .Pascal }}):
+		return apperrors.InvalidArgument("invalid_{{ .Dir }}", "invalid {{ .Dir }} input")
+	case stderrors.Is(err, model.Err{{ .Pascal }}NotFound):
+		return apperrors.NotFound("{{ .Dir }}_not_found", "{{ .Dir }} not found")
+	default:
+		return apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_service_error", "{{ .Dir }} service error", err)
+	}
+}
+`
+
 const gatewayCommonTemplate = `package handler
 
 import (
@@ -1361,9 +2996,27 @@ type List{{ .Pascal }}Request struct {
 }
 `
 
+const tableDrivenGatewayRequestTemplate = `package request
+
+// Create{{ .Pascal }}Request is the JSON payload used by POST /api/v1/{{ .TableName }}.
+type Create{{ .Pascal }}Request struct {
+{{ .GatewayCreateFields }}}
+
+// Update{{ .Pascal }}Request is the JSON payload used by PUT /api/v1/{{ .TableName }}/:id.
+type Update{{ .Pascal }}Request struct {
+{{ .GatewayUpdateFields }}}
+
+// List{{ .Pascal }}Request is the query string payload used by GET /api/v1/{{ .TableName }}.
+type List{{ .Pascal }}Request struct {
+	Page     int32 ` + "`form:\"page\"`" + `
+	PageSize int32 ` + "`form:\"page_size\"`" + `
+}
+`
+
 const gatewayHandlerTemplate = `package handler
 
 import (
+	"strconv"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -1427,12 +3080,17 @@ func (h *{{ .Pascal }}Handler) Create(c *gin.Context) {
 
 // Get proxies GET /api/v1/{{ .TableName }}/:id to Get{{ .Pascal }}.
 func (h *{{ .Pascal }}Handler) Get(c *gin.Context) {
+	id, err := parse{{ .Pascal }}ID(c.Param("id"))
+	if err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_id", err.Error()))
+		return
+	}
 	client, err := h.grpcClient()
 	if err != nil {
 		httpx.Error(c, apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_grpc_client_error", "{{ .Dir }} grpc client error", err))
 		return
 	}
-	resp, err := client.Get{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Get{{ .Pascal }}Request{Id: c.Param("id")})
+	resp, err := client.Get{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Get{{ .Pascal }}Request{Id: id})
 	if err != nil {
 		httpx.Error(c, apperrors.FromGRPC(err))
 		return
@@ -1465,6 +3123,11 @@ func (h *{{ .Pascal }}Handler) List(c *gin.Context) {
 
 // Update proxies PUT /api/v1/{{ .TableName }}/:id to Update{{ .Pascal }}.
 func (h *{{ .Pascal }}Handler) Update(c *gin.Context) {
+	id, err := parse{{ .Pascal }}ID(c.Param("id"))
+	if err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_id", err.Error()))
+		return
+	}
 	var req request.Update{{ .Pascal }}Request
 	if err := c.ShouldBindJSON(&req); err != nil {
 		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
@@ -1490,12 +3153,17 @@ func (h *{{ .Pascal }}Handler) Update(c *gin.Context) {
 
 // Delete proxies DELETE /api/v1/{{ .TableName }}/:id to Delete{{ .Pascal }}.
 func (h *{{ .Pascal }}Handler) Delete(c *gin.Context) {
+	id, err := parse{{ .Pascal }}ID(c.Param("id"))
+	if err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_id", err.Error()))
+		return
+	}
 	client, err := h.grpcClient()
 	if err != nil {
 		httpx.Error(c, apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_grpc_client_error", "{{ .Dir }} grpc client error", err))
 		return
 	}
-	resp, err := client.Delete{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Delete{{ .Pascal }}Request{Id: c.Param("id")})
+	resp, err := client.Delete{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Delete{{ .Pascal }}Request{Id: id})
 	if err != nil {
 		httpx.Error(c, apperrors.FromGRPC(err))
 		return
@@ -1517,6 +3185,170 @@ func (h *{{ .Pascal }}Handler) grpcClient() ({{ .GoPackage }}.{{ .Pascal }}Servi
 	})
 	return h.client, h.err
 }
+
+{{ .GatewayParseID }}
+
+var _ = strconv.IntSize
+`
+
+const tableDrivenGatewayHandlerTemplate = `package handler
+
+import (
+	"strconv"
+	"sync"
+
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
+	{{ .GoPackage }} "{{ .Module }}/api/gen/{{ .Dir }}/v1"
+	"{{ .Module }}/internal/gateway/request"
+	apperrors "{{ .Module }}/pkg/errors"
+	"{{ .Module }}/pkg/httpx"
+)
+
+const {{ .GoIdent }}GatewayTargetEnv = "APP_{{ .EnvPrefix }}_GRPC_TARGET"
+const {{ .GoIdent }}GatewayDefaultTarget = "127.0.0.1:{{ .Port }}"
+
+type {{ .Pascal }}Handler struct {
+	target string
+	client {{ .GoPackage }}.{{ .Pascal }}ServiceClient
+	conn   *grpc.ClientConn
+	once   sync.Once
+	err    error
+	log    *zap.Logger
+}
+
+func New{{ .Pascal }}Handler(log *zap.Logger) *{{ .Pascal }}Handler {
+	if log == nil {
+		log = zap.NewNop()
+	}
+	return &{{ .Pascal }}Handler{target: gatewayGRPCTarget({{ .GoIdent }}GatewayTargetEnv, {{ .GoIdent }}GatewayDefaultTarget), log: log}
+}
+
+func (h *{{ .Pascal }}Handler) Create(c *gin.Context) {
+	var req request.Create{{ .Pascal }}Request
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
+		return
+	}
+	client, err := h.grpcClient()
+	if err != nil {
+		httpx.Error(c, apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_grpc_client_error", "{{ .Dir }} grpc client error", err))
+		return
+	}
+	resp, err := client.Create{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Create{{ .Pascal }}Request{
+{{ .GatewayCreateProto }}	})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
+	h.log.Info("gateway {{ .Dir }} create proxied", zap.String("request_id", httpx.RequestID(c)), zap.Any("aggregate_id", resp.GetId()))
+	httpx.Created(c, resp)
+}
+
+func (h *{{ .Pascal }}Handler) Get(c *gin.Context) {
+	id, err := parse{{ .Pascal }}ID(c.Param("id"))
+	if err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_id", err.Error()))
+		return
+	}
+	client, err := h.grpcClient()
+	if err != nil {
+		httpx.Error(c, apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_grpc_client_error", "{{ .Dir }} grpc client error", err))
+		return
+	}
+	resp, err := client.Get{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Get{{ .Pascal }}Request{Id: id})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.OK(c, resp)
+}
+
+func (h *{{ .Pascal }}Handler) List(c *gin.Context) {
+	var req request.List{{ .Pascal }}Request
+	if err := c.ShouldBindQuery(&req); err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
+		return
+	}
+	client, err := h.grpcClient()
+	if err != nil {
+		httpx.Error(c, apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_grpc_client_error", "{{ .Dir }} grpc client error", err))
+		return
+	}
+	resp, err := client.List{{ .Pascal }}s(outgoingContext(c), &{{ .GoPackage }}.List{{ .Pascal }}sRequest{Page: req.Page, PageSize: req.PageSize})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
+	httpx.OK(c, resp)
+}
+
+func (h *{{ .Pascal }}Handler) Update(c *gin.Context) {
+	id, err := parse{{ .Pascal }}ID(c.Param("id"))
+	if err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_id", err.Error()))
+		return
+	}
+	var req request.Update{{ .Pascal }}Request
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
+		return
+	}
+	client, err := h.grpcClient()
+	if err != nil {
+		httpx.Error(c, apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_grpc_client_error", "{{ .Dir }} grpc client error", err))
+		return
+	}
+	resp, err := client.Update{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Update{{ .Pascal }}Request{
+{{ .GatewayUpdateProto }}	})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
+	h.log.Info("gateway {{ .Dir }} update proxied", zap.String("request_id", httpx.RequestID(c)), zap.Any("aggregate_id", resp.GetId()))
+	httpx.OK(c, resp)
+}
+
+func (h *{{ .Pascal }}Handler) Delete(c *gin.Context) {
+	id, err := parse{{ .Pascal }}ID(c.Param("id"))
+	if err != nil {
+		httpx.Error(c, apperrors.InvalidArgument("invalid_id", err.Error()))
+		return
+	}
+	client, err := h.grpcClient()
+	if err != nil {
+		httpx.Error(c, apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_grpc_client_error", "{{ .Dir }} grpc client error", err))
+		return
+	}
+	resp, err := client.Delete{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Delete{{ .Pascal }}Request{Id: id})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
+	h.log.Info("gateway {{ .Dir }} delete proxied", zap.String("request_id", httpx.RequestID(c)), zap.String("aggregate_id", c.Param("id")))
+	httpx.OK(c, resp)
+}
+
+func (h *{{ .Pascal }}Handler) grpcClient() ({{ .GoPackage }}.{{ .Pascal }}ServiceClient, error) {
+	h.once.Do(func() {
+		conn, err := grpc.Dial(h.target, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			h.err = err
+			return
+		}
+		h.conn = conn
+		h.client = {{ .GoPackage }}.New{{ .Pascal }}ServiceClient(conn)
+		h.log.Info("gateway {{ .Dir }} grpc client initialized", zap.String("target", h.target), zap.String("target_env", {{ .GoIdent }}GatewayTargetEnv))
+	})
+	return h.client, h.err
+}
+
+{{ .GatewayParseID }}
+
+var _ = strconv.IntSize
 `
 
 const gatewayRoutesTemplate = `package router
@@ -1608,6 +3440,11 @@ proto RPC -> handler -> service -> model.Repository -> repo(Gorm) -> database
 默认启动使用 ` + "`repo/gorm_repository.go`" + `，无需改配置即可运行。命令同时生成 ` + "`repo/mongo_repository.go`" + `，MongoDB 仓储已通过 ` + "`mongox.NewDocumentStore[{{ .Pascal }}Document]`" + ` 接好基础 CRUD；需要切换 MongoDB 时，只替换 ` + "`cmd/{{ .Dir }}/main.go`" + ` 中注入的 repository。
 
 用户可以直接把示例字段 ` + "`Name`" + `、` + "`Description`" + ` 替换成真实业务字段，或者在此基础上新增业务方法。
+{{ if .TableDriven }}
+本服务使用 ` + "`--table {{ .TableName }}`" + ` 生成，model、DTO、proto、Gorm/Mongo 字段来自已有表结构。生成器不会默认隐藏敏感字段；如果字段不应该暴露，请在生成前通过 schema 的 ` + "`exclude_fields`" + ` 排除，或生成后手动调整 proto/DTO。
+
+表驱动模式不会对已有表执行 ` + "`AutoMigrate`" + `。多表关系会生成内部 relation model/dto 和 ` + "`repo/query_repository.go`" + `、` + "`service/relation_service.go`" + `，默认按关联字段查询，不自动生成复杂 SQL join。
+{{ end }}
 
 如果项目包含 Gin gateway，命令也会生成 HTTP 入口：
 
