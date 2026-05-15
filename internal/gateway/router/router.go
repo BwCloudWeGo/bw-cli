@@ -7,12 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"github.com/BwCloudWeGo/bw-cli/internal/gateway/client"
 	"github.com/BwCloudWeGo/bw-cli/pkg/config"
 	"github.com/BwCloudWeGo/bw-cli/pkg/middleware"
 )
 
 // New builds the gateway Gin engine with configured middleware and versioned API routes.
-func New(log *zap.Logger, middlewareCfg config.MiddlewareConfig) *gin.Engine {
+func New(clients *client.Clients, log *zap.Logger, middlewareCfg config.MiddlewareConfig) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(
@@ -26,6 +27,6 @@ func New(log *zap.Logger, middlewareCfg config.MiddlewareConfig) *gin.Engine {
 	})
 
 	registerHealthRoutes(r)
-	registerAPIRoutes(r)
+	registerAPIRoutes(r, clients, log)
 	return r
 }

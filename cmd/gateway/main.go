@@ -12,6 +12,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/BwCloudWeGo/bw-cli/internal/gateway/client"
 	"github.com/BwCloudWeGo/bw-cli/internal/gateway/router"
 	"github.com/BwCloudWeGo/bw-cli/pkg/config"
 	"github.com/BwCloudWeGo/bw-cli/pkg/logger"
@@ -19,6 +20,7 @@ import (
 )
 
 func main() {
+	// Load all runtime settings from YAML/env before constructing dependencies.
 	if err := config.InitGlobal("configs/config.yaml"); err != nil {
 		panic(err)
 	}
@@ -33,7 +35,14 @@ func main() {
 	defer log.Sync()
 	observability.Register(cfg.App.GatewayServiceName, log)
 
-	engine := router.New(log, cfg.Middleware)
+	// gRPC targets are read from configuration so deployments can change them without recompilation.
+	clients, err := client.New(cfg.GRPC, log)
+	if err != nil {
+		log.Fatal("initialize grpc clients failed", zap.Error(err))
+	}
+	defer clients.Close()
+
+	engine := router.New(clients, log, cfg.Middleware)
 	addr := fmt.Sprintf("%s:%d", cfg.HTTP.Host, cfg.HTTP.Port)
 	server := &http.Server{
 		Addr:         addr,
