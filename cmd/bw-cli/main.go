@@ -23,9 +23,7 @@ func main() {
 	}
 	switch os.Args[1] {
 	case "new", "init":
-		runGenerate(os.Args[2:], false)
-	case "demo":
-		runGenerate(os.Args[2:], true)
+		runGenerate(os.Args[2:])
 	case "service", "add-service":
 		runService(os.Args[2:])
 	default:
@@ -34,8 +32,8 @@ func main() {
 	}
 }
 
-func runGenerate(args []string, includeDemo bool) {
-	opts, err := parseGenerateOptions(args, includeDemo)
+func runGenerate(args []string) {
+	opts, err := parseGenerateOptions(args)
 	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			usage()
@@ -70,7 +68,7 @@ func runService(args []string) {
 	fmt.Printf("service %s initialized at %s\n", opts.Name, opts.RootDir)
 }
 
-func parseGenerateOptions(args []string, includeDemo bool) (scaffold.InitOptions, error) {
+func parseGenerateOptions(args []string) (scaffold.InitOptions, error) {
 	fs := flag.NewFlagSet("new", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	modulePath := fs.String("module", "", "go module path, for example github.com/acme/demo")
@@ -106,13 +104,12 @@ func parseGenerateOptions(args []string, includeDemo bool) (scaffold.InitOptions
 		repo = ""
 	}
 	return scaffold.InitOptions{
-		SourceDir:   source,
-		TargetDir:   target,
-		ModulePath:  *modulePath,
-		RepoURL:     repo,
-		Branch:      *branch,
-		RunTidy:     *tidy,
-		IncludeDemo: includeDemo,
+		SourceDir:  source,
+		TargetDir:  target,
+		ModulePath: *modulePath,
+		RepoURL:    repo,
+		Branch:     *branch,
+		RunTidy:    *tidy,
 	}, nil
 }
 
@@ -157,7 +154,6 @@ func splitTargetArg(args []string) (string, []string) {
 func usage() {
 	fmt.Fprintln(os.Stderr, "usage:")
 	fmt.Fprintln(os.Stderr, "  bw-cli new <target-dir> --module github.com/acme/demo [--tidy]")
-	fmt.Fprintln(os.Stderr, "  bw-cli demo <target-dir> --module github.com/acme/demo [--tidy]")
 	fmt.Fprintln(os.Stderr, "  bw-cli new <target-dir> --module github.com/acme/demo --source . [--tidy]")
 	fmt.Fprintln(os.Stderr, "  bw-cli service <service-name> [--dir .] [--port 9100] [--tidy]")
 }

@@ -13,13 +13,12 @@ import (
 
 // InitOptions controls how bw-cli generates a new project from this scaffold.
 type InitOptions struct {
-	SourceDir   string
-	TargetDir   string
-	ModulePath  string
-	RepoURL     string
-	Branch      string
-	RunTidy     bool
-	IncludeDemo bool
+	SourceDir  string
+	TargetDir  string
+	ModulePath string
+	RepoURL    string
+	Branch     string
+	RunTidy    bool
 }
 
 // Init copies or clones the scaffold, then rewrites module paths for the target project.
@@ -54,14 +53,8 @@ func Init(opts InitOptions) error {
 	if err := removeScaffoldTooling(opts.TargetDir); err != nil {
 		return err
 	}
-	if opts.IncludeDemo {
-		if err := writeDemoDocs(opts.TargetDir, opts.ModulePath); err != nil {
-			return err
-		}
-	} else {
-		if err := stripDemo(opts.TargetDir, opts.ModulePath); err != nil {
-			return err
-		}
+	if err := stripDemo(opts.TargetDir, opts.ModulePath); err != nil {
+		return err
 	}
 	if opts.RunTidy {
 		cmd := exec.Command("go", "mod", "tidy")
@@ -262,28 +255,6 @@ func writeCleanDocs(root string, module string) error {
 		return err
 	}
 	if err := os.WriteFile(filepath.Join(docsDir, "architecture.md"), []byte(cleanArchitectureDoc()), 0o644); err != nil {
-		return err
-	}
-	if err := os.WriteFile(filepath.Join(docsDir, "toolkit.md"), []byte(generatedToolkitDoc(module)), 0o644); err != nil {
-		return err
-	}
-	return os.WriteFile(filepath.Join(docsDir, "mongodb.md"), []byte(generatedMongoDBDoc(module)), 0o644)
-}
-
-func writeDemoDocs(root string, module string) error {
-	if exists(filepath.Join(root, "README.md")) {
-		if err := os.WriteFile(filepath.Join(root, "README.md"), []byte(demoREADME(module)), 0o644); err != nil {
-			return err
-		}
-	}
-	docsDir := filepath.Join(root, "docs")
-	if !exists(docsDir) {
-		return nil
-	}
-	if err := os.WriteFile(filepath.Join(docsDir, "usage.md"), []byte(demoUsageDoc(module)), 0o644); err != nil {
-		return err
-	}
-	if err := os.WriteFile(filepath.Join(docsDir, "architecture.md"), []byte(demoArchitectureDoc()), 0o644); err != nil {
 		return err
 	}
 	if err := os.WriteFile(filepath.Join(docsDir, "toolkit.md"), []byte(generatedToolkitDoc(module)), 0o644); err != nil {
@@ -735,11 +706,6 @@ PUT    /api/v1/orders/:id
 DELETE /api/v1/orders/:id
 `+"```"+`
 
-需要演示项目时请使用：
-
-`+"```bash"+`
-bw-cli demo demo-service --module github.com/acme/demo-service --tidy
-`+"```"+`
 `, module)
 }
 
@@ -980,228 +946,6 @@ pkg/esx
 pkg/kafkax
 pkg/filex
 pkg/validator
-~~~
-`
-}
-
-func demoREADME(module string) string {
-	return fmt.Sprintf(`# Go 微服务演示项目
-
-本项目由 `+"`bw-cli demo`"+` 生成，保留 user/note 两个示例服务，用于学习 Gin + gRPC + Gorm + DDD 的完整调用链。当前 module：
-
-`+"```text"+`
-%s
-`+"```"+`
-
-## 快速启动
-
-初始化：
-
-`+"```bash"+`
-make tidy
-make proto
-make test
-`+"```"+`
-
-Makefile 只调用 Go 命令，不依赖 `+"`find`"+`、`+"`sed`"+`、`+"`if [ ... ]`"+` 等 Unix shell 语法；`+"`make proto`"+` 会通过 `+"`tools/protogen`"+` 自动适配 Windows、macOS、Linux。
-Windows 仍需要安装 GNU Make；如果没有 `+"`make`"+`，可以直接执行等价的 Go 命令，例如 `+"`go run ./tools/protogen`"+`、`+"`go test ./...`"+`、`+"`go run ./cmd/gateway`"+`。
-
-建议开三个终端启动：
-
-`+"```bash"+`
-make run-user
-make run-note
-make run-gateway
-`+"```"+`
-
-健康检查：
-
-`+"```bash"+`
-curl http://localhost:8080/healthz
-`+"```"+`
-
-示例接口：
-
-`+"```bash"+`
-curl -X POST http://localhost:8080/api/v1/users/register \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"ada@example.com","display_name":"Ada","password":"secret123"}'
-`+"```"+`
-
-## 目录结构
-
-`+"```text"+`
-api/proto      # user/note proto 源文件
-api/gen        # protoc 生成代码
-cmd/gateway    # Gin HTTP 网关入口
-cmd/user       # user-service gRPC 入口
-cmd/note       # note-service gRPC 入口
-configs        # YAML 配置
-internal       # user/note/gateway 业务代码
-pkg            # 公共工具包
-docs           # 使用和架构文档
-`+"```"+`
-`, module)
-}
-
-func demoUsageDoc(module string) string {
-	return fmt.Sprintf(`# 使用说明
-
-当前项目由 `+"`bw-cli demo`"+` 生成，包含 user-service、note-service 和 gateway，用于演示完整微服务调用链。
-
-## 1. 初始化
-
-`+"```bash"+`
-cd <project>
-make tidy
-make proto
-make test
-`+"```"+`
-
-Makefile 只调用 Go 命令，不依赖 Unix shell 语法；`+"`make proto`"+` 会通过 `+"`tools/protogen`"+` 自动适配 Windows、macOS、Linux。
-Windows 仍需要安装 GNU Make；如果没有 `+"`make`"+`，可以直接执行等价的 Go 命令，例如 `+"`go run ./tools/protogen`"+`、`+"`go test ./...`"+`、`+"`go run ./cmd/gateway`"+`。
-
-当前 module：
-
-`+"```text"+`
-%s
-`+"```"+`
-
-## 2. 启动服务
-
-建议开三个终端：
-
-`+"```bash"+`
-make run-user
-make run-note
-make run-gateway
-`+"```"+`
-
-默认端口：
-
-`+"```text"+`
-gateway       http://localhost:8080
-user-service  grpc://localhost:9001
-note-service  grpc://localhost:9002
-`+"```"+`
-
-## 3. 调用接口
-
-健康检查：
-
-`+"```bash"+`
-curl http://localhost:8080/healthz
-`+"```"+`
-
-注册用户：
-
-`+"```bash"+`
-curl -X POST http://localhost:8080/api/v1/users/register \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"ada@example.com","display_name":"Ada","password":"secret123"}'
-`+"```"+`
-
-创建笔记：
-
-`+"```bash"+`
-curl -X POST http://localhost:8080/api/v1/notes \
-  -H 'Content-Type: application/json' \
-  -d '{"author_id":"<user_id>","title":"DDD scaffold","content":"Gin plus gRPC demo"}'
-`+"```"+`
-
-## 4. 配置
-
-主配置文件：
-
-`+"```text"+`
-configs/config.yaml
-`+"```"+`
-
-环境变量覆盖规则：
-
-`+"```text"+`
-APP_ + 配置路径大写 + 下划线
-`+"```"+`
-
-示例：
-
-`+"```bash"+`
-export APP_HTTP_PORT=8081
-export APP_GRPC_USER_TARGET='127.0.0.1:9001'
-export APP_GRPC_NOTE_TARGET='127.0.0.1:9002'
-`+"```"+`
-
-Windows PowerShell 使用：
-
-`+"```powershell"+`
-$env:APP_HTTP_PORT="8081"; make run-gateway
-`+"```"+`
-
-## 5. 公共工具
-
-公共工具调用流程见：
-
-`+"```text"+`
-docs/toolkit.md
-`+"```"+`
-`, module)
-}
-
-func demoArchitectureDoc() string {
-	return `# 架构说明
-
-本项目是 bw-cli 演示工程，保留 user/note 两个示例服务。
-
-## 总体调用链
-
-~~~text
-Client
-  -> Gin Gateway
-      -> UserService gRPC
-          -> handler -> service -> model
-                      -> repo -> Gorm
-      -> NoteService gRPC
-          -> handler -> service -> model
-                      -> repo -> Gorm
-~~~
-
-## 服务分层
-
-~~~text
-internal/<service>/model    # 实体、值对象、业务错误、仓储接口
-internal/<service>/dto/command.go      # 业务用例入参命令
-internal/<service>/dto/<service>.go    # 业务用例出参 DTO 和转换
-internal/<service>/service/service.go  # 业务流程编排
-internal/<service>/repo     # Gorm、MongoDB、Redis、外部依赖实现
-internal/<service>/handler  # gRPC/HTTP 入站适配
-~~~
-
-依赖方向：
-
-~~~text
-handler -> service -> model
-repo -> model
-~~~
-
-service 目录中，command 放业务入参，dto 放业务出参和转换，service 放业务流程；handler 不直接堆字段或操作数据库。
-
-## Gateway
-
-~~~text
-internal/gateway
-  ├── client
-  ├── request
-  ├── handler
-  └── router
-~~~
-
-路由按“版本 -> 业务 -> 具体接口”拆分：
-
-~~~text
-/api/v1/users/register
-/api/v1/users/login
-/api/v1/notes
-/api/v1/notes/:id/publish
 ~~~
 `
 }

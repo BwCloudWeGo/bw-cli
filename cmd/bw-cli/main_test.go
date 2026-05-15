@@ -8,27 +8,25 @@ import (
 )
 
 func TestParseGenerateOptionsUsesOfficialRepoForCleanProject(t *testing.T) {
-	opts, err := parseGenerateOptions([]string{"my-service", "--module", "github.com/acme/my-service"}, false)
+	opts, err := parseGenerateOptions([]string{"my-service", "--module", "github.com/acme/my-service"})
 
 	require.NoError(t, err)
 	require.Equal(t, "github.com/acme/my-service", opts.ModulePath)
 	require.Equal(t, defaultRepoURL, opts.RepoURL)
 	require.Equal(t, defaultBranch, opts.Branch)
-	require.False(t, opts.IncludeDemo)
 	require.False(t, opts.RunTidy)
 	require.Equal(t, "my-service", filepath.Base(opts.TargetDir))
 }
 
-func TestParseGenerateOptionsKeepsTidyFlagAndDemoMode(t *testing.T) {
-	opts, err := parseGenerateOptions([]string{"demo-service", "--module", "github.com/acme/demo-service", "--tidy"}, true)
+func TestParseGenerateOptionsKeepsTidyFlag(t *testing.T) {
+	opts, err := parseGenerateOptions([]string{"service", "--module", "github.com/acme/service", "--tidy"})
 
 	require.NoError(t, err)
-	require.Equal(t, "github.com/acme/demo-service", opts.ModulePath)
+	require.Equal(t, "github.com/acme/service", opts.ModulePath)
 	require.Equal(t, defaultRepoURL, opts.RepoURL)
 	require.Equal(t, defaultBranch, opts.Branch)
-	require.True(t, opts.IncludeDemo)
 	require.True(t, opts.RunTidy)
-	require.Equal(t, "demo-service", filepath.Base(opts.TargetDir))
+	require.Equal(t, "service", filepath.Base(opts.TargetDir))
 }
 
 func TestParseServiceOptionsUsesCurrentDirectory(t *testing.T) {

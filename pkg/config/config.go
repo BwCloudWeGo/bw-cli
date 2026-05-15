@@ -22,8 +22,6 @@ type AppConfig struct {
 	Name               string `mapstructure:"name" yaml:"name"`
 	Env                string `mapstructure:"env" yaml:"env"`
 	GatewayServiceName string `mapstructure:"gateway_service_name" yaml:"gateway_service_name"`
-	UserServiceName    string `mapstructure:"user_service_name" yaml:"user_service_name"`
-	NoteServiceName    string `mapstructure:"note_service_name" yaml:"note_service_name"`
 }
 
 // HTTPConfig controls the Gin gateway listener and server timeouts.
@@ -36,11 +34,7 @@ type HTTPConfig struct {
 
 // GRPCConfig controls gRPC server ports and gateway client targets.
 type GRPCConfig struct {
-	Host       string `mapstructure:"host" yaml:"host"`
-	UserPort   int    `mapstructure:"user_port" yaml:"user_port"`
-	NotePort   int    `mapstructure:"note_port" yaml:"note_port"`
-	UserTarget string `mapstructure:"user_target" yaml:"user_target"`
-	NoteTarget string `mapstructure:"note_target" yaml:"note_target"`
+	Host string `mapstructure:"host" yaml:"host"`
 }
 
 // DatabaseConfig selects the active database driver used by demo services.
@@ -169,17 +163,11 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("app.name", "xiaolanshu")
 	v.SetDefault("app.env", "local")
 	v.SetDefault("app.gateway_service_name", "gateway")
-	v.SetDefault("app.user_service_name", "user-service")
-	v.SetDefault("app.note_service_name", "note-service")
 	v.SetDefault("http.host", "0.0.0.0")
 	v.SetDefault("http.port", 8080)
 	v.SetDefault("http.read_timeout_seconds", 5)
 	v.SetDefault("http.write_timeout_seconds", 10)
 	v.SetDefault("grpc.host", "0.0.0.0")
-	v.SetDefault("grpc.user_port", 9001)
-	v.SetDefault("grpc.note_port", 9002)
-	v.SetDefault("grpc.user_target", "127.0.0.1:9001")
-	v.SetDefault("grpc.note_target", "127.0.0.1:9002")
 	v.SetDefault("database.driver", "sqlite")
 	v.SetDefault("database.dsn", "data/xiaolanshu.db")
 	v.SetDefault("mysql.dsn", mysqlx.DefaultConfig().DSN)

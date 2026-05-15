@@ -26,10 +26,9 @@ func TestInitCopiesSourceAndRewritesModule(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(source, "logs", "skip.log"), []byte("skip"), 0o644))
 
 	err := scaffold.Init(scaffold.InitOptions{
-		SourceDir:   source,
-		TargetDir:   target,
-		ModulePath:  "github.com/acme/demo",
-		IncludeDemo: true,
+		SourceDir:  source,
+		TargetDir:  target,
+		ModulePath: "github.com/acme/demo",
 	})
 
 	require.NoError(t, err)
@@ -41,13 +40,8 @@ func TestInitCopiesSourceAndRewritesModule(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, string(code), "github.com/acme/demo/pkg/logger")
 
-	proto, err := os.ReadFile(filepath.Join(target, "api", "proto", "demo", "v1", "demo.proto"))
-	require.NoError(t, err)
-	require.Contains(t, string(proto), "github.com/acme/demo/api/gen/demo/v1")
-
-	generated, err := os.ReadFile(filepath.Join(target, "api", "gen", "demo", "v1", "demo.pb.go"))
-	require.NoError(t, err)
-	require.Contains(t, string(generated), "old/module/api/gen/demo/v1")
+	requireNoPath(t, filepath.Join(target, "api", "proto", "demo"))
+	requireNoPath(t, filepath.Join(target, "api", "gen", "demo"))
 
 	_, err = os.Stat(filepath.Join(target, "logs", "skip.log"))
 	require.True(t, os.IsNotExist(err))
@@ -72,10 +66,9 @@ func TestInitClonesRepositoryWithoutGitMetadata(t *testing.T) {
 	runGit(t, source, "commit", "-m", "init")
 
 	err := scaffold.Init(scaffold.InitOptions{
-		RepoURL:     source,
-		TargetDir:   target,
-		ModulePath:  "github.com/acme/demo",
-		IncludeDemo: true,
+		RepoURL:    source,
+		TargetDir:  target,
+		ModulePath: "github.com/acme/demo",
 	})
 
 	require.NoError(t, err)
@@ -94,10 +87,9 @@ func TestInitWithoutDemoRemovesDemoServicesAndWritesCleanGateway(t *testing.T) {
 	writeMinimalScaffold(t, source)
 
 	err := scaffold.Init(scaffold.InitOptions{
-		SourceDir:   source,
-		TargetDir:   target,
-		ModulePath:  "github.com/acme/clean",
-		IncludeDemo: false,
+		SourceDir:  source,
+		TargetDir:  target,
+		ModulePath: "github.com/acme/clean",
 	})
 
 	require.NoError(t, err)
@@ -177,40 +169,6 @@ func TestInitWithoutDemoRemovesDemoServicesAndWritesCleanGateway(t *testing.T) {
 	require.NotContains(t, mongodb, "cmd/bw-cli")
 	require.NotContains(t, mongodb, "internal/note")
 	require.NotContains(t, mongodb, "note-service")
-}
-
-func TestInitWithDemoKeepsDemoServices(t *testing.T) {
-	tmp := t.TempDir()
-	source := filepath.Join(tmp, "source")
-	target := filepath.Join(tmp, "target")
-	writeMinimalScaffold(t, source)
-
-	err := scaffold.Init(scaffold.InitOptions{
-		SourceDir:   source,
-		TargetDir:   target,
-		ModulePath:  "github.com/acme/demo",
-		IncludeDemo: true,
-	})
-
-	require.NoError(t, err)
-	require.FileExists(t, filepath.Join(target, "cmd", "user", "main.go"))
-	require.FileExists(t, filepath.Join(target, "cmd", "note", "main.go"))
-	requireNoPath(t, filepath.Join(target, "cmd", "bw-cli"))
-	require.FileExists(t, filepath.Join(target, "internal", "user", "model", "user.go"))
-	require.FileExists(t, filepath.Join(target, "internal", "note", "model", "note.go"))
-	requireNoPath(t, filepath.Join(target, "pkg", "scaffold"))
-	require.FileExists(t, filepath.Join(target, "api", "proto", "user", "v1", "user.proto"))
-	require.FileExists(t, filepath.Join(target, "api", "proto", "note", "v1", "content.proto"))
-
-	readme := readString(t, filepath.Join(target, "README.md"))
-	require.Contains(t, readme, "bw-cli demo")
-	require.Contains(t, readme, "github.com/acme/demo")
-	require.NotContains(t, readme, "cmd/bw-cli")
-
-	toolkit := readString(t, filepath.Join(target, "docs", "toolkit.md"))
-	require.Contains(t, toolkit, "github.com/acme/demo")
-	require.NotContains(t, toolkit, "cmd/bw-cli")
-	require.NotContains(t, toolkit, "pkg/scaffold")
 }
 
 func writeMinimalScaffold(t *testing.T, root string) {

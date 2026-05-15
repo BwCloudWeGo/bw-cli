@@ -2,8 +2,6 @@ app:
   name: xiaolanshu
   env: local
   gateway_service_name: gateway
-  user_service_name: user-service
-  note_service_name: note-service
 
 http:
   host: 0.0.0.0
@@ -13,10 +11,6 @@ http:
 
 grpc:
   host: 0.0.0.0
-  user_port: 9001
-  note_port: 9002
-  user_target: 127.0.0.1:9001
-  note_target: 127.0.0.1:9002
 
 database:
   driver: sqlite
