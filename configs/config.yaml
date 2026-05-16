@@ -139,6 +139,18 @@ kafka:
   topic: xiaolanshu-events
   group_id: xiaolanshu-consumer
 
+alipay:
+  app_id: ""
+  private_key: ""
+  alipay_public_key: ""
+  production: false
+  notify_url: ""
+  return_url: ""
+  encrypt_key: ""
+  app_cert_public_key_path: ""
+  alipay_root_cert_path: ""
+  alipay_cert_public_key_path: ""
+
 middleware:
   cors:
     allow_origins:

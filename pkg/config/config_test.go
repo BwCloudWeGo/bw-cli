@@ -113,6 +113,38 @@ file_storage:
 	require.Equal(t, "ap-guangzhou", cfg.FileStorage.COS.Region)
 }
 
+func TestLoadReadsAlipayConfig(t *testing.T) {
+	tmp := t.TempDir()
+	path := filepath.Join(tmp, "config.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(`
+alipay:
+  app_id: "2021000000000000"
+  private_key: "private-key-content"
+  alipay_public_key: "alipay-public-key-content"
+  production: true
+  notify_url: "https://api.example.com/payments/alipay/notify"
+  return_url: "https://www.example.com/orders/paid"
+  encrypt_key: "base64-encrypt-key"
+  app_cert_public_key_path: "configs/certs/appCertPublicKey.crt"
+  alipay_root_cert_path: "configs/certs/alipayRootCert.crt"
+  alipay_cert_public_key_path: "configs/certs/alipayCertPublicKey_RSA2.crt"
+`), 0o644))
+
+	cfg, err := config.Load(path)
+
+	require.NoError(t, err)
+	require.Equal(t, "2021000000000000", cfg.Alipay.AppID)
+	require.Equal(t, "private-key-content", cfg.Alipay.PrivateKey)
+	require.Equal(t, "alipay-public-key-content", cfg.Alipay.AlipayPublicKey)
+	require.True(t, cfg.Alipay.Production)
+	require.Equal(t, "https://api.example.com/payments/alipay/notify", cfg.Alipay.NotifyURL)
+	require.Equal(t, "https://www.example.com/orders/paid", cfg.Alipay.ReturnURL)
+	require.Equal(t, "base64-encrypt-key", cfg.Alipay.EncryptKey)
+	require.Equal(t, "configs/certs/appCertPublicKey.crt", cfg.Alipay.AppCertPublicKeyPath)
+	require.Equal(t, "configs/certs/alipayRootCert.crt", cfg.Alipay.AlipayRootCertPath)
+	require.Equal(t, "configs/certs/alipayCertPublicKey_RSA2.crt", cfg.Alipay.AlipayCertPublicKeyPath)
+}
+
 func TestInitGlobalSetsProcessWideConfig(t *testing.T) {
 	previous := config.GlobalConfig
 	defer func() { config.GlobalConfig = previous }()

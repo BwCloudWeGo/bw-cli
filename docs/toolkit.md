@@ -20,6 +20,7 @@
 | `pkg/esx` | Elasticsearch client 初始化 | 搜索、索引同步 |
 | `pkg/kafkax` | Kafka reader/writer 初始化 | 事件发布和消费 |
 | `pkg/filex` | 文件上传校验、对象 key 生成、MinIO/OSS/Qiniu/COS 上传 | `service` 或 `handler` |
+| `pkg/alipayx` | 支付宝支付、同步回调验签、异步通知解析、退款封装 | `service` 或支付 handler |
 | `pkg/validator` | 简单通用校验函数 | DTO 或业务入参校验 |
 | `pkg/scaffold` | `bw-cli new` 项目生成逻辑 | CLI 内部 |
 | `pkg/observability` | 可观测性注册占位入口 | 进程启动 |
@@ -40,6 +41,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/logger
 go get github.com/BwCloudWeGo/bw-cli/pkg/database
 go get github.com/BwCloudWeGo/bw-cli/pkg/mongox
 go get github.com/BwCloudWeGo/bw-cli/pkg/filex
+go get github.com/BwCloudWeGo/bw-cli/pkg/alipayx
 ```
 
 生成完整项目：
@@ -676,7 +678,224 @@ handler -> service -> filex.Uploader
 
 这样 handler 只处理协议入参，service 负责“用户是否允许上传、上传后是否入库、是否发布事件”等业务编排。
 
-## 14. Validator：`pkg/validator`
+## 14. 支付宝支付：`pkg/alipayx`
+
+`pkg/alipayx` 基于 `github.com/smartwalle/alipay/v3` 封装常见支付链路：
+
+```text
+PagePay  -> 电脑网站支付跳转 URL
+WapPay   -> 手机网站支付跳转 URL
+AppPay   -> App SDK order string
+VerifyReturn -> 同步 return_url 验签
+DecodeNotification -> 异步 notify_url 验签并解析
+Refund   -> 同步退款
+```
+
+### 14.1 配置
+
+普通公钥模式：
+
+```yaml
+alipay:
+  app_id: ""
+  private_key: ""
+  alipay_public_key: ""
+  production: false
+  notify_url: "https://api.example.com/payments/alipay/notify"
+  return_url: "https://www.example.com/orders/alipay/return"
+  encrypt_key: ""
+```
+
+证书模式：
+
+```yaml
+alipay:
+  app_id: ""
+  private_key: ""
+  production: true
+  notify_url: "https://api.example.com/payments/alipay/notify"
+  return_url: "https://www.example.com/orders/alipay/return"
+  app_cert_public_key_path: "configs/certs/appCertPublicKey.crt"
+  alipay_root_cert_path: "configs/certs/alipayRootCert.crt"
+  alipay_cert_public_key_path: "configs/certs/alipayCertPublicKey_RSA2.crt"
+```
+
+常用环境变量：
+
+```bash
+export APP_ALIPAY_APP_ID='2021000000000000'
+export APP_ALIPAY_PRIVATE_KEY='-----BEGIN PRIVATE KEY-----...'
+export APP_ALIPAY_ALIPAY_PUBLIC_KEY='-----BEGIN PUBLIC KEY-----...'
+export APP_ALIPAY_PRODUCTION=false
+export APP_ALIPAY_NOTIFY_URL='https://api.example.com/payments/alipay/notify'
+export APP_ALIPAY_RETURN_URL='https://www.example.com/orders/alipay/return'
+```
+
+普通公钥模式和证书模式二选一，不要同时配置 `alipay_public_key` 和证书路径。
+
+### 14.2 初始化
+
+```go
+if err := config.InitGlobal("configs/config.yaml"); err != nil {
+    panic(err)
+}
+cfg := config.MustGlobal()
+
+payClient, err := alipayx.NewClient(cfg.Alipay)
+if err != nil {
+    panic(err)
+}
+```
+
+建议在进程入口初始化一次，然后注入支付 service：
+
+```text
+handler -> service -> alipayx.Client
+```
+
+### 14.3 创建支付
+
+Service 示例：
+
+```go
+type PaymentService struct {
+    alipay *alipayx.Client
+}
+
+func NewPaymentService(alipay *alipayx.Client) *PaymentService {
+    return &PaymentService{alipay: alipay}
+}
+
+func (s *PaymentService) CreatePagePayment(ctx context.Context, orderID string, amount string) (string, error) {
+    payURL, err := s.alipay.PagePay(alipayx.PayRequest{
+        OutTradeNo:     orderID,
+        Subject:        "小蓝书订单",
+        TotalAmount:    amount,
+        Body:           "订单支付",
+        TimeoutExpress: "15m",
+    })
+    if err != nil {
+        return "", err
+    }
+    return payURL.String(), nil
+}
+
+func (s *PaymentService) CreateAppPayment(ctx context.Context, orderID string, amount string) (string, error) {
+    return s.alipay.AppPay(alipayx.PayRequest{
+        OutTradeNo:  orderID,
+        Subject:     "小蓝书订单",
+        TotalAmount: amount,
+    })
+}
+```
+
+Gin handler 示例：
+
+```go
+func CreateAlipayPagePayment(svc *PaymentService) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        var req struct {
+            OrderID string `json:"order_id" binding:"required"`
+            Amount  string `json:"amount" binding:"required"`
+        }
+        if err := c.ShouldBindJSON(&req); err != nil {
+            httpx.Error(c, apperrors.InvalidArgument("INVALID_REQUEST", err.Error()))
+            return
+        }
+
+        payURL, err := svc.CreatePagePayment(c.Request.Context(), req.OrderID, req.Amount)
+        if err != nil {
+            httpx.Error(c, err)
+            return
+        }
+        httpx.OK(c, gin.H{"pay_url": payURL})
+    }
+}
+```
+
+### 14.4 同步回调验签
+
+同步回调来自 `return_url`，适合展示支付结果页。它不能作为最终到账依据，最终状态以异步通知或主动查询为准。
+
+```go
+func AlipayReturn(payClient *alipayx.Client) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        if err := c.Request.ParseForm(); err != nil {
+            httpx.Error(c, apperrors.InvalidArgument("INVALID_REQUEST", err.Error()))
+            return
+        }
+        if err := payClient.VerifyReturn(c.Request.Context(), c.Request.Form); err != nil {
+            httpx.Error(c, apperrors.InvalidArgument("ALIPAY_SIGN_INVALID", err.Error()))
+            return
+        }
+
+        httpx.OK(c, gin.H{
+            "out_trade_no": c.Request.Form.Get("out_trade_no"),
+            "trade_no":     c.Request.Form.Get("trade_no"),
+        })
+    }
+}
+```
+
+### 14.5 异步通知回调
+
+支付宝异步通知需要验签、校验订单号和金额、幂等更新订单状态，处理成功后返回纯文本 `success`。
+
+```go
+func AlipayNotify(payClient *alipayx.Client, svc *PaymentService) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        if err := c.Request.ParseForm(); err != nil {
+            c.String(http.StatusBadRequest, "fail")
+            return
+        }
+
+        notification, err := payClient.DecodeNotification(c.Request.Context(), c.Request.Form)
+        if err != nil {
+            c.String(http.StatusBadRequest, "fail")
+            return
+        }
+
+        err = svc.MarkPaid(c.Request.Context(), notification.OutTradeNo, notification.TradeNo, notification.TotalAmount)
+        if err != nil {
+            c.String(http.StatusInternalServerError, "fail")
+            return
+        }
+
+        c.String(http.StatusOK, "success")
+    }
+}
+```
+
+`MarkPaid` 里建议做这些业务校验：
+
+1. `OutTradeNo` 必须存在且属于本系统订单。
+2. `TotalAmount` 必须等于订单应付金额。
+3. `TradeStatus` 只在 `TRADE_SUCCESS` 或 `TRADE_FINISHED` 时标记已支付。
+4. 已处理过的通知直接返回成功，避免支付宝重试造成重复入账。
+
+### 14.6 退款
+
+```go
+func (s *PaymentService) Refund(ctx context.Context, orderID string, amount string, reason string) error {
+    rsp, err := s.alipay.Refund(ctx, alipayx.RefundRequest{
+        OutTradeNo:   orderID,
+        RefundAmount: amount,
+        RefundReason: reason,
+        OutRequestNo: orderID + "-refund-001",
+    })
+    if err != nil {
+        return err
+    }
+    if rsp.Code.IsFailure() {
+        return fmt.Errorf("alipay refund failed: %s %s", rsp.Code, rsp.SubMsg)
+    }
+    return nil
+}
+```
+
+多次部分退款时，`OutRequestNo` 必须为每次退款请求生成唯一值。
+
+## 15. Validator：`pkg/validator`
 
 当前提供轻量的通用函数：
 
@@ -688,7 +907,7 @@ if !validator.Required(req.Email, req.Password) {
 
 复杂参数校验建议在 request DTO 上结合 `gin.ShouldBindJSON` 和 `binding` tag，业务规则仍放在 `model/service`。
 
-## 15. 脚手架生成：`pkg/scaffold`
+## 16. 脚手架生成：`pkg/scaffold`
 
 CLI 调用：
 
@@ -722,7 +941,7 @@ err := scaffold.Init(scaffold.InitOptions{
 })
 ```
 
-## 16. 推荐启动顺序
+## 17. 推荐启动顺序
 
 在生成项目后，推荐按这个顺序把工具串起来：
 
@@ -730,9 +949,10 @@ err := scaffold.Init(scaffold.InitOptions{
 2. `logger.WithDailyFileName` 和 `logger.New` 初始化日志。
 3. `database.Open` 或各数据源独立初始化。
 4. `filex.NewUploader` 初始化文件上传接口。
-5. 初始化 repo，把 DB、MongoDB、Redis、ES、Kafka、Uploader 注入业务服务。
-6. 初始化 gRPC server 或 Gin router。
-7. 注册 middleware 和 interceptor。
-8. 启动服务。
+5. `alipayx.NewClient` 初始化支付宝支付接口。
+6. 初始化 repo，把 DB、MongoDB、Redis、ES、Kafka、Uploader、Alipay client 注入业务服务。
+7. 初始化 gRPC server 或 Gin router。
+8. 注册 middleware 和 interceptor。
+9. 启动服务。
 
 这个顺序能保证配置项都来自系统配置，公共能力只在入口初始化一次，业务层拿到的是稳定接口，后续替换数据库或云存储 provider 时改配置即可。

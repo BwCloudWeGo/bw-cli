@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/viper"
 
+	"github.com/BwCloudWeGo/bw-cli/pkg/alipayx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/esx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/filex"
 	"github.com/BwCloudWeGo/bw-cli/pkg/kafkax"
@@ -132,6 +133,7 @@ type Config struct {
 	Redis         redisx.Config    `mapstructure:"redis" yaml:"redis"`
 	Elasticsearch esx.Config       `mapstructure:"elasticsearch" yaml:"elasticsearch"`
 	Kafka         kafkax.Config    `mapstructure:"kafka" yaml:"kafka"`
+	Alipay        alipayx.Config   `mapstructure:"alipay" yaml:"alipay"`
 	Middleware    MiddlewareConfig `mapstructure:"middleware" yaml:"middleware"`
 	Log           logger.Config    `mapstructure:"log" yaml:"log"`
 }
@@ -212,6 +214,16 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("kafka.brokers", kafkax.DefaultConfig().Brokers)
 	v.SetDefault("kafka.topic", kafkax.DefaultConfig().Topic)
 	v.SetDefault("kafka.group_id", kafkax.DefaultConfig().GroupID)
+	v.SetDefault("alipay.app_id", alipayx.DefaultConfig().AppID)
+	v.SetDefault("alipay.private_key", alipayx.DefaultConfig().PrivateKey)
+	v.SetDefault("alipay.alipay_public_key", alipayx.DefaultConfig().AlipayPublicKey)
+	v.SetDefault("alipay.production", alipayx.DefaultConfig().Production)
+	v.SetDefault("alipay.notify_url", alipayx.DefaultConfig().NotifyURL)
+	v.SetDefault("alipay.return_url", alipayx.DefaultConfig().ReturnURL)
+	v.SetDefault("alipay.encrypt_key", alipayx.DefaultConfig().EncryptKey)
+	v.SetDefault("alipay.app_cert_public_key_path", alipayx.DefaultConfig().AppCertPublicKeyPath)
+	v.SetDefault("alipay.alipay_root_cert_path", alipayx.DefaultConfig().AlipayRootCertPath)
+	v.SetDefault("alipay.alipay_cert_public_key_path", alipayx.DefaultConfig().AlipayCertPublicKeyPath)
 	v.SetDefault("middleware.jwt.secret", middleware.DefaultJWTConfig().Secret)
 	v.SetDefault("middleware.jwt.issuer", middleware.DefaultJWTConfig().Issuer)
 	v.SetDefault("middleware.jwt.expire_seconds", middleware.DefaultJWTConfig().ExpireSeconds)
