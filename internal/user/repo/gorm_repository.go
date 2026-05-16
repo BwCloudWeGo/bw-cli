@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,16 +15,18 @@ import (
 
 // UserModel is the Gorm persistence model for the users table.
 type UserModel struct {
-	ID           string `gorm:"primaryKey;size:64"`
-	Email        string `gorm:"uniqueIndex;size:255;not null"`
-	DisplayName  string `gorm:"size:128;not null"`
-	PasswordHash string `gorm:"size:255;not null"`
+	ID           int64  `gorm:"primaryKey;column:id;autoIncrement"`
+	Account      string `gorm:"uniqueIndex;column:account;size:64;not null"`
+	DisplayName  string `gorm:"column:name;size:20"`
+	Sex          bool   `gorm:"column:sex"`
+	PasswordSalt string `gorm:"column:password_salt;size:64;not null"`
+	PasswordHash string `gorm:"column:password_hash;size:255;not null"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
 
 func (UserModel) TableName() string {
-	return "users"
+	return "xls_user"
 }
 
 // GormRepository persists user aggregates with Gorm.
@@ -49,10 +52,14 @@ func AutoMigrate(db *gorm.DB) error {
 // Save inserts or updates a user aggregate.
 func (r *GormRepository) Save(ctx context.Context, user *model.User) error {
 	start := time.Now()
-	tx := r.db.WithContext(ctx).Save(toUserModel(user))
+	record := toUserModel(user)
+	tx := r.db.WithContext(ctx).Save(record)
 	err := tx.Error
 	if err != nil && strings.Contains(strings.ToLower(err.Error()), "unique") {
-		err = model.ErrEmailAlreadyExists
+		err = model.ErrAccountAlreadyExists
+	}
+	if err == nil && user.ID == "" {
+		user.ID = strconv.FormatInt(record.ID, 10)
 	}
 	r.logOperation("Save", tx.RowsAffected, start, err)
 	return err
@@ -75,20 +82,20 @@ func (r *GormRepository) FindByID(ctx context.Context, id string) (*model.User, 
 	return toUserDomain(&record), nil
 }
 
-// FindByEmail loads a user aggregate by normalized email.
-func (r *GormRepository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
+// FindByAccount loads a user aggregate by normalized account.
+func (r *GormRepository) FindByAccount(ctx context.Context, account string) (*model.User, error) {
 	start := time.Now()
 	var record UserModel
-	tx := r.db.WithContext(ctx).Where("email = ?", strings.TrimSpace(strings.ToLower(email))).First(&record)
+	tx := r.db.WithContext(ctx).Where("account = ?", model.NormalizeAccount(account)).First(&record)
 	err := tx.Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err = model.ErrUserNotFound
 	}
 	if err != nil {
-		r.logOperation("FindByEmail", tx.RowsAffected, start, err)
+		r.logOperation("FindByAccount", tx.RowsAffected, start, err)
 		return nil, err
 	}
-	r.logOperation("FindByEmail", tx.RowsAffected, start, nil)
+	r.logOperation("FindByAccount", tx.RowsAffected, start, nil)
 	return toUserDomain(&record), nil
 }
 
@@ -108,10 +115,14 @@ func (r *GormRepository) logOperation(operation string, rows int64, start time.T
 }
 
 func toUserModel(user *model.User) *UserModel {
+	id, _ := strconv.ParseInt(user.ID, 10, 64)
+	salt, _, _ := strings.Cut(user.PasswordHash, ":")
 	return &UserModel{
-		ID:           user.ID,
-		Email:        user.Email,
+		ID:           id,
+		Account:      user.Account,
 		DisplayName:  user.DisplayName,
+		Sex:          user.Sex,
+		PasswordSalt: salt,
 		PasswordHash: user.PasswordHash,
 		CreatedAt:    user.CreatedAt,
 		UpdatedAt:    user.UpdatedAt,
@@ -120,9 +131,11 @@ func toUserModel(user *model.User) *UserModel {
 
 func toUserDomain(record *UserModel) *model.User {
 	return &model.User{
-		ID:           record.ID,
-		Email:        record.Email,
+		ID:           strconv.FormatInt(record.ID, 10),
+		Account:      record.Account,
 		DisplayName:  record.DisplayName,
+		Sex:          record.Sex,
+		PasswordSalt: record.PasswordSalt,
 		PasswordHash: record.PasswordHash,
 		CreatedAt:    record.CreatedAt,
 		UpdatedAt:    record.UpdatedAt,

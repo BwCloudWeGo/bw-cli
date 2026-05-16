@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -9,23 +10,30 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/internal/user/dto"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/model"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/service"
+	"github.com/BwCloudWeGo/bw-cli/pkg/middleware"
 )
 
 type memoryUserRepo struct {
-	byID    map[string]*model.User
-	byEmail map[string]*model.User
+	nextID    int64
+	byID      map[string]*model.User
+	byAccount map[string]*model.User
 }
 
 func newMemoryUserRepo() *memoryUserRepo {
 	return &memoryUserRepo{
-		byID:    map[string]*model.User{},
-		byEmail: map[string]*model.User{},
+		nextID:    1,
+		byID:      map[string]*model.User{},
+		byAccount: map[string]*model.User{},
 	}
 }
 
 func (r *memoryUserRepo) Save(_ context.Context, user *model.User) error {
+	if user.ID == "" {
+		user.ID = strconv.FormatInt(r.nextID, 10)
+		r.nextID++
+	}
 	r.byID[user.ID] = user
-	r.byEmail[user.Email] = user
+	r.byAccount[user.Account] = user
 	return nil
 }
 
@@ -37,8 +45,8 @@ func (r *memoryUserRepo) FindByID(_ context.Context, id string) (*model.User, er
 	return user, nil
 }
 
-func (r *memoryUserRepo) FindByEmail(_ context.Context, email string) (*model.User, error) {
-	user, ok := r.byEmail[email]
+func (r *memoryUserRepo) FindByAccount(_ context.Context, account string) (*model.User, error) {
+	user, ok := r.byAccount[account]
 	if !ok {
 		return nil, model.ErrUserNotFound
 	}
@@ -55,46 +63,73 @@ func (plainHasher) Verify(hash string, password string) bool {
 	return hash == "hashed:"+password
 }
 
-func TestRegisterCreatesUserAndRejectsDuplicateEmail(t *testing.T) {
-	svc := service.NewService(newMemoryUserRepo(), plainHasher{})
-
-	created, err := svc.Register(context.Background(), dto.RegisterCommand{
-		Email:       "ada@example.com",
-		DisplayName: "Ada",
-		Password:    "secret123",
-	})
-	require.NoError(t, err)
-	require.NotEmpty(t, created.ID)
-	require.Equal(t, "ada@example.com", created.Email)
-	require.Equal(t, "Ada", created.DisplayName)
-
-	_, err = svc.Register(context.Background(), dto.RegisterCommand{
-		Email:       "ada@example.com",
-		DisplayName: "Ada Again",
-		Password:    "secret123",
-	})
-	require.ErrorIs(t, err, model.ErrEmailAlreadyExists)
-}
-
-func TestLoginValidatesPassword(t *testing.T) {
-	svc := service.NewService(newMemoryUserRepo(), plainHasher{})
+func TestLoginReturnsSignedToken(t *testing.T) {
+	svc := newTestService(newMemoryUserRepo())
 	_, err := svc.Register(context.Background(), dto.RegisterCommand{
-		Email:       "grace@example.com",
+		Account:     "grace",
 		DisplayName: "Grace",
 		Password:    "secret123",
 	})
 	require.NoError(t, err)
 
-	user, err := svc.Login(context.Background(), dto.LoginCommand{
-		Email:    "grace@example.com",
+	session, err := svc.Login(context.Background(), dto.LoginCommand{
+		Account:  "grace",
+		Password: "secret123",
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, "grace", session.User.Account)
+	require.NotEmpty(t, session.Token)
+}
+
+func TestRegisterCreatesUserAndRejectsDuplicateAccount(t *testing.T) {
+	svc := newTestService(newMemoryUserRepo())
+
+	created, err := svc.Register(context.Background(), dto.RegisterCommand{
+		Account:     "ada",
+		DisplayName: "Ada",
+		Password:    "secret123",
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, created.ID)
+	require.Equal(t, "ada", created.Account)
+	require.Equal(t, "Ada", created.DisplayName)
+
+	_, err = svc.Register(context.Background(), dto.RegisterCommand{
+		Account:     "ada",
+		DisplayName: "Ada Again",
+		Password:    "secret123",
+	})
+	require.ErrorIs(t, err, model.ErrAccountAlreadyExists)
+}
+
+func TestLoginValidatesPassword(t *testing.T) {
+	svc := newTestService(newMemoryUserRepo())
+	_, err := svc.Register(context.Background(), dto.RegisterCommand{
+		Account:     "grace",
+		DisplayName: "Grace",
+		Password:    "secret123",
+	})
+	require.NoError(t, err)
+
+	session, err := svc.Login(context.Background(), dto.LoginCommand{
+		Account:  "grace",
 		Password: "secret123",
 	})
 	require.NoError(t, err)
-	require.Equal(t, "grace@example.com", user.Email)
+	require.Equal(t, "grace", session.User.Account)
 
 	_, err = svc.Login(context.Background(), dto.LoginCommand{
-		Email:    "grace@example.com",
+		Account:  "grace",
 		Password: "wrong",
 	})
 	require.ErrorIs(t, err, model.ErrInvalidCredentials)
+}
+
+func newTestService(repo model.Repository) *service.Service {
+	return service.NewService(repo, plainHasher{}, middleware.JWTConfig{
+		Secret:        "test-secret",
+		Issuer:        "xiaolanshu",
+		ExpireSeconds: 7200,
+	})
 }

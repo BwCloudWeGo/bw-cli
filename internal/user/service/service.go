@@ -7,6 +7,7 @@ import (
 
 	"github.com/BwCloudWeGo/bw-cli/internal/user/dto"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/model"
+	"github.com/BwCloudWeGo/bw-cli/pkg/middleware"
 )
 
 // PasswordHasher hides password hashing implementation details from business use cases.
@@ -19,20 +20,26 @@ type PasswordHasher interface {
 type Service struct {
 	repo   model.Repository
 	hasher PasswordHasher
+	jwtCfg middleware.JWTConfig
 }
 
 // NewService constructs the user use-case service.
-func NewService(repo model.Repository, hasher PasswordHasher) *Service {
-	return &Service{repo: repo, hasher: hasher}
+func NewService(repo model.Repository, hasher PasswordHasher, jwtCfgs ...middleware.JWTConfig) *Service {
+	jwtCfg := middleware.DefaultJWTConfig()
+	if len(jwtCfgs) > 0 {
+		jwtCfg = jwtCfgs[0]
+	}
+	return &Service{repo: repo, hasher: hasher, jwtCfg: jwtCfg}
 }
 
-// Register creates a new user after checking email uniqueness.
+// Register creates a new user after checking account uniqueness.
 func (s *Service) Register(ctx context.Context, cmd dto.RegisterCommand) (*dto.UserDTO, error) {
 	if strings.TrimSpace(cmd.Password) == "" {
 		return nil, model.ErrInvalidUser
 	}
-	if _, err := s.repo.FindByEmail(ctx, strings.TrimSpace(strings.ToLower(cmd.Email))); err == nil {
-		return nil, model.ErrEmailAlreadyExists
+	account := model.NormalizeAccount(cmd.Account)
+	if _, err := s.repo.FindByAccount(ctx, account); err == nil {
+		return nil, model.ErrAccountAlreadyExists
 	} else if !errors.Is(err, model.ErrUserNotFound) {
 		return nil, err
 	}
@@ -41,7 +48,7 @@ func (s *Service) Register(ctx context.Context, cmd dto.RegisterCommand) (*dto.U
 	if err != nil {
 		return nil, err
 	}
-	user, err := model.NewUser(cmd.Email, cmd.DisplayName, hash)
+	user, err := model.NewUser(account, cmd.DisplayName, hash)
 	if err != nil {
 		return nil, err
 	}
@@ -51,9 +58,9 @@ func (s *Service) Register(ctx context.Context, cmd dto.RegisterCommand) (*dto.U
 	return dto.FromUser(user), nil
 }
 
-// Login verifies credentials and returns the matching user.
-func (s *Service) Login(ctx context.Context, cmd dto.LoginCommand) (*dto.UserDTO, error) {
-	user, err := s.repo.FindByEmail(ctx, strings.TrimSpace(strings.ToLower(cmd.Email)))
+// Login verifies credentials and returns the matching user plus a signed token.
+func (s *Service) Login(ctx context.Context, cmd dto.LoginCommand) (*dto.LoginDTO, error) {
+	user, err := s.repo.FindByAccount(ctx, model.NormalizeAccount(cmd.Account))
 	if err != nil {
 		if errors.Is(err, model.ErrUserNotFound) {
 			return nil, model.ErrInvalidCredentials
@@ -63,7 +70,14 @@ func (s *Service) Login(ctx context.Context, cmd dto.LoginCommand) (*dto.UserDTO
 	if !s.hasher.Verify(user.PasswordHash, cmd.Password) {
 		return nil, model.ErrInvalidCredentials
 	}
-	return dto.FromUser(user), nil
+	token, err := middleware.GenerateToken(s.jwtCfg, middleware.JWTClaims{UserID: user.ID})
+	if err != nil {
+		return nil, err
+	}
+	return &dto.LoginDTO{
+		User:  dto.FromUser(user),
+		Token: token,
+	}, nil
 }
 
 // GetUser returns one user by id.

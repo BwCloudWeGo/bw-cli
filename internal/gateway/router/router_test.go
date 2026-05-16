@@ -2,6 +2,7 @@ package router_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,6 +31,11 @@ func TestRouterUsesConfiguredCORSAndVersionedBusinessRoutes(t *testing.T) {
 			AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodOptions},
 			AllowHeaders: []string{"Authorization", "Content-Type"},
 		},
+		JWT: middleware.JWTConfig{
+			Secret:        "test-secret",
+			Issuer:        "xiaolanshu",
+			ExpireSeconds: 7200,
+		},
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/user-1", nil)
@@ -44,10 +50,66 @@ func TestRouterUsesConfiguredCORSAndVersionedBusinessRoutes(t *testing.T) {
 	registeredRoutes := engine.Routes()
 	requireRoute(t, registeredRoutes, http.MethodPost, "/api/v1/users/register")
 	requireRoute(t, registeredRoutes, http.MethodPost, "/api/v1/users/login")
+	requireRoute(t, registeredRoutes, http.MethodGet, "/api/v1/users/me")
 	requireRoute(t, registeredRoutes, http.MethodGet, "/api/v1/users/:id")
 	requireRoute(t, registeredRoutes, http.MethodPost, "/api/v1/notes")
 	requireRoute(t, registeredRoutes, http.MethodGet, "/api/v1/notes/:id")
 	requireRoute(t, registeredRoutes, http.MethodPost, "/api/v1/notes/publishNote")
+}
+
+func TestRouterProtectsCurrentUserRouteWithJWT(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := router.New(&client.Clients{
+		User: fakeUserClient{},
+		Note: fakeNoteClient{},
+	}, zap.NewNop(), config.MiddlewareConfig{
+		JWT: middleware.JWTConfig{
+			Secret:        "test-secret",
+			Issuer:        "xiaolanshu",
+			ExpireSeconds: 7200,
+		},
+	})
+	token, err := middleware.GenerateToken(middleware.JWTConfig{
+		Secret:        "test-secret",
+		Issuer:        "xiaolanshu",
+		ExpireSeconds: 7200,
+	}, middleware.JWTClaims{UserID: "user-1"})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/me", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+
+	engine.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var body map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	data, ok := body["data"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "user-1", data["id"])
+	require.Equal(t, "ada", data["account"])
+}
+
+func TestRouterRejectsCurrentUserRouteWithoutJWT(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := router.New(&client.Clients{
+		User: fakeUserClient{},
+		Note: fakeNoteClient{},
+	}, zap.NewNop(), config.MiddlewareConfig{
+		JWT: middleware.JWTConfig{
+			Secret:        "test-secret",
+			Issuer:        "xiaolanshu",
+			ExpireSeconds: 7200,
+		},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/me", nil)
+	rec := httptest.NewRecorder()
+
+	engine.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
 }
 
 func requireRoute(t *testing.T, routes gin.RoutesInfo, method string, path string) {
@@ -63,15 +125,15 @@ func requireRoute(t *testing.T, routes gin.RoutesInfo, method string, path strin
 type fakeUserClient struct{}
 
 func (fakeUserClient) Register(context.Context, *userv1.RegisterRequest, ...grpc.CallOption) (*userv1.UserResponse, error) {
-	return &userv1.UserResponse{Id: "user-1", Email: "ada@example.com", DisplayName: "Ada"}, nil
+	return &userv1.UserResponse{Id: "user-1", Account: "ada", DisplayName: "Ada"}, nil
 }
 
-func (fakeUserClient) Login(context.Context, *userv1.LoginRequest, ...grpc.CallOption) (*userv1.UserResponse, error) {
-	return &userv1.UserResponse{Id: "user-1", Email: "ada@example.com", DisplayName: "Ada"}, nil
+func (fakeUserClient) Login(context.Context, *userv1.LoginRequest, ...grpc.CallOption) (*userv1.LoginResponse, error) {
+	return &userv1.LoginResponse{User: &userv1.UserResponse{Id: "user-1", Account: "ada", DisplayName: "Ada"}, Token: "token"}, nil
 }
 
 func (fakeUserClient) GetUser(context.Context, *userv1.GetUserRequest, ...grpc.CallOption) (*userv1.UserResponse, error) {
-	return &userv1.UserResponse{Id: "user-1", Email: "ada@example.com", DisplayName: "Ada"}, nil
+	return &userv1.UserResponse{Id: "user-1", Account: "ada", DisplayName: "Ada"}, nil
 }
 
 type fakeNoteClient struct{}

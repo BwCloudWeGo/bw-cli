@@ -8,6 +8,7 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/internal/gateway/request"
 	apperrors "github.com/BwCloudWeGo/bw-cli/pkg/errors"
 	"github.com/BwCloudWeGo/bw-cli/pkg/httpx"
+	"github.com/BwCloudWeGo/bw-cli/pkg/middleware"
 )
 
 // UserHandler adapts user HTTP endpoints to the internal user gRPC client.
@@ -29,7 +30,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 		return
 	}
 	resp, err := h.client.Register(outgoingContext(c), &userv1.RegisterRequest{
-		Email:       req.Email,
+		Account:     req.Account,
 		DisplayName: req.DisplayName,
 		Password:    req.Password,
 	})
@@ -49,14 +50,29 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 	resp, err := h.client.Login(outgoingContext(c), &userv1.LoginRequest{
-		Email:    req.Email,
+		Account:  req.Account,
 		Password: req.Password,
 	})
 	if err != nil {
 		httpx.Error(c, apperrors.FromGRPC(err))
 		return
 	}
-	h.log.Info("gateway user login proxied", zap.String("request_id", httpx.RequestID(c)), zap.String("user_id", resp.GetId()))
+	h.log.Info("gateway user login proxied", zap.String("request_id", httpx.RequestID(c)), zap.String("user_id", resp.GetUser().GetId()))
+	httpx.OK(c, resp)
+}
+
+// CurrentUser proxies the authenticated user's profile lookup.
+func (h *UserHandler) CurrentUser(c *gin.Context) {
+	claims := middleware.ClaimsFromContext(c)
+	if claims.UserID == "" {
+		httpx.Error(c, apperrors.Unauthorized("invalid_token", "invalid bearer token"))
+		return
+	}
+	resp, err := h.client.GetUser(outgoingContext(c), &userv1.GetUserRequest{Id: claims.UserID})
+	if err != nil {
+		httpx.Error(c, apperrors.FromGRPC(err))
+		return
+	}
 	httpx.OK(c, resp)
 }
 

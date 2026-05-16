@@ -28,7 +28,7 @@ func NewServer(svc *service.Service, log *zap.Logger) *Server {
 // Register handles the user registration RPC.
 func (s *Server) Register(ctx context.Context, req *userv1.RegisterRequest) (*userv1.UserResponse, error) {
 	user, err := s.svc.Register(ctx, dto.RegisterCommand{
-		Email:       req.GetEmail(),
+		Account:     req.GetAccount(),
 		DisplayName: req.GetDisplayName(),
 		Password:    req.GetPassword(),
 	})
@@ -40,16 +40,19 @@ func (s *Server) Register(ctx context.Context, req *userv1.RegisterRequest) (*us
 }
 
 // Login handles the user login RPC.
-func (s *Server) Login(ctx context.Context, req *userv1.LoginRequest) (*userv1.UserResponse, error) {
-	user, err := s.svc.Login(ctx, dto.LoginCommand{
-		Email:    req.GetEmail(),
+func (s *Server) Login(ctx context.Context, req *userv1.LoginRequest) (*userv1.LoginResponse, error) {
+	session, err := s.svc.Login(ctx, dto.LoginCommand{
+		Account:  req.GetAccount(),
 		Password: req.GetPassword(),
 	})
 	if err != nil {
 		return nil, mapUserError(err)
 	}
-	s.log.Info("user logged in", zap.String("aggregate_id", user.ID), zap.String("use_case", "Login"))
-	return toProto(user), nil
+	s.log.Info("user logged in", zap.String("aggregate_id", session.User.ID), zap.String("use_case", "Login"))
+	return &userv1.LoginResponse{
+		User:  toProto(session.User),
+		Token: session.Token,
+	}, nil
 }
 
 // GetUser handles user profile lookup by id.
@@ -64,7 +67,7 @@ func (s *Server) GetUser(ctx context.Context, req *userv1.GetUserRequest) (*user
 func toProto(user *dto.UserDTO) *userv1.UserResponse {
 	return &userv1.UserResponse{
 		Id:          user.ID,
-		Email:       user.Email,
+		Account:     user.Account,
 		DisplayName: user.DisplayName,
 	}
 }
@@ -73,8 +76,8 @@ func mapUserError(err error) error {
 	switch {
 	case stderrors.Is(err, model.ErrInvalidUser):
 		return apperrors.InvalidArgument("invalid_user", "invalid user input")
-	case stderrors.Is(err, model.ErrEmailAlreadyExists):
-		return apperrors.Conflict("email_already_exists", "email already exists")
+	case stderrors.Is(err, model.ErrAccountAlreadyExists):
+		return apperrors.Conflict("account_already_exists", "account already exists")
 	case stderrors.Is(err, model.ErrUserNotFound):
 		return apperrors.NotFound("user_not_found", "user not found")
 	case stderrors.Is(err, model.ErrInvalidCredentials):

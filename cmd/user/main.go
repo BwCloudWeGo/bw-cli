@@ -46,7 +46,7 @@ func main() {
 	}
 
 	repo := userrepo.NewGormRepository(db, log)
-	svc := userservice.NewService(repo, userrepo.NewSHA256Hasher())
+	svc := userservice.NewService(repo, userrepo.NewSHA256Hasher(), cfg.Middleware.JWT)
 	server := grpc.NewServer(grpc.UnaryInterceptor(grpcx.UnaryServerInterceptor(log)))
 	userv1.RegisterUserServiceServer(server, userhandler.NewServer(svc, log))
 

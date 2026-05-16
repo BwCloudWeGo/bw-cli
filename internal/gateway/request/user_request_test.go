@@ -10,13 +10,13 @@ import (
 )
 
 func TestUserRequestsAreDeclaredOutsideHandlers(t *testing.T) {
-	payload := []byte(`{"email":"ada@example.com","display_name":"Ada","password":"secret123"}`)
+	payload := []byte(`{"account":"ada","display_name":"Ada","password":"secret123"}`)
 
 	var req request.RegisterUserRequest
 	err := json.Unmarshal(payload, &req)
 
 	require.NoError(t, err)
-	require.Equal(t, "ada@example.com", req.Email)
+	require.Equal(t, "ada", req.Account)
 	require.Equal(t, "Ada", req.DisplayName)
 	require.Equal(t, "secret123", req.Password)
 }

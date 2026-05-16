@@ -27,6 +27,6 @@ func New(clients *client.Clients, log *zap.Logger, middlewareCfg config.Middlewa
 	})
 
 	registerHealthRoutes(r)
-	registerAPIRoutes(r, clients, log)
+	registerAPIRoutes(r, clients, log, middlewareCfg)
 	return r
 }
