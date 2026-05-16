@@ -557,6 +557,12 @@ redis:
   password: ""
   db: 0
   pool_size: 10
+  dial_timeout: 5s
+  read_timeout: 3s
+  write_timeout: 3s
+  lock:
+    key_prefix: xiaolanshu
+    default_ttl: 30s
 ```
 
 生产环境建议通过环境变量注入密码：
@@ -564,9 +570,14 @@ redis:
 ```bash
 export APP_REDIS_ADDR='redis.example.com:6379'
 export APP_REDIS_PASSWORD='replace-with-real-password'
+export APP_REDIS_LOCK_KEY_PREFIX='xiaolanshu-prod'
 ```
 
+调用示例见 [Redis：`pkg/redisx`](toolkit.md#10-redispkgredisx)，包含缓存读写和分布式锁。
+
 ### 6.10 Elasticsearch 配置
+
+本地或无认证集群只需要配置 `addresses`，其它认证参数可留空。
 
 ```yaml
 elasticsearch:
@@ -574,6 +585,8 @@ elasticsearch:
     - http://127.0.0.1:9200
   username: ""
   password: ""
+  cloud_id: ""
+  api_key: ""
 ```
 
 生产环境示例：
@@ -582,6 +595,8 @@ elasticsearch:
 export APP_ELASTICSEARCH_ADDRESSES='https://es.example.com:9200'
 export APP_ELASTICSEARCH_USERNAME='elastic'
 export APP_ELASTICSEARCH_PASSWORD='replace-with-real-password'
+export APP_ELASTICSEARCH_CLOUD_ID='deployment:cloud-id'
+export APP_ELASTICSEARCH_API_KEY='base64-api-key'
 ```
 
 ### 6.11 Kafka 配置
@@ -592,6 +607,41 @@ kafka:
     - 127.0.0.1:9092
   topic: xiaolanshu-events
   group_id: xiaolanshu-consumer
+  client_id: xiaolanshu
+  required_acks: all
+  dial_timeout: 5s
+  producer:
+    max_attempts: 10
+    batch_size: 100
+    batch_bytes: 1048576
+    batch_timeout: 10ms
+    read_timeout: 10s
+    write_timeout: 10s
+    async: false
+    compression: none
+    allow_auto_topic_creation: false
+  consumer:
+    queue_capacity: 100
+    min_bytes: 1
+    max_bytes: 10485760
+    max_wait: 10s
+    read_batch_timeout: 10s
+    commit_interval: 0s
+    heartbeat_interval: 3s
+    session_timeout: 30s
+    rebalance_timeout: 30s
+    start_offset: first
+    watch_partition_changes: true
+    max_attempts: 3
+  sasl:
+    enable: false
+    mechanism: plain
+    username: ""
+    password: ""
+  tls:
+    enable: false
+    insecure_skip_verify: false
+    server_name: ""
 ```
 
 生产环境示例：
@@ -600,7 +650,13 @@ kafka:
 export APP_KAFKA_BROKERS='kafka-1.example.com:9092,kafka-2.example.com:9092'
 export APP_KAFKA_TOPIC='business-events'
 export APP_KAFKA_GROUP_ID='business-consumer'
+export APP_KAFKA_SASL_ENABLE=true
+export APP_KAFKA_SASL_USERNAME='kafka-user'
+export APP_KAFKA_SASL_PASSWORD='replace-with-real-password'
+export APP_KAFKA_TLS_ENABLE=true
 ```
+
+调用示例见 [Kafka：`pkg/kafkax`](toolkit.md#12-kafkapkgkafkax)，包含生产者、消费者和原生 `kafka-go` 入口。
 
 ### 6.12 CORS 配置
 

@@ -116,6 +116,10 @@ func TestInitWithoutDemoRemovesDemoServicesAndWritesCleanGateway(t *testing.T) {
 	requireNoPath(t, filepath.Join(target, "api", "gen", "note"))
 	requireNoPath(t, filepath.Join(target, "api", "gen", "content"))
 	requireNoPath(t, filepath.Join(target, "docs", "superpowers"))
+	require.FileExists(t, filepath.Join(target, "pkg", "alipayx", "alipayx.go"))
+	require.FileExists(t, filepath.Join(target, "pkg", "kafkax", "kafkax.go"))
+	require.FileExists(t, filepath.Join(target, "pkg", "esx", "esx.go"))
+	require.FileExists(t, filepath.Join(target, "pkg", "middleware", "jwt.go"))
 
 	gatewayMain := readString(t, filepath.Join(target, "cmd", "gateway", "main.go"))
 	require.Contains(t, gatewayMain, "github.com/acme/clean/internal/gateway/router")
@@ -151,6 +155,19 @@ func TestInitWithoutDemoRemovesDemoServicesAndWritesCleanGateway(t *testing.T) {
 	cfg := readString(t, filepath.Join(target, "configs", "config.yaml"))
 	require.NotContains(t, cfg, "user_service_name")
 	require.NotContains(t, cfg, "note_service_name")
+	require.Contains(t, cfg, "elasticsearch:")
+	require.Contains(t, cfg, "cloud_id: \"\"")
+	require.Contains(t, cfg, "api_key: \"\"")
+	require.Contains(t, cfg, "kafka:")
+	require.Contains(t, cfg, "producer:")
+	require.Contains(t, cfg, "consumer:")
+	require.Contains(t, cfg, "sasl:")
+	require.Contains(t, cfg, "tls:")
+	require.Contains(t, cfg, "alipay:")
+	require.Contains(t, cfg, "app_id: \"\"")
+	require.Contains(t, cfg, "middleware:")
+	require.Contains(t, cfg, "jwt:")
+	require.Contains(t, cfg, "expire_seconds: 7200")
 
 	readme := readString(t, filepath.Join(target, "README.md"))
 	require.Contains(t, readme, "github.com/acme/clean")
@@ -166,11 +183,33 @@ func TestInitWithoutDemoRemovesDemoServicesAndWritesCleanGateway(t *testing.T) {
 	require.Contains(t, usage, "bw-cli service comment --tidy")
 	require.Contains(t, usage, "APP_COMMENT_GRPC_PORT")
 	require.Contains(t, usage, "gRPC client -> proto -> handler -> service -> model.Repository -> repo(Gorm) -> database")
+	require.Contains(t, usage, "Elasticsearch")
+	require.Contains(t, usage, "Kafka")
+	require.Contains(t, usage, "Alipay")
+	require.Contains(t, usage, "JWT")
 
 	toolkit := readString(t, filepath.Join(target, "docs", "toolkit.md"))
 	require.Contains(t, toolkit, "github.com/acme/clean")
 	require.NotContains(t, toolkit, "cmd/bw-cli")
 	require.NotContains(t, toolkit, "pkg/scaffold")
+	require.Contains(t, toolkit, "middleware.JWTAuth")
+	require.Contains(t, toolkit, "esx.NewSearcherFromClient")
+	require.Contains(t, toolkit, "searcher.FuzzySearch")
+	require.Contains(t, toolkit, "searcher.Aggregate")
+	require.Contains(t, toolkit, "kafkax.NewProducer")
+	require.Contains(t, toolkit, "kafkax.NewConsumer")
+	require.Contains(t, toolkit, "alipayx.NewClient")
+
+	alipayDoc := readString(t, filepath.Join(target, "docs", "alipay.md"))
+	require.Contains(t, alipayDoc, "alipayx.NewClient")
+	require.Contains(t, alipayDoc, "DecodeNotification")
+	require.Contains(t, alipayDoc, "Refund")
+
+	esDoc := readString(t, filepath.Join(target, "docs", "elasticsearch.md"))
+	require.Contains(t, esDoc, "只需要配置 `addresses`")
+	require.Contains(t, esDoc, "FuzzySearch")
+	require.Contains(t, esDoc, "Aggregate")
+	require.Contains(t, esDoc, "MySQL 同步到 ES")
 
 	mongodb := readString(t, filepath.Join(target, "docs", "mongodb.md"))
 	require.Contains(t, mongodb, "github.com/acme/clean")
@@ -229,6 +268,8 @@ run-gateway:
 		"README.md":                              "old/module demo with user-service, note-service, and cmd/bw-cli\n",
 		"docs/toolkit.md":                        "old/module toolkit with cmd/bw-cli and pkg/scaffold\n",
 		"docs/mongodb.md":                        "old/module mongodb with internal/note and note-service\n",
+		"docs/alipay.md":                         "old/module alipay\n",
+		"docs/elasticsearch.md":                  "old/module elasticsearch\n",
 		"docs/superpowers/plans/stale-plan.md":   "old note-service plan\n",
 		"docs/superpowers/specs/stale-design.md": "old note-service design\n",
 		"configs/config.yaml": `app:
@@ -255,6 +296,10 @@ run-gateway:
 		"internal/user/model/user.go":              "package model\n",
 		"internal/note/model/note.go":              "package model\n",
 		"internal/content/model/content.go":        "package model\n",
+		"pkg/alipayx/alipayx.go":                   "package alipayx\n",
+		"pkg/kafkax/kafkax.go":                     "package kafkax\n",
+		"pkg/esx/esx.go":                           "package esx\n",
+		"pkg/middleware/jwt.go":                    "package middleware\n",
 		"pkg/scaffold/scaffold.go":                 "package scaffold\n",
 		"tools/protogen/main.go":                   "package main\n\nconst noProtoMessage = \"No proto files found\"\n",
 		"api/proto/user/v1/user.proto":             "option go_package = \"old/module/api/gen/user/v1;userv1\";\n",

@@ -354,10 +354,11 @@ note, err := notes.FindByID(context.Background(), "note-1")
 1. 从配置读取 Redis 地址、账号、密码和 DB。
 2. 调用 `redisx.NewClient`。
 3. 启动时调用 `redisx.Ping`。
-4. 业务里使用返回的 `*redis.Client`。
-5. 进程退出时调用 `Close`。
+4. 业务里使用返回的 `*redis.Client` 做缓存、计数、限流等操作。
+5. 需要跨实例互斥时，通过 `redisx.NewLocker` 创建分布式锁。
+6. 进程退出时调用 `Close`。
 
-示例：
+缓存调用示例：
 
 ```go
 client := redisx.NewClient(cfg.Redis)
@@ -370,61 +371,148 @@ if err := redisx.Ping(context.Background(), client); err != nil {
 err := client.Set(context.Background(), "cache:user:1", "value", time.Minute).Err()
 ```
 
+分布式锁调用示例：
+
+```go
+locker := redisx.NewLocker(client, cfg.Redis.Lock)
+
+lock, err := locker.Acquire(ctx, "jobs:daily-report", 30*time.Second)
+if errors.Is(err, redisx.ErrLockNotAcquired) {
+    return nil
+}
+if err != nil {
+    return err
+}
+defer lock.Release(ctx)
+
+// 只有拿到锁的实例会执行这里的业务逻辑。
+return runDailyReport(ctx)
+```
+
+锁的释放使用 token 校验和 Lua 脚本，只有持有者才能释放自己的锁。长任务可以在业务执行中续租：
+
+```go
+if err := lock.Refresh(ctx, 30*time.Second); err != nil {
+    return err
+}
+```
+
 ## 11. Elasticsearch：`pkg/esx`
 
 调用流程：
 
-1. 配置 `elasticsearch.addresses`、用户名和密码。
-2. 调用 `esx.NewClient`。
-3. 在 repo 或索引同步组件中使用官方 client。
+1. 在 `configs/config.yaml` 配置 `elasticsearch.addresses`；用户名、密码、`cloud_id` 和 `api_key` 保留为可选认证参数。
+2. 通过 `config.Load` 或 `config.MustGlobal()` 读取 YAML 后，调用 `esx.NewClient(cfg.Elasticsearch)` 创建官方 v7 client。
+3. 调用 `esx.NewSearcherFromClient` 使用模糊搜索、高亮和聚合封装。
+4. 复杂接口仍可直接使用官方 client。
 
-示例：
+初始化：
 
 ```go
+cfg, err := config.Load("configs/config.yaml")
+if err != nil {
+    panic(err)
+}
 client, err := esx.NewClient(cfg.Elasticsearch)
 if err != nil {
     panic(err)
 }
-
-res, err := client.Info()
-if err != nil {
-    panic(err)
-}
-defer res.Body.Close()
+searcher := esx.NewSearcherFromClient(client)
 ```
+
+模糊搜索和高亮：
+
+```go
+result, err := searcher.FuzzySearch(ctx, esx.FuzzySearchRequest{
+    Index:   "notes",
+    Keyword: "golang",
+    Fields:  []string{"title^2", "content"},
+    Size:    20,
+    Filters: []esx.Filter{
+        esx.TermFilter("status", "published"),
+    },
+    Highlight: esx.HighlightConfig{
+        Fields:   []string{"title", "content"},
+        PreTags:  []string{"<mark>"},
+        PostTags: []string{"</mark>"},
+    },
+})
+if err != nil {
+    return err
+}
+for _, hit := range result.Hits {
+    fmt.Println(hit.ID, hit.Highlight["title"])
+}
+```
+
+聚合查询：
+
+```go
+result, err := searcher.Aggregate(ctx, esx.AggregationRequest{
+    Index: "notes",
+    Aggregations: map[string]esx.Aggregation{
+        "by_author": esx.TermsAggregation("author_id", 10),
+        "by_day":    esx.DateHistogramAggregation("created_at", "day"),
+    },
+})
+if err != nil {
+    return err
+}
+fmt.Println(string(result.Aggregations))
+```
+
+MySQL 同步 ES 的增量扫描、bulk 写入和删除同步示例见 [Elasticsearch 调用示例](elasticsearch.md)。
 
 ## 12. Kafka：`pkg/kafkax`
 
 生产者调用流程：
 
 1. 配置 brokers 和 topic。
-2. 调用 `kafkax.NewWriter`。
-3. 使用 `WriteMessages` 发布事件。
-4. 进程退出时关闭 writer。
+2. 调用 `kafkax.NewProducer`。
+3. 使用 `Publish` 发布事件。
+4. 进程退出时关闭 producer。
 
 示例：
 
 ```go
-writer := kafkax.NewWriter(cfg.Kafka)
-defer writer.Close()
+producer, err := kafkax.NewProducer(cfg.Kafka)
+if err != nil {
+    return err
+}
+defer producer.Close()
 
-err := writer.WriteMessages(ctx, kafka.Message{
-    Key:   []byte("note-created"),
+err = producer.Publish(ctx, kafkax.Message{
+    Key:   "note-created",
     Value: []byte(`{"note_id":"note-id-from-business"}`),
+    Headers: map[string]string{
+        "trace_id": traceID,
+    },
 })
 ```
 
 消费者调用流程：
 
 ```go
-reader := kafkax.NewReader(cfg.Kafka)
-defer reader.Close()
-
-msg, err := reader.ReadMessage(ctx)
+consumer, err := kafkax.NewConsumer(cfg.Kafka)
 if err != nil {
     return err
 }
-_ = msg
+defer consumer.Close()
+
+err = consumer.Run(ctx, func(ctx context.Context, msg kafka.Message) error {
+    // handler 返回 nil 后才会提交 offset；返回 error 会跳过提交，便于重试。
+    return handleEvent(ctx, msg.Key, msg.Value)
+})
+if err != nil && !errors.Is(err, context.Canceled) {
+    return err
+}
+```
+
+如果业务需要直接使用 `segmentio/kafka-go` 的完整能力，可以继续使用兼容保留的原生入口：
+
+```go
+writer := kafkax.NewWriter(cfg.Kafka)
+reader := kafkax.NewReader(cfg.Kafka)
 ```
 
 ## 13. 文件上传：`pkg/filex`

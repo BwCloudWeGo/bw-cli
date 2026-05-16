@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/viper"
 
 	"github.com/BwCloudWeGo/bw-cli/pkg/alipayx"
@@ -161,7 +162,11 @@ func Load(path string) (*Config, error) {
 	}
 
 	var cfg Config
-	if err := v.Unmarshal(&cfg); err != nil {
+	if err := v.Unmarshal(&cfg, viper.DecodeHook(mapstructure.ComposeDecodeHookFunc(
+		mapstructure.StringToTimeDurationHookFunc(),
+		mapstructure.StringToSliceHookFunc(","),
+		mapstructure.TextUnmarshallerHookFunc(),
+	))); err != nil {
 		return nil, err
 	}
 	return &cfg, nil
@@ -208,12 +213,54 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("file_storage.allowed_extensions", filex.DefaultConfig().AllowedExtensions)
 	v.SetDefault("file_storage.allowed_content_types", filex.DefaultConfig().AllowedContentTypes)
 	v.SetDefault("redis.addr", redisx.DefaultConfig().Addr)
+	v.SetDefault("redis.username", redisx.DefaultConfig().Username)
+	v.SetDefault("redis.password", redisx.DefaultConfig().Password)
 	v.SetDefault("redis.db", redisx.DefaultConfig().DB)
 	v.SetDefault("redis.pool_size", redisx.DefaultConfig().PoolSize)
+	v.SetDefault("redis.dial_timeout", redisx.DefaultConfig().DialTimeout)
+	v.SetDefault("redis.read_timeout", redisx.DefaultConfig().ReadTimeout)
+	v.SetDefault("redis.write_timeout", redisx.DefaultConfig().WriteTimeout)
+	v.SetDefault("redis.lock.key_prefix", redisx.DefaultConfig().Lock.KeyPrefix)
+	v.SetDefault("redis.lock.default_ttl", redisx.DefaultConfig().Lock.DefaultTTL)
 	v.SetDefault("elasticsearch.addresses", esx.DefaultConfig().Addresses)
+	v.SetDefault("elasticsearch.username", esx.DefaultConfig().Username)
+	v.SetDefault("elasticsearch.password", esx.DefaultConfig().Password)
+	v.SetDefault("elasticsearch.cloud_id", esx.DefaultConfig().CloudID)
+	v.SetDefault("elasticsearch.api_key", esx.DefaultConfig().APIKey)
 	v.SetDefault("kafka.brokers", kafkax.DefaultConfig().Brokers)
 	v.SetDefault("kafka.topic", kafkax.DefaultConfig().Topic)
 	v.SetDefault("kafka.group_id", kafkax.DefaultConfig().GroupID)
+	v.SetDefault("kafka.client_id", kafkax.DefaultConfig().ClientID)
+	v.SetDefault("kafka.required_acks", kafkax.DefaultConfig().RequiredAcks)
+	v.SetDefault("kafka.dial_timeout", kafkax.DefaultConfig().DialTimeout)
+	v.SetDefault("kafka.producer.max_attempts", kafkax.DefaultConfig().Producer.MaxAttempts)
+	v.SetDefault("kafka.producer.batch_size", kafkax.DefaultConfig().Producer.BatchSize)
+	v.SetDefault("kafka.producer.batch_bytes", kafkax.DefaultConfig().Producer.BatchBytes)
+	v.SetDefault("kafka.producer.batch_timeout", kafkax.DefaultConfig().Producer.BatchTimeout)
+	v.SetDefault("kafka.producer.read_timeout", kafkax.DefaultConfig().Producer.ReadTimeout)
+	v.SetDefault("kafka.producer.write_timeout", kafkax.DefaultConfig().Producer.WriteTimeout)
+	v.SetDefault("kafka.producer.async", kafkax.DefaultConfig().Producer.Async)
+	v.SetDefault("kafka.producer.compression", kafkax.DefaultConfig().Producer.Compression)
+	v.SetDefault("kafka.producer.allow_auto_topic_creation", kafkax.DefaultConfig().Producer.AllowAutoTopicCreation)
+	v.SetDefault("kafka.consumer.queue_capacity", kafkax.DefaultConfig().Consumer.QueueCapacity)
+	v.SetDefault("kafka.consumer.min_bytes", kafkax.DefaultConfig().Consumer.MinBytes)
+	v.SetDefault("kafka.consumer.max_bytes", kafkax.DefaultConfig().Consumer.MaxBytes)
+	v.SetDefault("kafka.consumer.max_wait", kafkax.DefaultConfig().Consumer.MaxWait)
+	v.SetDefault("kafka.consumer.read_batch_timeout", kafkax.DefaultConfig().Consumer.ReadBatchTimeout)
+	v.SetDefault("kafka.consumer.commit_interval", kafkax.DefaultConfig().Consumer.CommitInterval)
+	v.SetDefault("kafka.consumer.heartbeat_interval", kafkax.DefaultConfig().Consumer.HeartbeatInterval)
+	v.SetDefault("kafka.consumer.session_timeout", kafkax.DefaultConfig().Consumer.SessionTimeout)
+	v.SetDefault("kafka.consumer.rebalance_timeout", kafkax.DefaultConfig().Consumer.RebalanceTimeout)
+	v.SetDefault("kafka.consumer.start_offset", kafkax.DefaultConfig().Consumer.StartOffset)
+	v.SetDefault("kafka.consumer.watch_partition_changes", kafkax.DefaultConfig().Consumer.WatchPartitionChanges)
+	v.SetDefault("kafka.consumer.max_attempts", kafkax.DefaultConfig().Consumer.MaxAttempts)
+	v.SetDefault("kafka.sasl.enable", kafkax.DefaultConfig().SASL.Enable)
+	v.SetDefault("kafka.sasl.mechanism", kafkax.DefaultConfig().SASL.Mechanism)
+	v.SetDefault("kafka.sasl.username", kafkax.DefaultConfig().SASL.Username)
+	v.SetDefault("kafka.sasl.password", kafkax.DefaultConfig().SASL.Password)
+	v.SetDefault("kafka.tls.enable", kafkax.DefaultConfig().TLS.Enable)
+	v.SetDefault("kafka.tls.insecure_skip_verify", kafkax.DefaultConfig().TLS.InsecureSkipVerify)
+	v.SetDefault("kafka.tls.server_name", kafkax.DefaultConfig().TLS.ServerName)
 	v.SetDefault("alipay.app_id", alipayx.DefaultConfig().AppID)
 	v.SetDefault("alipay.private_key", alipayx.DefaultConfig().PrivateKey)
 	v.SetDefault("alipay.alipay_public_key", alipayx.DefaultConfig().AlipayPublicKey)

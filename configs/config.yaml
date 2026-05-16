@@ -132,6 +132,8 @@ elasticsearch:
     - http://127.0.0.1:9200
   username: ""
   password: ""
+  cloud_id: ""
+  api_key: ""
 
 kafka:
   brokers:
