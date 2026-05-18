@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -112,6 +113,42 @@ func TestRouterRejectsCurrentUserRouteWithoutJWT(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, rec.Code)
 }
 
+func TestRouterLoginIssuesJWTAtGateway(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := router.New(&client.Clients{
+		User: fakeUserClient{},
+		Note: fakeNoteClient{},
+	}, zap.NewNop(), config.MiddlewareConfig{
+		JWT: middleware.JWTConfig{
+			Secret:        "test-secret",
+			Issuer:        "xiaolanshu",
+			ExpireSeconds: 7200,
+		},
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/users/login", strings.NewReader(`{"account":"ada","password":"secret123"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	engine.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var body map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	data, ok := body["data"].(map[string]any)
+	require.True(t, ok)
+	token, ok := data["token"].(string)
+	require.True(t, ok)
+	require.NotEmpty(t, token)
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/users/me", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec = httptest.NewRecorder()
+
+	engine.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+}
+
 func requireRoute(t *testing.T, routes gin.RoutesInfo, method string, path string) {
 	t.Helper()
 	for _, route := range routes {
@@ -128,8 +165,8 @@ func (fakeUserClient) Register(context.Context, *userv1.RegisterRequest, ...grpc
 	return &userv1.UserResponse{Id: "user-1", Account: "ada", DisplayName: "Ada"}, nil
 }
 
-func (fakeUserClient) Login(context.Context, *userv1.LoginRequest, ...grpc.CallOption) (*userv1.LoginResponse, error) {
-	return &userv1.LoginResponse{User: &userv1.UserResponse{Id: "user-1", Account: "ada", DisplayName: "Ada"}, Token: "token"}, nil
+func (fakeUserClient) Login(context.Context, *userv1.LoginRequest, ...grpc.CallOption) (*userv1.UserResponse, error) {
+	return &userv1.UserResponse{Id: "user-1", Account: "ada", DisplayName: "Ada"}, nil
 }
 
 func (fakeUserClient) GetUser(context.Context, *userv1.GetUserRequest, ...grpc.CallOption) (*userv1.UserResponse, error) {

@@ -14,12 +14,13 @@ import (
 // UserHandler adapts user HTTP endpoints to the internal user gRPC client.
 type UserHandler struct {
 	client userv1.UserServiceClient
+	jwtCfg middleware.JWTConfig
 	log    *zap.Logger
 }
 
 // NewUserHandler wires the user gRPC client into HTTP handler methods.
-func NewUserHandler(client userv1.UserServiceClient, log *zap.Logger) *UserHandler {
-	return &UserHandler{client: client, log: log}
+func NewUserHandler(client userv1.UserServiceClient, jwtCfg middleware.JWTConfig, log *zap.Logger) *UserHandler {
+	return &UserHandler{client: client, jwtCfg: jwtCfg, log: log}
 }
 
 // Register handles user registration requests from the HTTP gateway.
@@ -57,8 +58,13 @@ func (h *UserHandler) Login(c *gin.Context) {
 		httpx.Error(c, apperrors.FromGRPC(err))
 		return
 	}
-	h.log.Info("gateway user login proxied", zap.String("request_id", httpx.RequestID(c)), zap.String("user_id", resp.GetUser().GetId()))
-	httpx.OK(c, resp)
+	token, err := middleware.GenerateToken(h.jwtCfg, middleware.JWTClaims{UserID: resp.GetId()})
+	if err != nil {
+		httpx.Error(c, apperrors.Wrap(apperrors.KindInternal, "jwt_token_error", "generate jwt token failed", err))
+		return
+	}
+	h.log.Info("gateway user login proxied", zap.String("request_id", httpx.RequestID(c)), zap.String("user_id", resp.GetId()))
+	httpx.OK(c, LoginResponse{User: resp, Token: token})
 }
 
 // CurrentUser proxies the authenticated user's profile lookup.
@@ -84,4 +90,10 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, resp)
+}
+
+// LoginResponse is the gateway HTTP payload returned by POST /api/v1/users/login.
+type LoginResponse struct {
+	User  *userv1.UserResponse `json:"user"`
+	Token string               `json:"token"`
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/BwCloudWeGo/bw-cli/internal/user/dto"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/model"
-	"github.com/BwCloudWeGo/bw-cli/pkg/middleware"
 )
 
 // PasswordHasher hides password hashing implementation details from business use cases.
@@ -20,16 +19,11 @@ type PasswordHasher interface {
 type Service struct {
 	repo   model.Repository
 	hasher PasswordHasher
-	jwtCfg middleware.JWTConfig
 }
 
 // NewService constructs the user use-case service.
-func NewService(repo model.Repository, hasher PasswordHasher, jwtCfgs ...middleware.JWTConfig) *Service {
-	jwtCfg := middleware.DefaultJWTConfig()
-	if len(jwtCfgs) > 0 {
-		jwtCfg = jwtCfgs[0]
-	}
-	return &Service{repo: repo, hasher: hasher, jwtCfg: jwtCfg}
+func NewService(repo model.Repository, hasher PasswordHasher) *Service {
+	return &Service{repo: repo, hasher: hasher}
 }
 
 // Register creates a new user after checking account uniqueness.
@@ -58,8 +52,8 @@ func (s *Service) Register(ctx context.Context, cmd dto.RegisterCommand) (*dto.U
 	return dto.FromUser(user), nil
 }
 
-// Login verifies credentials and returns the matching user plus a signed token.
-func (s *Service) Login(ctx context.Context, cmd dto.LoginCommand) (*dto.LoginDTO, error) {
+// Login verifies credentials and returns the matching user.
+func (s *Service) Login(ctx context.Context, cmd dto.LoginCommand) (*dto.UserDTO, error) {
 	user, err := s.repo.FindByAccount(ctx, model.NormalizeAccount(cmd.Account))
 	if err != nil {
 		if errors.Is(err, model.ErrUserNotFound) {
@@ -70,14 +64,7 @@ func (s *Service) Login(ctx context.Context, cmd dto.LoginCommand) (*dto.LoginDT
 	if !s.hasher.Verify(user.PasswordHash, cmd.Password) {
 		return nil, model.ErrInvalidCredentials
 	}
-	token, err := middleware.GenerateToken(s.jwtCfg, middleware.JWTClaims{UserID: user.ID})
-	if err != nil {
-		return nil, err
-	}
-	return &dto.LoginDTO{
-		User:  dto.FromUser(user),
-		Token: token,
-	}, nil
+	return dto.FromUser(user), nil
 }
 
 // GetUser returns one user by id.

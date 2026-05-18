@@ -10,7 +10,6 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/internal/user/dto"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/model"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/service"
-	"github.com/BwCloudWeGo/bw-cli/pkg/middleware"
 )
 
 type memoryUserRepo struct {
@@ -63,7 +62,7 @@ func (plainHasher) Verify(hash string, password string) bool {
 	return hash == "hashed:"+password
 }
 
-func TestLoginReturnsSignedToken(t *testing.T) {
+func TestLoginReturnsUserOnly(t *testing.T) {
 	svc := newTestService(newMemoryUserRepo())
 	_, err := svc.Register(context.Background(), dto.RegisterCommand{
 		Account:     "grace",
@@ -72,14 +71,13 @@ func TestLoginReturnsSignedToken(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	session, err := svc.Login(context.Background(), dto.LoginCommand{
+	user, err := svc.Login(context.Background(), dto.LoginCommand{
 		Account:  "grace",
 		Password: "secret123",
 	})
 
 	require.NoError(t, err)
-	require.Equal(t, "grace", session.User.Account)
-	require.NotEmpty(t, session.Token)
+	require.Equal(t, "grace", user.Account)
 }
 
 func TestRegisterCreatesUserAndRejectsDuplicateAccount(t *testing.T) {
@@ -112,12 +110,12 @@ func TestLoginValidatesPassword(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	session, err := svc.Login(context.Background(), dto.LoginCommand{
+	user, err := svc.Login(context.Background(), dto.LoginCommand{
 		Account:  "grace",
 		Password: "secret123",
 	})
 	require.NoError(t, err)
-	require.Equal(t, "grace", session.User.Account)
+	require.Equal(t, "grace", user.Account)
 
 	_, err = svc.Login(context.Background(), dto.LoginCommand{
 		Account:  "grace",
@@ -127,9 +125,5 @@ func TestLoginValidatesPassword(t *testing.T) {
 }
 
 func newTestService(repo model.Repository) *service.Service {
-	return service.NewService(repo, plainHasher{}, middleware.JWTConfig{
-		Secret:        "test-secret",
-		Issuer:        "xiaolanshu",
-		ExpireSeconds: 7200,
-	})
+	return service.NewService(repo, plainHasher{})
 }

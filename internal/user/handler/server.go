@@ -40,19 +40,16 @@ func (s *Server) Register(ctx context.Context, req *userv1.RegisterRequest) (*us
 }
 
 // Login handles the user login RPC.
-func (s *Server) Login(ctx context.Context, req *userv1.LoginRequest) (*userv1.LoginResponse, error) {
-	session, err := s.svc.Login(ctx, dto.LoginCommand{
+func (s *Server) Login(ctx context.Context, req *userv1.LoginRequest) (*userv1.UserResponse, error) {
+	user, err := s.svc.Login(ctx, dto.LoginCommand{
 		Account:  req.GetAccount(),
 		Password: req.GetPassword(),
 	})
 	if err != nil {
 		return nil, mapUserError(err)
 	}
-	s.log.Info("user logged in", zap.String("aggregate_id", session.User.ID), zap.String("use_case", "Login"))
-	return &userv1.LoginResponse{
-		User:  toProto(session.User),
-		Token: session.Token,
-	}, nil
+	s.log.Info("user logged in", zap.String("aggregate_id", user.ID), zap.String("use_case", "Login"))
+	return toProto(user), nil
 }
 
 // GetUser handles user profile lookup by id.

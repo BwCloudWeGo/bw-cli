@@ -11,12 +11,6 @@ type UserDTO struct {
 	Sex         bool
 }
 
-// LoginDTO is returned after a successful login.
-type LoginDTO struct {
-	User  *UserDTO
-	Token string
-}
-
 // FromUser 将 user 领域聚合转换成对外返回的数据结构。
 func FromUser(user *model.User) *UserDTO {
 	return &UserDTO{

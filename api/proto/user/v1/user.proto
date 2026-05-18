@@ -6,7 +6,7 @@ option go_package = "github.com/BwCloudWeGo/bw-cli/api/gen/user/v1;userv1";
 
 service UserService {
   rpc Register(RegisterRequest) returns (UserResponse);
-  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Login(LoginRequest) returns (UserResponse);
   rpc GetUser(GetUserRequest) returns (UserResponse);
 }
 
@@ -29,9 +29,4 @@ message UserResponse {
   string id = 1;
   string account = 2;
   string display_name = 3;
-}
-
-message LoginResponse {
-  UserResponse user = 1;
-  string token = 2;
 }

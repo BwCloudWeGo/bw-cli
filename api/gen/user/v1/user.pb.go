@@ -237,58 +237,6 @@ func (x *UserResponse) GetDisplayName() string {
 	return ""
 }
 
-type LoginResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          *UserResponse          `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	Token         string                 `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LoginResponse) Reset() {
-	*x = LoginResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LoginResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LoginResponse) ProtoMessage() {}
-
-func (x *LoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LoginResponse.ProtoReflect.Descriptor instead.
-func (*LoginResponse) Descriptor() ([]byte, []int) {
-	return file_user_v1_user_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *LoginResponse) GetUser() *UserResponse {
-	if x != nil {
-		return x.User
-	}
-	return nil
-}
-
-func (x *LoginResponse) GetToken() string {
-	if x != nil {
-		return x.Token
-	}
-	return ""
-}
-
 var File_user_v1_user_proto protoreflect.FileDescriptor
 
 const file_user_v1_user_proto_rawDesc = "" +
@@ -306,13 +254,10 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\fUserResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\aaccount\x18\x02 \x01(\tR\aaccount\x12!\n" +
-	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\"P\n" +
-	"\rLoginResponse\x12)\n" +
-	"\x04user\x18\x01 \x01(\v2\x15.user.v1.UserResponseR\x04user\x12\x14\n" +
-	"\x05token\x18\x02 \x01(\tR\x05token2\xbd\x01\n" +
+	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName2\xbc\x01\n" +
 	"\vUserService\x12;\n" +
-	"\bRegister\x12\x18.user.v1.RegisterRequest\x1a\x15.user.v1.UserResponse\x126\n" +
-	"\x05Login\x12\x15.user.v1.LoginRequest\x1a\x16.user.v1.LoginResponse\x129\n" +
+	"\bRegister\x12\x18.user.v1.RegisterRequest\x1a\x15.user.v1.UserResponse\x125\n" +
+	"\x05Login\x12\x15.user.v1.LoginRequest\x1a\x15.user.v1.UserResponse\x129\n" +
 	"\aGetUser\x12\x17.user.v1.GetUserRequest\x1a\x15.user.v1.UserResponseB6Z4github.com/BwCloudWeGo/bw-cli/api/gen/user/v1;userv1b\x06proto3"
 
 var (
@@ -327,27 +272,25 @@ func file_user_v1_user_proto_rawDescGZIP() []byte {
 	return file_user_v1_user_proto_rawDescData
 }
 
-var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_user_v1_user_proto_goTypes = []any{
 	(*RegisterRequest)(nil), // 0: user.v1.RegisterRequest
 	(*LoginRequest)(nil),    // 1: user.v1.LoginRequest
 	(*GetUserRequest)(nil),  // 2: user.v1.GetUserRequest
 	(*UserResponse)(nil),    // 3: user.v1.UserResponse
-	(*LoginResponse)(nil),   // 4: user.v1.LoginResponse
 }
 var file_user_v1_user_proto_depIdxs = []int32{
-	3, // 0: user.v1.LoginResponse.user:type_name -> user.v1.UserResponse
-	0, // 1: user.v1.UserService.Register:input_type -> user.v1.RegisterRequest
-	1, // 2: user.v1.UserService.Login:input_type -> user.v1.LoginRequest
-	2, // 3: user.v1.UserService.GetUser:input_type -> user.v1.GetUserRequest
-	3, // 4: user.v1.UserService.Register:output_type -> user.v1.UserResponse
-	4, // 5: user.v1.UserService.Login:output_type -> user.v1.LoginResponse
-	3, // 6: user.v1.UserService.GetUser:output_type -> user.v1.UserResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // 0: user.v1.UserService.Register:input_type -> user.v1.RegisterRequest
+	1, // 1: user.v1.UserService.Login:input_type -> user.v1.LoginRequest
+	2, // 2: user.v1.UserService.GetUser:input_type -> user.v1.GetUserRequest
+	3, // 3: user.v1.UserService.Register:output_type -> user.v1.UserResponse
+	3, // 4: user.v1.UserService.Login:output_type -> user.v1.UserResponse
+	3, // 5: user.v1.UserService.GetUser:output_type -> user.v1.UserResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for extension type_name
+	0, // [0:0] is the sub-list for extension extendee
+	0, // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_user_v1_user_proto_init() }
@@ -361,7 +304,7 @@ func file_user_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_v1_user_proto_rawDesc), len(file_user_v1_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
