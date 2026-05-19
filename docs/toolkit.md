@@ -229,7 +229,7 @@ server := grpc.NewServer(
 ```go
 conn, err := grpc.DialContext(
     ctx,
-    cfg.GRPC.UserTarget,
+    cfg.ServiceTarget("user", 9001),
     grpc.WithTransportCredentials(insecure.NewCredentials()),
     grpc.WithUnaryInterceptor(grpcx.UnaryClientInterceptor(requestID)),
 )
@@ -465,14 +465,14 @@ MySQL 同步 ES 的增量扫描、bulk 写入和删除同步示例见 [Elasticse
 
 ## 12. Kafka：`pkg/kafkax`
 
-生产者调用流程：
+生产者调用流程适合直接放在业务 service 中：
 
 1. 配置 brokers 和 topic。
 2. 调用 `kafkax.NewProducer`。
-3. 使用 `Publish` 发布事件。
+3. 使用 `Publish` 发布事件，topic 默认使用 `cfg.Kafka.Topic`。
 4. 进程退出时关闭 producer。
 
-示例：
+进程入口初始化一次 producer，然后注入业务 service：
 
 ```go
 producer, err := kafkax.NewProducer(cfg.Kafka)
@@ -481,11 +481,73 @@ if err != nil {
 }
 defer producer.Close()
 
-err = producer.Publish(ctx, kafkax.Message{
+noteSvc := noteservice.NewService(repo, producer, log)
+```
+
+业务 service 直接发布事件：
+
+```go
+func (s *Service) PublishNoteCreated(ctx context.Context, noteID string, authorID string) error {
+    payload, err := json.Marshal(map[string]string{
+        "event":     "note.created",
+        "note_id":   noteID,
+        "author_id": authorID,
+    })
+    if err != nil {
+        return err
+    }
+
+    return s.kafka.Publish(ctx, kafkax.Message{
+        Key:   noteID,
+        Value: payload,
+        Headers: map[string]string{
+            "event": "note.created",
+        },
+    })
+}
+```
+
+`kafkax.NewProducer(cfg.Kafka)` 创建的 writer 已经绑定了 `cfg.Kafka.Topic`，业务侧不要再给 `kafkax.Message.Topic` 赋值。即使误传，`Producer.Publish` 也会忽略该字段，避免 `kafka.(*Writer): Topic must not be specified for both Writer and Message`。
+
+如果出现：
+
+```text
+[3] Unknown Topic Or Partition: the request is for a topic or partition that does not exist on this broker
+```
+
+说明 broker 上没有 `cfg.Kafka.Topic` 对应的 topic，且当前配置未允许自动创建。生产环境建议提前创建 topic：
+
+```bash
+kafka-topics.sh --bootstrap-server 127.0.0.1:9092 \
+  --create \
+  --topic xiaolanshu-events \
+  --partitions 3 \
+  --replication-factor 1
+```
+
+开发环境也可以临时打开：
+
+```yaml
+    kafka:
+  producer:
+    allow_auto_topic_creation: true
+```
+
+如果确实需要运行时指定 topic，不要用已绑定 topic 的 `NewProducer(cfg.Kafka)`，改用原生 writer 且不要设置 `Writer.Topic`：
+
+```go
+writer := &kafka.Writer{
+    Addr: kafka.TCP(cfg.Kafka.Brokers...),
+}
+producer := kafkax.NewProducerWithWriter(writer)
+defer producer.Close()
+
+err := producer.Publish(ctx, kafkax.Message{
+    Topic: "audit-events",
     Key:   "note-created",
-    Value: []byte(`{"note_id":"note-id-from-business"}`),
+    Value: payload,
     Headers: map[string]string{
-        "trace_id": traceID,
+        "event": "note.created",
     },
 })
 ```
@@ -833,6 +895,8 @@ payClient, err := alipayx.NewClient(cfg.Alipay)
 if err != nil {
     panic(err)
 }
+
+orderSvc := orderservice.NewService(repo, payClient, log)
 ```
 
 建议在进程入口初始化一次，然后注入支付 service：
@@ -843,55 +907,55 @@ handler -> service -> alipayx.Client
 
 ### 14.3 创建支付
 
-Service 示例：
+实际业务 service 中直接调用 `pkg/alipayx`，不要在业务项目里再复制一层支付宝工具类。
 
 ```go
-type PaymentService struct {
-    alipay *alipayx.Client
-}
-
-func NewPaymentService(alipay *alipayx.Client) *PaymentService {
-    return &PaymentService{alipay: alipay}
-}
-
-func (s *PaymentService) CreatePagePayment(ctx context.Context, orderID string, amount string) (string, error) {
-    payURL, err := s.alipay.PagePay(alipayx.PayRequest{
-        OutTradeNo:     orderID,
-        Subject:        "小蓝书订单",
-        TotalAmount:    amount,
-        Body:           "订单支付",
-        TimeoutExpress: "15m",
-    })
+func (s *Service) CreateAlipayPagePayment(ctx context.Context, orderID string) (string, error) {
+    order, err := s.repo.FindByID(ctx, orderID)
     if err != nil {
         return "", err
     }
-    return payURL.String(), nil
+    if order.PaidAt != nil {
+        return "", apperrors.FailedPrecondition("ORDER_ALREADY_PAID", "order already paid")
+    }
+
+    return s.alipay.PagePayURL(alipayx.PayRequest{
+        OutTradeNo:     order.PayNo,
+        Subject:        "小蓝书订单",
+        TotalAmount:    order.PayAmount.StringFixed(2),
+        Body:           "订单支付",
+        TimeoutExpress: "15m",
+    })
 }
 
-func (s *PaymentService) CreateAppPayment(ctx context.Context, orderID string, amount string) (string, error) {
+func (s *Service) CreateAlipayAppPayment(ctx context.Context, orderID string) (string, error) {
+    order, err := s.repo.FindByID(ctx, orderID)
+    if err != nil {
+        return "", err
+    }
+
     return s.alipay.AppPay(alipayx.PayRequest{
-        OutTradeNo:  orderID,
+        OutTradeNo:  order.PayNo,
         Subject:     "小蓝书订单",
-        TotalAmount: amount,
+        TotalAmount: order.PayAmount.StringFixed(2),
     })
 }
 ```
 
-Gin handler 示例：
+Gin handler 只处理协议入参和出参：
 
 ```go
-func CreateAlipayPagePayment(svc *PaymentService) gin.HandlerFunc {
+func CreateAlipayPagePayment(svc *orderservice.Service) gin.HandlerFunc {
     return func(c *gin.Context) {
         var req struct {
             OrderID string `json:"order_id" binding:"required"`
-            Amount  string `json:"amount" binding:"required"`
         }
         if err := c.ShouldBindJSON(&req); err != nil {
             httpx.Error(c, apperrors.InvalidArgument("INVALID_REQUEST", err.Error()))
             return
         }
 
-        payURL, err := svc.CreatePagePayment(c.Request.Context(), req.OrderID, req.Amount)
+        payURL, err := svc.CreateAlipayPagePayment(c.Request.Context(), req.OrderID)
         if err != nil {
             httpx.Error(c, err)
             return
@@ -930,7 +994,7 @@ func AlipayReturn(payClient *alipayx.Client) gin.HandlerFunc {
 支付宝异步通知需要验签、校验订单号和金额、幂等更新订单状态，处理成功后返回纯文本 `success`。
 
 ```go
-func AlipayNotify(payClient *alipayx.Client, svc *PaymentService) gin.HandlerFunc {
+func AlipayNotify(payClient *alipayx.Client, svc *orderservice.Service) gin.HandlerFunc {
     return func(c *gin.Context) {
         if err := c.Request.ParseForm(); err != nil {
             c.String(http.StatusBadRequest, "fail")
@@ -943,7 +1007,13 @@ func AlipayNotify(payClient *alipayx.Client, svc *PaymentService) gin.HandlerFun
             return
         }
 
-        err = svc.MarkPaid(c.Request.Context(), notification.OutTradeNo, notification.TradeNo, notification.TotalAmount)
+        err = svc.MarkAlipayPaid(
+            c.Request.Context(),
+            notification.OutTradeNo,
+            notification.TradeNo,
+            notification.TotalAmount,
+            notification.TradeStatus,
+        )
         if err != nil {
             c.String(http.StatusInternalServerError, "fail")
             return
@@ -964,20 +1034,21 @@ func AlipayNotify(payClient *alipayx.Client, svc *PaymentService) gin.HandlerFun
 ### 14.6 退款
 
 ```go
-func (s *PaymentService) Refund(ctx context.Context, orderID string, amount string, reason string) error {
-    rsp, err := s.alipay.Refund(ctx, alipayx.RefundRequest{
-        OutTradeNo:   orderID,
-        RefundAmount: amount,
-        RefundReason: reason,
-        OutRequestNo: orderID + "-refund-001",
-    })
+func (s *Service) RefundAlipayOrder(ctx context.Context, orderID string, reason string) error {
+    order, err := s.repo.FindByID(ctx, orderID)
     if err != nil {
         return err
     }
-    if rsp.Code.IsFailure() {
-        return fmt.Errorf("alipay refund failed: %s %s", rsp.Code, rsp.SubMsg)
+    if order.RefundedAt != nil {
+        return nil
     }
-    return nil
+
+    return s.alipay.RefundOK(ctx, alipayx.RefundRequest{
+        OutTradeNo:   order.PayNo,
+        RefundAmount: order.PayAmount.StringFixed(2),
+        RefundReason: reason,
+        OutRequestNo: order.PayNo + "-refund-001",
+    })
 }
 ```
 

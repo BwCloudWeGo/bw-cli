@@ -25,7 +25,8 @@ func main() {
 		panic(err)
 	}
 	cfg := config.MustGlobal()
-	cfg.Log.Service = cfg.App.GatewayServiceName
+	gatewayServiceName := cfg.ServiceName("gateway")
+	cfg.Log.Service = gatewayServiceName
 	cfg.Log = logger.WithDailyFileName(cfg.Log, time.Now())
 
 	log, err := logger.New(cfg.Log)
@@ -33,10 +34,11 @@ func main() {
 		panic(err)
 	}
 	defer log.Sync()
-	observability.Register(cfg.App.GatewayServiceName, log)
+	observability.Register(gatewayServiceName, log)
+	config.PrintSourceNotice(cfg, os.Stdout)
 
 	// gRPC targets are read from configuration so deployments can change them without recompilation.
-	clients, err := client.New(cfg.GRPC, log)
+	clients, err := client.New(cfg, log)
 	if err != nil {
 		log.Fatal("initialize grpc clients failed", zap.Error(err))
 	}
@@ -81,7 +83,7 @@ func printStartupSummary(cfg *config.Config, addr string) {
 	}
 	baseURL := fmt.Sprintf("http://%s:%d", host, cfg.HTTP.Port)
 	fmt.Fprintf(os.Stdout, "\n[Gateway Started]\n")
-	fmt.Fprintf(os.Stdout, "  service: %s\n", cfg.App.GatewayServiceName)
+	fmt.Fprintf(os.Stdout, "  service: %s\n", cfg.ServiceName("gateway"))
 	fmt.Fprintf(os.Stdout, "  env: %s\n", cfg.App.Env)
 	fmt.Fprintf(os.Stdout, "  listen: %s\n", addr)
 	fmt.Fprintf(os.Stdout, "  http: %s\n", baseURL)

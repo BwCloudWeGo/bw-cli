@@ -302,10 +302,9 @@ configs/config.yaml
 app:
   name: app
   env: local
-  gateway_service_name: gateway
 ```
 
-这些值会用于日志文件名、日志字段和可观测性服务名。
+应用名和环境会用于日志字段、配置区分和本地启动提示。服务进程名统一写在 `services` 中。
 
 ### 6.2 HTTP 配置
 
@@ -336,7 +335,17 @@ grpc:
   host: 0.0.0.0
 ```
 
-干净项目默认不创建具体 gRPC 服务端口。执行 `bw-cli service <name>` 后，服务默认端口写在 `cmd/<name>/main.go`，可用 `APP_<SERVICE>_GRPC_PORT` 覆盖；gateway 目标地址可用 `APP_<SERVICE>_GRPC_TARGET` 覆盖，不需要先改 `configs/config.yaml`。
+干净项目默认不创建具体业务服务端口。执行 `bw-cli service <name>` 后，命令会自动在 `configs/config.yaml` 中追加：
+
+```yaml
+services:
+  comment:
+    name: comment-service
+    port: 9101
+    target: 127.0.0.1:9101
+```
+
+多个服务端口会从已有最大端口继续递增。需要修改端口时，直接修改 `services.<name>.port`；gateway 连接地址修改 `services.<name>.target`。如果启用了 Nacos，新增服务后要把本地 `configs/config.yaml` 中新增的 `services.<name>` 同步到 Nacos。
 
 ### 6.4 SQLite 默认配置
 
@@ -951,18 +960,19 @@ internal/comment/handler    # gRPC server
 bw-cli service comment --tidy
 ```
 
-命令会自动读取当前项目的 `go.mod`，生成完整 CRUD 服务并执行 `make proto`。不传 `--port` 时默认端口是 `9100`，需要指定端口时使用：
+命令会自动读取当前项目的 `go.mod`，生成完整 CRUD 服务并执行 `make proto`。不传 `--port` 时会根据 `configs/config.yaml` 中已有服务端口自动递增，需要指定端口时使用：
 
 ```bash
 bw-cli service comment --port 9103 --tidy
 ```
 
-生成后不需要修改 `configs/config.yaml`：
+生成后命令会自动追加 `configs/config.yaml`：
 
-- 服务名、默认 gRPC 端口和端口环境变量会写入 `cmd/comment/main.go`。
+- 服务名、gRPC 端口和 gateway target 会写入 `services.comment`。
 - 数据库继续读取项目已有的 `database`、`mysql`、`postgresql` 配置。
 - SQLite 默认配置可直接本地运行，服务启动时会自动执行 `AutoMigrate`。
 - `--tidy` 会在生成后执行 `go mod tidy`。
+- 如果启用了 Nacos，命令行会提示把本地新增的 `services.comment` 同步到 Nacos。
 
 生成文件：
 
@@ -986,18 +996,7 @@ docs/services/comment.md
 make run-comment
 ```
 
-默认端口可通过环境变量覆盖：
-
-```bash
-export APP_COMMENT_GRPC_PORT=9104
-make run-comment
-```
-
-Windows PowerShell：
-
-```powershell
-$env:APP_COMMENT_GRPC_PORT="9104"; make run-comment
-```
+默认端口在 `services.comment.port` 中修改，gateway 目标地址在 `services.comment.target` 中修改。
 
 ### 10.1 生成后已经具备什么
 
@@ -1038,17 +1037,16 @@ HTTP client
 
 默认启动使用 `repo/gorm_repository.go`。脚手架同时生成 `repo/mongo_repository.go`，里面已经通过 `MongoCollectionName()` 和 `mongox.NewDocumentStore[T]` 接好基础 CRUD。业务需要 MongoDB 时，在 `cmd/comment/main.go` 中用配置文件创建 Mongo client 和 database，然后把 repository 注入改为 `repo.NewMongoRepository(mongoDB, log)`。
 
-服务端口不需要写进配置文件。`cmd/comment/main.go` 内置默认端口 `9103`，也支持环境变量覆盖：
+服务端口写在 `configs/config.yaml`：
 
-```text
-APP_COMMENT_GRPC_PORT
+```yaml
+services:
+  comment:
+    port: 9103
+    target: 127.0.0.1:9103
 ```
 
-gateway 调用服务的目标地址也不需要写进配置文件，默认是 `127.0.0.1:9103`，需要覆盖时设置：
-
-```bash
-export APP_COMMENT_GRPC_TARGET=127.0.0.1:9103
-```
+gateway 调用服务时读取 `services.comment.target`，也可以用 `APP_COMMENT_GRPC_TARGET` 临时覆盖。
 
 ### 10.2 每一层怎么写，为什么这么写
 
@@ -1305,9 +1303,11 @@ make run-gateway
 检查 `configs/config.yaml`：
 
 ```yaml
-grpc:
-  user_target: 127.0.0.1:9001
-  note_target: 127.0.0.1:9002
+services:
+  user:
+    target: 127.0.0.1:9001
+  note:
+    target: 127.0.0.1:9002
 ```
 
 ### 12.5 JWT 返回 invalid token

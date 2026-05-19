@@ -19,11 +19,13 @@ var serviceNamePattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_-]*$`)
 
 // ServiceOptions controls bw-cli service generation inside an existing project.
 type ServiceOptions struct {
-	RootDir  string
-	Name     string
-	Port     int
-	RunProto bool
-	RunTidy  bool
+	RootDir           string
+	Name              string
+	Port              int
+	RunProto          bool
+	RunTidy           bool
+	NacosSyncRequired bool
+	NacosDataID       string
 }
 
 type serviceTemplateData struct {
@@ -51,7 +53,14 @@ func AddService(opts ServiceOptions) error {
 	if err != nil {
 		return err
 	}
-	data, err := buildServiceTemplateData(module, opts.Name, opts.Port)
+	port := opts.Port
+	if port == 0 {
+		port, err = nextServicePort(root)
+		if err != nil {
+			return err
+		}
+	}
+	data, err := buildServiceTemplateData(module, opts.Name, port)
 	if err != nil {
 		return err
 	}
@@ -66,6 +75,12 @@ func AddService(opts ServiceOptions) error {
 	}
 	if err := addServiceMakeTarget(root, data.Dir); err != nil {
 		return err
+	}
+	if err := addServiceConfig(root, data); err != nil {
+		return err
+	}
+	if enabled, dataID := nacosEnabled(root); enabled {
+		fmt.Printf("nacos is enabled: sync configs/config.yaml service changes to Nacos data_id %s\n", dataID)
 	}
 	if opts.RunProto {
 		if err := runProjectCommand(root, "go", "run", "./tools/protogen"); err != nil {
@@ -310,6 +325,91 @@ func addServiceMakeTarget(root string, serviceDir string) error {
 	return os.WriteFile(path, []byte(text), 0o644)
 }
 
+func nextServicePort(root string) (int, error) {
+	path := filepath.Join(root, "configs", "config.yaml")
+	if !exists(path) {
+		return defaultServicePort, nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return 0, err
+	}
+	maxPort := defaultServicePort - 1
+	portPattern := regexp.MustCompile(`(?m)^\s+port:\s*([0-9]+)\s*$`)
+	for _, match := range portPattern.FindAllStringSubmatch(string(data), -1) {
+		var port int
+		if _, err := fmt.Sscanf(match[1], "%d", &port); err == nil && port > maxPort {
+			maxPort = port
+		}
+	}
+	if maxPort < defaultServicePort {
+		return defaultServicePort, nil
+	}
+	return maxPort + 1, nil
+}
+
+func addServiceConfig(root string, data serviceTemplateData) error {
+	path := filepath.Join(root, "configs", "config.yaml")
+	if !exists(path) {
+		return nil
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	text := string(content)
+	serviceBlock := fmt.Sprintf(`  %s:
+    name: %s
+    port: %d
+    target: 127.0.0.1:%d
+`, data.Dir, data.ServiceName, data.Port, data.Port)
+	if regexp.MustCompile(`(?m)^\s{2}` + regexp.QuoteMeta(data.Dir) + `:\s*$`).MatchString(text) {
+		return nil
+	}
+	if !regexp.MustCompile(`(?m)^services:\s*$`).MatchString(text) {
+		insert := "\nservices:\n" + serviceBlock
+		if idx := strings.Index(text, "\ndatabase:"); idx >= 0 {
+			text = text[:idx] + insert + text[idx:]
+		} else {
+			text = strings.TrimRight(text, "\n") + insert + "\n"
+		}
+		return os.WriteFile(path, []byte(text), 0o644)
+	}
+	lines := strings.Split(text, "\n")
+	insertAt := len(lines)
+	for i, line := range lines {
+		if strings.TrimSpace(line) == "services:" {
+			insertAt = i + 1
+			continue
+		}
+		if insertAt != len(lines) && line != "" && !strings.HasPrefix(line, " ") && strings.HasSuffix(line, ":") {
+			insertAt = i
+			break
+		}
+	}
+	blockLines := strings.Split(strings.TrimRight(serviceBlock, "\n"), "\n")
+	lines = append(lines[:insertAt], append(blockLines, lines[insertAt:]...)...)
+	return os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0o644)
+}
+
+func nacosEnabled(root string) (bool, string) {
+	path := filepath.Join(root, "configs", "nacos.yaml")
+	if !exists(path) {
+		return false, "xiaolanshu.yaml"
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false, "xiaolanshu.yaml"
+	}
+	text := string(data)
+	enabled := regexp.MustCompile(`(?m)^enabled:\s*true\s*$`).MatchString(text)
+	dataID := "xiaolanshu.yaml"
+	if match := regexp.MustCompile(`(?m)^data_id:\s*"?([^"\n]+)"?\s*$`).FindStringSubmatch(text); len(match) == 2 {
+		dataID = strings.TrimSpace(match[1])
+	}
+	return enabled, dataID
+}
+
 func gofmtService(root string, serviceDir string) error {
 	args := []string{
 		filepath.Join("cmd", serviceDir, "main.go"),
@@ -347,7 +447,7 @@ func patchGatewayRouter(root string, data serviceTemplateData) error {
 		}
 		routerText := string(routerBytes)
 		if strings.Contains(routerText, "registerAPIRoutes(r)") {
-			routerText = strings.Replace(routerText, "registerAPIRoutes(r)", "registerAPIRoutes(r, log)", 1)
+			routerText = strings.Replace(routerText, "registerAPIRoutes(r)", "registerAPIRoutes(r, clients, log)", 1)
 			if err := os.WriteFile(routerPath, []byte(routerText), 0o644); err != nil {
 				return err
 			}
@@ -363,14 +463,14 @@ func patchGatewayRouter(root string, data serviceTemplateData) error {
 		return err
 	}
 	v1Text := string(v1Bytes)
-	registration := fmt.Sprintf("register%sRoutes(v1, handler.New%sHandler(log))", data.Pascal, data.Pascal)
+	registration := fmt.Sprintf("register%sRoutes(v1, handler.New%sHandler(clients.Config.Service(%q), log))", data.Pascal, data.Pascal, data.Dir)
 	if strings.Contains(v1Text, registration) {
 		return nil
 	}
 	if strings.Contains(v1Text, "func registerAPIRoutes(r *gin.Engine)") {
 		return os.WriteFile(v1Path, []byte(renderServiceTemplate(cleanGatewayV1WithServiceTemplate, data)), 0o644)
 	}
-	if !strings.Contains(v1Text, "func registerAPIRoutes(r *gin.Engine, log *zap.Logger)") {
+	if !strings.Contains(v1Text, "func registerAPIRoutes(r *gin.Engine, clients *client.Clients") {
 		return nil
 	}
 	if strings.Contains(v1Text, "\n\t_ = v1\n") {
@@ -458,7 +558,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -478,14 +577,13 @@ import (
 
 const serviceName = "{{ .ServiceName }}"
 const defaultGRPCPort = {{ .Port }}
-const grpcPortEnv = "APP_{{ .EnvPrefix }}_GRPC_PORT"
 
 func main() {
 	if err := config.InitGlobal("configs/config.yaml"); err != nil {
 		panic(err)
 	}
 	cfg := config.MustGlobal()
-	cfg.Log.Service = serviceName
+	cfg.Log.Service = cfg.ServiceName("{{ .Dir }}")
 	cfg.Log = logger.WithDailyFileName(cfg.Log, time.Now())
 
 	log, err := logger.New(cfg.Log)
@@ -493,6 +591,7 @@ func main() {
 		panic(err)
 	}
 	defer log.Sync()
+	config.PrintSourceNotice(cfg, os.Stdout)
 
 	db, err := database.Open(cfg.Database, cfg.MySQL, cfg.PostgreSQL, log)
 	if err != nil {
@@ -507,7 +606,7 @@ func main() {
 	server := grpc.NewServer(grpc.UnaryInterceptor(grpcx.UnaryServerInterceptor(log)))
 	{{ .GoPackage }}.Register{{ .Pascal }}ServiceServer(server, {{ .GoIdent }}handler.NewServer(svc, log))
 
-	port := grpcPort(defaultGRPCPort, log)
+	port := cfg.ServicePort("{{ .Dir }}", defaultGRPCPort)
 	addr := fmt.Sprintf("%s:%d", cfg.GRPC.Host, port)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -522,19 +621,6 @@ func main() {
 	}
 }
 
-func grpcPort(fallback int, log *zap.Logger) int {
-	value := strings.TrimSpace(os.Getenv(grpcPortEnv))
-	if value == "" {
-		return fallback
-	}
-	port, err := strconv.Atoi(value)
-	if err != nil || port <= 0 || port > 65535 {
-		log.Warn("invalid grpc port env, using fallback", zap.String("env", grpcPortEnv), zap.String("value", value), zap.Int("fallback", fallback))
-		return fallback
-	}
-	return port
-}
-
 func printStartupSummary(env string, addr string, port int) {
 	host := strings.Split(addr, ":")[0]
 	if host == "" || host == "0.0.0.0" {
@@ -545,7 +631,7 @@ func printStartupSummary(env string, addr string, port int) {
 	fmt.Fprintf(os.Stdout, "  env: %s\n", env)
 	fmt.Fprintf(os.Stdout, "  listen: %s\n", addr)
 	fmt.Fprintf(os.Stdout, "  grpc: %s:%d\n", host, port)
-	fmt.Fprintf(os.Stdout, "  port_env: %s\n\n", grpcPortEnv)
+	fmt.Fprintf(os.Stdout, "  config: services.{{ .Dir }}.port\n\n")
 }
 
 func shutdownOnSignal(server *grpc.Server, log *zap.Logger) {
@@ -1373,6 +1459,7 @@ import (
 
 	{{ .GoPackage }} "{{ .Module }}/api/gen/{{ .Dir }}/v1"
 	"{{ .Module }}/internal/gateway/request"
+	"{{ .Module }}/pkg/config"
 	apperrors "{{ .Module }}/pkg/errors"
 	"{{ .Module }}/pkg/httpx"
 )
@@ -1391,12 +1478,12 @@ type {{ .Pascal }}Handler struct {
 }
 
 // New{{ .Pascal }}Handler builds a gateway handler with a default target that needs no config changes.
-func New{{ .Pascal }}Handler(log *zap.Logger) *{{ .Pascal }}Handler {
+func New{{ .Pascal }}Handler(serviceCfg config.ServiceConfig, log *zap.Logger) *{{ .Pascal }}Handler {
 	if log == nil {
 		log = zap.NewNop()
 	}
 	return &{{ .Pascal }}Handler{
-		target: gatewayGRPCTarget({{ .GoIdent }}GatewayTargetEnv, {{ .GoIdent }}GatewayDefaultTarget),
+		target: configuredGatewayGRPCTarget({{ .GoIdent }}GatewayTargetEnv, serviceCfg.Target, serviceCfg.Port),
 		log:    log,
 	}
 }
@@ -1544,15 +1631,21 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"{{ .Module }}/internal/gateway/client"
 	"{{ .Module }}/internal/gateway/handler"
+	"{{ .Module }}/pkg/config"
 )
 
 // registerAPIRoutes creates the /api/v1 route namespace before delegating by business module.
-func registerAPIRoutes(r *gin.Engine, log *zap.Logger) {
+func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger) {
 	api := r.Group("/api")
 	v1 := api.Group("/v1")
 
-	register{{ .Pascal }}Routes(v1, handler.New{{ .Pascal }}Handler(log))
+	cfg := clients.Config
+	if cfg == nil {
+		cfg = &config.Config{}
+	}
+	register{{ .Pascal }}Routes(v1, handler.New{{ .Pascal }}Handler(cfg.Service("{{ .Dir }}"), log))
 }
 `
 
@@ -1585,17 +1678,17 @@ make proto
 make run-{{ .Dir }}
 ~~~
 
-默认端口是 ` + "`{{ .Port }}`" + `，可以通过环境变量覆盖：
+默认端口是 ` + "`{{ .Port }}`" + `。命令会自动写入 ` + "`configs/config.yaml`" + `：
 
-~~~bash
-export APP_{{ .EnvPrefix }}_GRPC_PORT={{ .Port }}
+~~~yaml
+services:
+  {{ .Dir }}:
+    name: {{ .ServiceName }}
+    port: {{ .Port }}
+    target: 127.0.0.1:{{ .Port }}
 ~~~
 
-Windows PowerShell：
-
-~~~powershell
-$env:APP_{{ .EnvPrefix }}_GRPC_PORT="{{ .Port }}"; make run-{{ .Dir }}
-~~~
+如果要修改端口，改 ` + "`services.{{ .Dir }}.port`" + ` 即可。如果项目启用了 Nacos，请把本地 ` + "`configs/config.yaml`" + ` 中新增的 ` + "`services.{{ .Dir }}`" + ` 同步到 Nacos 对应配置。
 
 ## 基础 CRUD
 
@@ -1619,7 +1712,7 @@ PUT    /api/v1/{{ .TableName }}/:id
 DELETE /api/v1/{{ .TableName }}/:id
 ~~~
 
-gateway 默认调用 ` + "`{{ .Dir }}-service`" + ` 的 ` + "`127.0.0.1:{{ .Port }}`" + `，无需改配置。如需覆盖目标地址，设置：
+gateway 默认调用 ` + "`services.{{ .Dir }}.target`" + `。如需临时覆盖目标地址，设置：
 
 ~~~bash
 export APP_{{ .EnvPrefix }}_GRPC_TARGET=127.0.0.1:{{ .Port }}
@@ -1857,5 +1950,5 @@ internal/gateway/handler/{{ .Dir }}_handler.go
 internal/gateway/router/{{ .Dir }}_routes.go
 ~~~
 
-路由按 ` + "`版本/业务/具体接口`" + ` 拆分，当前业务挂在 ` + "`/api/v1/{{ .TableName }}`" + `。gateway handler 默认使用 ` + "`APP_{{ .EnvPrefix }}_GRPC_TARGET`" + ` 覆盖目标地址，不配置时连接 ` + "`127.0.0.1:{{ .Port }}`" + `。
+路由按 ` + "`版本/业务/具体接口`" + ` 拆分，当前业务挂在 ` + "`/api/v1/{{ .TableName }}`" + `。gateway handler 默认读取 ` + "`services.{{ .Dir }}.target`" + `，也可以使用 ` + "`APP_{{ .EnvPrefix }}_GRPC_TARGET`" + ` 临时覆盖。
 `

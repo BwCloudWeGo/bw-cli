@@ -122,6 +122,9 @@ func (c *Client) Raw() *alipay.Client {
 
 // PagePay builds the PC website payment redirect URL.
 func (c *Client) PagePay(req PayRequest) (*url.URL, error) {
+	if err := c.validateClient(); err != nil {
+		return nil, err
+	}
 	if err := validatePayRequest(req); err != nil {
 		return nil, err
 	}
@@ -129,8 +132,20 @@ func (c *Client) PagePay(req PayRequest) (*url.URL, error) {
 	return c.raw.TradePagePay(param)
 }
 
+// PagePayURL builds the PC website payment redirect URL as a string.
+func (c *Client) PagePayURL(req PayRequest) (string, error) {
+	payURL, err := c.PagePay(req)
+	if err != nil {
+		return "", err
+	}
+	return payURL.String(), nil
+}
+
 // WapPay builds the mobile website payment redirect URL.
 func (c *Client) WapPay(req PayRequest) (*url.URL, error) {
+	if err := c.validateClient(); err != nil {
+		return nil, err
+	}
 	if err := validatePayRequest(req); err != nil {
 		return nil, err
 	}
@@ -138,8 +153,20 @@ func (c *Client) WapPay(req PayRequest) (*url.URL, error) {
 	return c.raw.TradeWapPay(param)
 }
 
+// WapPayURL builds the mobile website payment redirect URL as a string.
+func (c *Client) WapPayURL(req PayRequest) (string, error) {
+	payURL, err := c.WapPay(req)
+	if err != nil {
+		return "", err
+	}
+	return payURL.String(), nil
+}
+
 // AppPay builds the order string that mobile clients pass to the Alipay SDK.
 func (c *Client) AppPay(req PayRequest) (string, error) {
+	if err := c.validateClient(); err != nil {
+		return "", err
+	}
 	if err := validatePayRequest(req); err != nil {
 		return "", err
 	}
@@ -165,6 +192,9 @@ func (c *Client) VerifyReturn(ctx context.Context, values url.Values) error {
 
 // Refund submits a synchronous refund request to Alipay.
 func (c *Client) Refund(ctx context.Context, req RefundRequest) (*alipay.TradeRefundRsp, error) {
+	if err := c.validateClient(); err != nil {
+		return nil, err
+	}
 	if err := validateRefundRequest(req); err != nil {
 		return nil, err
 	}
@@ -176,6 +206,32 @@ func (c *Client) Refund(ctx context.Context, req RefundRequest) (*alipay.TradeRe
 		OutRequestNo: strings.TrimSpace(req.OutRequestNo),
 	}
 	return c.raw.TradeRefund(ctx, param)
+}
+
+// RefundOK submits a refund request and returns an error when Alipay rejects it.
+func (c *Client) RefundOK(ctx context.Context, req RefundRequest) error {
+	rsp, err := c.Refund(ctx, req)
+	if err != nil {
+		return err
+	}
+	return ensureRefundSuccess(rsp)
+}
+
+func (c *Client) validateClient() error {
+	if c == nil || c.raw == nil {
+		return errors.New("alipay client is nil")
+	}
+	return nil
+}
+
+func ensureRefundSuccess(rsp *alipay.TradeRefundRsp) error {
+	if rsp == nil {
+		return errors.New("alipay refund failed: empty response")
+	}
+	if rsp.Code.IsFailure() {
+		return fmt.Errorf("alipay refund failed: %s %s", rsp.Code, rsp.SubMsg)
+	}
+	return nil
 }
 
 func (c *Client) trade(req PayRequest, productCode string) alipay.Trade {

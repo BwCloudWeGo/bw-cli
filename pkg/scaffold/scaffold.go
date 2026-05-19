@@ -245,7 +245,10 @@ func writeCleanConfig(root string) error {
 	if !exists(path) {
 		return nil
 	}
-	return os.WriteFile(path, []byte(cleanConfigYAML()), 0o644)
+	if err := os.WriteFile(path, []byte(cleanConfigYAML()), 0o644); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(root, "configs", "nacos.yaml"), []byte(cleanNacosYAML()), 0o644)
 }
 
 func writeCleanDocs(root string, module string) error {
@@ -336,7 +339,8 @@ func main() {
 		panic(err)
 	}
 	cfg := config.MustGlobal()
-	cfg.Log.Service = cfg.App.GatewayServiceName
+	gatewayServiceName := cfg.ServiceName("gateway")
+	cfg.Log.Service = gatewayServiceName
 	cfg.Log = logger.WithDailyFileName(cfg.Log, time.Now())
 
 	log, err := logger.New(cfg.Log)
@@ -344,7 +348,8 @@ func main() {
 		panic(err)
 	}
 	defer log.Sync()
-	observability.Register(cfg.App.GatewayServiceName, log)
+	observability.Register(gatewayServiceName, log)
+	config.PrintSourceNotice(cfg, os.Stdout)
 
 	engine := router.New(log, cfg.Middleware)
 	addr := fmt.Sprintf("%%s:%%d", cfg.HTTP.Host, cfg.HTTP.Port)
@@ -385,7 +390,7 @@ func printStartupSummary(cfg *config.Config, addr string) {
 	}
 	baseURL := fmt.Sprintf("http://%%s:%%d", host, cfg.HTTP.Port)
 	fmt.Fprintf(os.Stdout, "\n[Gateway Started]\n")
-	fmt.Fprintf(os.Stdout, "  service: %%s\n", cfg.App.GatewayServiceName)
+	fmt.Fprintf(os.Stdout, "  service: %%s\n", cfg.ServiceName("gateway"))
 	fmt.Fprintf(os.Stdout, "  env: %%s\n", cfg.App.Env)
 	fmt.Fprintf(os.Stdout, "  listen: %%s\n", addr)
 	fmt.Fprintf(os.Stdout, "  http: %%s\n", baseURL)
@@ -492,7 +497,6 @@ func cleanConfigYAML() string {
 	return `app:
   name: app
   env: local
-  gateway_service_name: gateway
 
 http:
   host: 0.0.0.0
@@ -502,6 +506,10 @@ http:
 
 grpc:
   host: 0.0.0.0
+
+services:
+  gateway:
+    name: gateway
 
 database:
   driver: sqlite
@@ -716,6 +724,24 @@ log:
 `
 }
 
+func cleanNacosYAML() string {
+	return `enabled: false
+server_addr: 127.0.0.1
+server_port: 8848
+namespace_id: ""
+group: DEFAULT_GROUP
+data_id: xiaolanshu.yaml
+username: ""
+password: ""
+timeout_ms: 5000
+log_dir: logs/nacos
+cache_dir: data/nacos/cache
+log_level: info
+fail_fast: false
+watch: false
+`
+}
+
 func cleanREADME(module string) string {
 	return fmt.Sprintf(`# Go 微服务项目
 
@@ -919,12 +945,13 @@ bw-cli service comment --tidy
 bw-cli service comment --port 9103 --tidy
 `+"```"+`
 
-生成后的服务不需要修改配置即可编译和启动：
+生成后的服务会自动追加 `+"`configs/config.yaml`"+`：
 
-- 服务名、默认 gRPC 端口和 `+"`APP_COMMENT_GRPC_PORT`"+` 环境变量写在 `+"`cmd/comment/main.go`"+`。
+- 服务名、gRPC 端口和 gateway target 写在 `+"`services.comment`"+`。
 - 数据库继续读取当前项目已有的 `+"`database`"+`、`+"`mysql`"+`、`+"`postgresql`"+` 配置。
 - 默认 SQLite 可直接本地运行，服务启动时自动执行 `+"`AutoMigrate`"+`。
 - proto、handler、service、model、repo、gateway HTTP 入口和 service 单测都会同时生成。
+- 如果启用了 Nacos，命令行会提示把本地新增配置同步到 Nacos。
 
 生成结构：
 
@@ -1471,6 +1498,8 @@ MySQL 同步 ES 的增量扫描、bulk 写入和删除同步示例见 `+"`docs/e
 
 ## 9. Kafka
 
+进程入口初始化一次 producer，然后注入业务 service：
+
 `+"```go"+`
 producer, err := kafkax.NewProducer(cfg.Kafka)
 if err != nil {
@@ -1478,10 +1507,48 @@ if err != nil {
 }
 defer producer.Close()
 
-err = producer.Publish(ctx, kafkax.Message{
-    Key:   "document-created",
-    Value: []byte(`+"`{\"id\":\"doc-1\"}`"+`),
-})
+noteSvc := noteservice.NewService(repo, producer, log)
+`+"```"+`
+
+业务 service 直接发布事件。`+"`kafkax.NewProducer(cfg.Kafka)`"+` 创建的 writer 已经绑定 `+"`cfg.Kafka.Topic`"+`，不要再给 `+"`kafkax.Message.Topic`"+` 赋值。
+
+`+"```go"+`
+func (s *Service) PublishNoteCreated(ctx context.Context, noteID string, authorID string) error {
+    payload, err := json.Marshal(map[string]string{
+        "event":     "note.created",
+        "note_id":   noteID,
+        "author_id": authorID,
+    })
+    if err != nil {
+        return err
+    }
+
+    return s.kafka.Publish(ctx, kafkax.Message{
+        Key:   noteID,
+        Value: payload,
+        Headers: map[string]string{
+            "event": "note.created",
+        },
+    })
+}
+`+"```"+`
+
+如果出现 `+"`[3] Unknown Topic Or Partition`"+`，说明 broker 上没有配置里的 topic。生产环境建议提前创建 topic：
+
+`+"```bash"+`
+kafka-topics.sh --bootstrap-server 127.0.0.1:9092 \
+  --create \
+  --topic xiaolanshu-events \
+  --partitions 3 \
+  --replication-factor 1
+`+"```"+`
+
+开发环境也可以临时打开：
+
+`+"```yaml"+`
+kafka:
+  producer:
+    allow_auto_topic_creation: true
 `+"```"+`
 
 消费者：
@@ -1736,6 +1803,8 @@ payClient, err := alipayx.NewClient(cfg.Alipay)
 if err != nil {
     panic(err)
 }
+
+orderSvc := orderservice.NewService(repo, payClient, log)
 ` + "```" + `
 
 推荐在入口初始化一次，然后注入业务 service：
@@ -1746,44 +1815,41 @@ handler -> service -> alipayx.Client
 
 ## 创建支付
 
+实际业务 service 中直接调用 ` + "`pkg/alipayx`" + `，不要在业务项目里再复制一层支付宝工具类。
+
 ` + "```go" + `
-type PaymentService struct {
-    alipay *alipayx.Client
-}
-
-func NewPaymentService(alipay *alipayx.Client) *PaymentService {
-    return &PaymentService{alipay: alipay}
-}
-
-func (s *PaymentService) CreatePagePayment(ctx context.Context, orderID string, amount string) (string, error) {
-    payURL, err := s.alipay.PagePay(alipayx.PayRequest{
-        OutTradeNo:     orderID,
-        Subject:        "订单支付",
-        TotalAmount:    amount,
-        TimeoutExpress: "15m",
-    })
+func (s *Service) CreateAlipayPagePayment(ctx context.Context, orderID string) (string, error) {
+    order, err := s.repo.FindByID(ctx, orderID)
     if err != nil {
         return "", err
     }
-    return payURL.String(), nil
+    if order.PaidAt != nil {
+        return "", apperrors.FailedPrecondition("ORDER_ALREADY_PAID", "order already paid")
+    }
+
+    return s.alipay.PagePayURL(alipayx.PayRequest{
+        OutTradeNo:     order.PayNo,
+        Subject:        "订单支付",
+        TotalAmount:    order.PayAmount.StringFixed(2),
+        TimeoutExpress: "15m",
+    })
 }
 ` + "```" + `
 
-Gin handler 示例：
+Gin handler 只处理协议入参和出参：
 
 ` + "```go" + `
-func CreateAlipayPagePayment(svc *PaymentService) gin.HandlerFunc {
+func CreateAlipayPagePayment(svc *orderservice.Service) gin.HandlerFunc {
     return func(c *gin.Context) {
         var req struct {
             OrderID string ` + "`json:\"order_id\" binding:\"required\"`" + `
-            Amount  string ` + "`json:\"amount\" binding:\"required\"`" + `
         }
         if err := c.ShouldBindJSON(&req); err != nil {
             httpx.Error(c, apperrors.InvalidArgument("INVALID_REQUEST", err.Error()))
             return
         }
 
-        payURL, err := svc.CreatePagePayment(c.Request.Context(), req.OrderID, req.Amount)
+        payURL, err := svc.CreateAlipayPagePayment(c.Request.Context(), req.OrderID)
         if err != nil {
             httpx.Error(c, err)
             return
@@ -1820,7 +1886,7 @@ func AlipayReturn(payClient *alipayx.Client) gin.HandlerFunc {
 支付宝异步通知必须验签、校验订单号和金额、幂等更新订单状态。处理成功后返回纯文本 ` + "`success`" + `。
 
 ` + "```go" + `
-func AlipayNotify(payClient *alipayx.Client, svc *PaymentService) gin.HandlerFunc {
+func AlipayNotify(payClient *alipayx.Client, svc *orderservice.Service) gin.HandlerFunc {
     return func(c *gin.Context) {
         if err := c.Request.ParseForm(); err != nil {
             c.String(http.StatusBadRequest, "fail")
@@ -1833,7 +1899,13 @@ func AlipayNotify(payClient *alipayx.Client, svc *PaymentService) gin.HandlerFun
             return
         }
 
-        err = svc.MarkPaid(c.Request.Context(), notification.OutTradeNo, notification.TradeNo, notification.TotalAmount)
+        err = svc.MarkAlipayPaid(
+            c.Request.Context(),
+            notification.OutTradeNo,
+            notification.TradeNo,
+            notification.TotalAmount,
+            notification.TradeStatus,
+        )
         if err != nil {
             c.String(http.StatusInternalServerError, "fail")
             return
@@ -1847,20 +1919,21 @@ func AlipayNotify(payClient *alipayx.Client, svc *PaymentService) gin.HandlerFun
 ## 退款
 
 ` + "```go" + `
-func (s *PaymentService) Refund(ctx context.Context, orderID string, amount string, reason string) error {
-    rsp, err := s.alipay.Refund(ctx, alipayx.RefundRequest{
-        OutTradeNo:   orderID,
-        RefundAmount: amount,
-        RefundReason: reason,
-        OutRequestNo: orderID + "-refund-001",
-    })
+func (s *Service) RefundAlipayOrder(ctx context.Context, orderID string, reason string) error {
+    order, err := s.repo.FindByID(ctx, orderID)
     if err != nil {
         return err
     }
-    if rsp.Code.IsFailure() {
-        return fmt.Errorf("alipay refund failed: %s %s", rsp.Code, rsp.SubMsg)
+    if order.RefundedAt != nil {
+        return nil
     }
-    return nil
+
+    return s.alipay.RefundOK(ctx, alipayx.RefundRequest{
+        OutTradeNo:   order.PayNo,
+        RefundAmount: order.PayAmount.StringFixed(2),
+        RefundReason: reason,
+        OutRequestNo: order.PayNo + "-refund-001",
+    })
 }
 ` + "```" + `
 `

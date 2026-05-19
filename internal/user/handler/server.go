@@ -3,14 +3,12 @@ package handler
 import (
 	"context"
 	stderrors "errors"
-
-	"go.uber.org/zap"
-
 	userv1 "github.com/BwCloudWeGo/bw-cli/api/gen/user/v1"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/dto"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/model"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/service"
 	apperrors "github.com/BwCloudWeGo/bw-cli/pkg/errors"
+	"go.uber.org/zap"
 )
 
 // Server adapts user gRPC requests to user service use cases.

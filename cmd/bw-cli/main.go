@@ -120,7 +120,7 @@ func parseServiceOptions(args []string) (scaffold.ServiceOptions, error) {
 	fs := flag.NewFlagSet("service", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	rootDir := fs.String("dir", ".", "project root directory, defaults to current directory")
-	port := fs.Int("port", 9100, "default gRPC port for the generated service")
+	port := fs.Int("port", 0, "default gRPC port for the generated service; 0 means auto-increment from configs/config.yaml")
 	skipProto := fs.Bool("skip-proto", false, "skip proto code generation after writing files")
 	tidy := fs.Bool("tidy", false, "run go mod tidy after generating service")
 

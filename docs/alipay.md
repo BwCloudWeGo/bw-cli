@@ -46,6 +46,8 @@ export APP_ALIPAY_RETURN_URL='https://www.example.com/orders/alipay/return'
 
 ## 初始化
 
+在进程入口初始化一次，然后注入到业务 service：
+
 ```go
 if err := config.InitGlobal("configs/config.yaml"); err != nil {
     panic(err)
@@ -56,75 +58,80 @@ payClient, err := alipayx.NewClient(cfg.Alipay)
 if err != nil {
     panic(err)
 }
+
+orderSvc := orderservice.NewService(repo, payClient, log)
 ```
 
-推荐在入口初始化一次，然后注入业务 service：
+调用关系保持简单：
 
 ```text
-handler -> service -> alipayx.Client
+handler -> order service -> alipayx.Client
 ```
 
 ## 创建支付
 
+实际业务 service 中直接调用 `pkg/alipayx`，不要在业务项目里再复制一层支付宝工具类。
+
 ```go
-type PaymentService struct {
-    alipay *alipayx.Client
-}
+func (s *Service) CreateAlipayPagePayment(ctx context.Context, orderID string) (string, error) {
+    order, err := s.repo.FindByID(ctx, orderID)
+    if err != nil {
+        return "", err
+    }
+    if order.PaidAt != nil {
+        return "", apperrors.FailedPrecondition("ORDER_ALREADY_PAID", "order already paid")
+    }
 
-func NewPaymentService(alipay *alipayx.Client) *PaymentService {
-    return &PaymentService{alipay: alipay}
-}
-
-func (s *PaymentService) CreatePagePayment(ctx context.Context, orderID string, amount string) (string, error) {
-    payURL, err := s.alipay.PagePay(alipayx.PayRequest{
-        OutTradeNo:     orderID,
+    return s.alipay.PagePayURL(alipayx.PayRequest{
+        OutTradeNo:     order.PayNo,
         Subject:        "小蓝书订单",
-        TotalAmount:    amount,
+        TotalAmount:    order.PayAmount.StringFixed(2),
         Body:           "订单支付",
         TimeoutExpress: "15m",
     })
+}
+
+func (s *Service) CreateAlipayWapPayment(ctx context.Context, orderID string) (string, error) {
+    order, err := s.repo.FindByID(ctx, orderID)
     if err != nil {
         return "", err
     }
-    return payURL.String(), nil
-}
 
-func (s *PaymentService) CreateWapPayment(ctx context.Context, orderID string, amount string) (string, error) {
-    payURL, err := s.alipay.WapPay(alipayx.PayRequest{
-        OutTradeNo:  orderID,
+    return s.alipay.WapPayURL(alipayx.PayRequest{
+        OutTradeNo:  order.PayNo,
         Subject:     "小蓝书订单",
-        TotalAmount: amount,
+        TotalAmount: order.PayAmount.StringFixed(2),
     })
+}
+
+func (s *Service) CreateAlipayAppPayment(ctx context.Context, orderID string) (string, error) {
+    order, err := s.repo.FindByID(ctx, orderID)
     if err != nil {
         return "", err
     }
-    return payURL.String(), nil
-}
 
-func (s *PaymentService) CreateAppPayment(ctx context.Context, orderID string, amount string) (string, error) {
     return s.alipay.AppPay(alipayx.PayRequest{
-        OutTradeNo:  orderID,
+        OutTradeNo:  order.PayNo,
         Subject:     "小蓝书订单",
-        TotalAmount: amount,
+        TotalAmount: order.PayAmount.StringFixed(2),
     })
 }
 ```
 
-Gin handler 示例：
+Gin handler 只处理协议入参和出参：
 
 ```go
-func CreateAlipayPagePayment(svc *PaymentService) gin.HandlerFunc {
+func CreateAlipayPagePayment(svc *orderservice.Service) gin.HandlerFunc {
     return func(c *gin.Context) {
         var req struct {
             OrderID string `json:"order_id" binding:"required"`
-            Amount  string `json:"amount" binding:"required"`
         }
         if err := c.ShouldBindJSON(&req); err != nil {
             httpx.Error(c, apperrors.InvalidArgument("INVALID_REQUEST", err.Error()))
             return
         }
 
-        payURL, err := svc.CreatePagePayment(c.Request.Context(), req.OrderID, req.Amount)
+        payURL, err := svc.CreateAlipayPagePayment(c.Request.Context(), req.OrderID)
         if err != nil {
             httpx.Error(c, err)
             return
@@ -163,7 +170,7 @@ func AlipayReturn(payClient *alipayx.Client) gin.HandlerFunc {
 支付宝异步通知必须验签、校验订单号和金额、幂等更新订单状态。处理成功后返回纯文本 `success`。
 
 ```go
-func AlipayNotify(payClient *alipayx.Client, svc *PaymentService) gin.HandlerFunc {
+func AlipayNotify(payClient *alipayx.Client, svc *orderservice.Service) gin.HandlerFunc {
     return func(c *gin.Context) {
         if err := c.Request.ParseForm(); err != nil {
             c.String(http.StatusBadRequest, "fail")
@@ -176,7 +183,13 @@ func AlipayNotify(payClient *alipayx.Client, svc *PaymentService) gin.HandlerFun
             return
         }
 
-        err = svc.MarkPaid(c.Request.Context(), notification.OutTradeNo, notification.TradeNo, notification.TotalAmount)
+        err = svc.MarkAlipayPaid(
+            c.Request.Context(),
+            notification.OutTradeNo,
+            notification.TradeNo,
+            notification.TotalAmount,
+            notification.TradeStatus,
+        )
         if err != nil {
             c.String(http.StatusInternalServerError, "fail")
             return
@@ -187,7 +200,7 @@ func AlipayNotify(payClient *alipayx.Client, svc *PaymentService) gin.HandlerFun
 }
 ```
 
-`MarkPaid` 建议至少校验：
+`MarkAlipayPaid` 建议至少校验：
 
 1. `OutTradeNo` 属于本系统订单。
 2. `TotalAmount` 等于订单应付金额。
@@ -196,21 +209,24 @@ func AlipayNotify(payClient *alipayx.Client, svc *PaymentService) gin.HandlerFun
 
 ## 退款
 
+业务 service 只关心退款是否成功，支付宝响应码判断由 `pkg/alipayx` 封装。
+
 ```go
-func (s *PaymentService) Refund(ctx context.Context, orderID string, amount string, reason string) error {
-    rsp, err := s.alipay.Refund(ctx, alipayx.RefundRequest{
-        OutTradeNo:   orderID,
-        RefundAmount: amount,
-        RefundReason: reason,
-        OutRequestNo: orderID + "-refund-001",
-    })
+func (s *Service) RefundAlipayOrder(ctx context.Context, orderID string, reason string) error {
+    order, err := s.repo.FindByID(ctx, orderID)
     if err != nil {
         return err
     }
-    if rsp.Code.IsFailure() {
-        return fmt.Errorf("alipay refund failed: %s %s", rsp.Code, rsp.SubMsg)
+    if order.RefundedAt != nil {
+        return nil
     }
-    return nil
+
+    return s.alipay.RefundOK(ctx, alipayx.RefundRequest{
+        OutTradeNo:   order.PayNo,
+        RefundAmount: order.PayAmount.StringFixed(2),
+        RefundReason: reason,
+        OutRequestNo: order.PayNo + "-refund-001",
+    })
 }
 ```
 

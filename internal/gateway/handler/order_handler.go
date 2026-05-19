@@ -10,6 +10,7 @@ import (
 
 	orderv1 "github.com/BwCloudWeGo/bw-cli/api/gen/order/v1"
 	"github.com/BwCloudWeGo/bw-cli/internal/gateway/request"
+	"github.com/BwCloudWeGo/bw-cli/pkg/config"
 	apperrors "github.com/BwCloudWeGo/bw-cli/pkg/errors"
 	"github.com/BwCloudWeGo/bw-cli/pkg/httpx"
 )
@@ -28,12 +29,12 @@ type OrderHandler struct {
 }
 
 // NewOrderHandler builds a gateway handler with a default target that needs no config changes.
-func NewOrderHandler(log *zap.Logger) *OrderHandler {
+func NewOrderHandler(serviceCfg config.ServiceConfig, log *zap.Logger) *OrderHandler {
 	if log == nil {
 		log = zap.NewNop()
 	}
 	return &OrderHandler{
-		target: gatewayGRPCTarget(orderGatewayTargetEnv, orderGatewayDefaultTarget),
+		target: configuredGatewayGRPCTarget(orderGatewayTargetEnv, serviceCfg.Target, serviceCfg.Port),
 		log:    log,
 	}
 }

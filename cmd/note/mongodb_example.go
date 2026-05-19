@@ -60,10 +60,11 @@ func runMongoDocumentStoreExample(ctx context.Context, cfg *config.Config, log *
 	db := mongox.Database(mongoClient, cfg.MongoDB.Database)
 	examples := mongox.NewDocumentStore[noteMongoExampleDocument](db, log)
 	now := time.Now().UTC()
-	documentID := fmt.Sprintf("%s:mongox-example", cfg.App.NoteServiceName)
+	serviceName := cfg.ServiceName("note")
+	documentID := fmt.Sprintf("%s:mongox-example", serviceName)
 	document := &noteMongoExampleDocument{
 		ID:        documentID,
-		Service:   cfg.App.NoteServiceName,
+		Service:   serviceName,
 		Title:     "note mongodb example",
 		Content:   "created by mongox.DocumentStore UpsertByID",
 		CreatedAt: now,
@@ -91,7 +92,7 @@ func runMongoDocumentStoreExample(ctx context.Context, cfg *config.Config, log *
 	}
 
 	// Count：演示统计当前 note 服务写入的示例文档数量。
-	count, err := examples.Count(ctx, bson.M{"service": cfg.App.NoteServiceName})
+	count, err := examples.Count(ctx, bson.M{"service": serviceName})
 	if err != nil {
 		return nil, fmt.Errorf("count example documents: %w", err)
 	}

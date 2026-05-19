@@ -268,15 +268,20 @@ type Writer interface {
 
 // Producer wraps Kafka writing with a stable application API.
 type Producer struct {
-	writer Writer
+	writer         Writer
+	writerHasTopic bool
 }
 
 // NewProducer creates a high-level Kafka producer.
 func NewProducer(cfg Config) (*Producer, error) {
-	if _, err := cfg.Normalize(); err != nil {
+	normalized, err := cfg.Normalize()
+	if err != nil {
 		return nil, err
 	}
-	return NewProducerWithWriter(NewWriter(cfg)), nil
+	return &Producer{
+		writer:         NewWriter(normalized),
+		writerHasTopic: strings.TrimSpace(normalized.Topic) != "",
+	}, nil
 }
 
 // NewProducerWithWriter creates a producer from an existing writer.
@@ -286,7 +291,10 @@ func NewProducerWithWriter(writer Writer) *Producer {
 
 // Publish sends one business-facing message to Kafka.
 func (p *Producer) Publish(ctx context.Context, message Message) error {
-	return p.PublishRaw(ctx, toKafkaMessage(message))
+	if p == nil || p.writer == nil {
+		return errors.New("kafka producer writer is nil")
+	}
+	return p.writer.WriteMessages(ctx, toKafkaMessage(message, p.writerHasTopic))
 }
 
 // PublishRaw sends native kafka-go messages.
@@ -371,7 +379,7 @@ func (c *Consumer) Close() error {
 	return c.reader.Close()
 }
 
-func toKafkaMessage(message Message) kafka.Message {
+func toKafkaMessage(message Message, omitTopic bool) kafka.Message {
 	headers := make([]kafka.Header, 0, len(message.Headers))
 	keys := make([]string, 0, len(message.Headers))
 	for key := range message.Headers {
@@ -381,13 +389,17 @@ func toKafkaMessage(message Message) kafka.Message {
 	for _, key := range keys {
 		headers = append(headers, kafka.Header{Key: key, Value: []byte(message.Headers[key])})
 	}
-	return kafka.Message{
+	msg := kafka.Message{
 		Topic:   message.Topic,
 		Key:     []byte(message.Key),
 		Value:   message.Value,
 		Headers: headers,
 		Time:    message.Time,
 	}
+	if omitTopic {
+		msg.Topic = ""
+	}
+	return msg
 }
 
 func (cfg Config) transport() *kafka.Transport {

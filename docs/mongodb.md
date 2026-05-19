@@ -1015,7 +1015,7 @@ func TestRunMongoCollectionExampleUsesCurrentConfig(t *testing.T) {
     document, err := runMongoCollectionExample(context.Background(), cfg, zap.NewNop())
     require.NoError(t, err)
     require.NotNil(t, document)
-    require.Equal(t, cfg.App.NoteServiceName, document.Service)
+    require.Equal(t, cfg.ServiceName("note"), document.Service)
 }
 ```
 

@@ -28,7 +28,7 @@ func main() {
 		panic(err)
 	}
 	cfg := config.MustGlobal()
-	cfg.Log.Service = cfg.App.NoteServiceName
+	cfg.Log.Service = cfg.ServiceName("note")
 	cfg.Log = logger.WithDailyFileName(cfg.Log, time.Now())
 
 	log, err := logger.New(cfg.Log)
@@ -36,6 +36,7 @@ func main() {
 		panic(err)
 	}
 	defer log.Sync()
+	config.PrintSourceNotice(cfg, os.Stdout)
 
 	//  1. 实例化mongodb
 	mongoClient, err := mongox.NewClient(cfg.MongoDB.MongoxConfig())
@@ -56,7 +57,7 @@ func main() {
 	server := grpc.NewServer(grpc.UnaryInterceptor(grpcx.UnaryServerInterceptor(log)))
 	notev1.RegisterNoteServiceServer(server, notehandler.NewServer(svc, log))
 
-	addr := fmt.Sprintf("%s:%d", cfg.GRPC.Host, cfg.GRPC.NotePort)
+	addr := fmt.Sprintf("%s:%d", cfg.GRPC.Host, cfg.ServicePort("note", 9002))
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatal("listen failed", zap.String("addr", addr), zap.Error(err))

@@ -334,11 +334,17 @@ make run-order
 bw-cli service order --port 9103 --tidy
 ```
 
-端口不写入配置文件，而是固化在生成的 `cmd/order/main.go` 默认值里，也支持环境变量覆盖：
+命令会把服务配置写入 `configs/config.yaml`：
 
-```bash
-APP_ORDER_GRPC_PORT=9104 make run-order
+```yaml
+services:
+  order:
+    name: order-service
+    port: 9103
+    target: 127.0.0.1:9103
 ```
+
+需要修改端口时，直接修改 `services.order.port`。
 
 生成后的基础调用链已经成型：
 
@@ -378,7 +384,7 @@ PUT    /api/v1/orders/:id
 DELETE /api/v1/orders/:id
 ```
 
-gateway 默认连接生成服务端口，例如 `--port 9103` 时连接 `127.0.0.1:9103`；可用 `APP_ORDER_GRPC_TARGET` 覆盖，不需要改配置文件。
+gateway 默认读取 `services.order.target`，例如 `127.0.0.1:9103`；也可用 `APP_ORDER_GRPC_TARGET` 临时覆盖。
 
 生成后常用流程：
 
@@ -386,12 +392,6 @@ gateway 默认连接生成服务端口，例如 `--port 9103` 时连接 `127.0.0
 make proto
 make test
 make run-order
-```
-
-如果是 Windows PowerShell，覆盖服务端口时使用：
-
-```powershell
-$env:APP_ORDER_GRPC_PORT="9101"; make run-order
 ```
 
 ## 6. 项目目录说明

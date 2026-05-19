@@ -27,7 +27,7 @@ func main() {
 		panic(err)
 	}
 	cfg := config.MustGlobal()
-	cfg.Log.Service = cfg.App.UserServiceName
+	cfg.Log.Service = cfg.ServiceName("user")
 	cfg.Log = logger.WithDailyFileName(cfg.Log, time.Now())
 
 	log, err := logger.New(cfg.Log)
@@ -35,6 +35,7 @@ func main() {
 		panic(err)
 	}
 	defer log.Sync()
+	config.PrintSourceNotice(cfg, os.Stdout)
 
 	// Database.Open chooses SQLite, MySQL or PostgreSQL using the configured driver.
 	db, err := database.Open(cfg.Database, cfg.MySQL, cfg.PostgreSQL, log)
@@ -50,7 +51,7 @@ func main() {
 	server := grpc.NewServer(grpc.UnaryInterceptor(grpcx.UnaryServerInterceptor(log)))
 	userv1.RegisterUserServiceServer(server, userhandler.NewServer(svc, log))
 
-	addr := fmt.Sprintf("%s:%d", cfg.GRPC.Host, cfg.GRPC.UserPort)
+	addr := fmt.Sprintf("%s:%d", cfg.GRPC.Host, cfg.ServicePort("user", 9001))
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatal("listen failed", zap.String("addr", addr), zap.Error(err))

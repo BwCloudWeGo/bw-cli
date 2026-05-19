@@ -5,7 +5,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -25,14 +24,13 @@ import (
 
 const serviceName = "order-service"
 const defaultGRPCPort = 9100
-const grpcPortEnv = "APP_ORDER_GRPC_PORT"
 
 func main() {
 	if err := config.InitGlobal("configs/config.yaml"); err != nil {
 		panic(err)
 	}
 	cfg := config.MustGlobal()
-	cfg.Log.Service = serviceName
+	cfg.Log.Service = cfg.ServiceName("order")
 	cfg.Log = logger.WithDailyFileName(cfg.Log, time.Now())
 
 	log, err := logger.New(cfg.Log)
@@ -40,6 +38,7 @@ func main() {
 		panic(err)
 	}
 	defer log.Sync()
+	config.PrintSourceNotice(cfg, os.Stdout)
 
 	db, err := database.Open(cfg.Database, cfg.MySQL, cfg.PostgreSQL, log)
 	if err != nil {
@@ -54,7 +53,7 @@ func main() {
 	server := grpc.NewServer(grpc.UnaryInterceptor(grpcx.UnaryServerInterceptor(log)))
 	orderv1.RegisterOrderServiceServer(server, orderhandler.NewServer(svc, log))
 
-	port := grpcPort(defaultGRPCPort, log)
+	port := cfg.ServicePort("order", defaultGRPCPort)
 	addr := fmt.Sprintf("%s:%d", cfg.GRPC.Host, port)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -69,19 +68,6 @@ func main() {
 	}
 }
 
-func grpcPort(fallback int, log *zap.Logger) int {
-	value := strings.TrimSpace(os.Getenv(grpcPortEnv))
-	if value == "" {
-		return fallback
-	}
-	port, err := strconv.Atoi(value)
-	if err != nil || port <= 0 || port > 65535 {
-		log.Warn("invalid grpc port env, using fallback", zap.String("env", grpcPortEnv), zap.String("value", value), zap.Int("fallback", fallback))
-		return fallback
-	}
-	return port
-}
-
 func printStartupSummary(env string, addr string, port int) {
 	host := strings.Split(addr, ":")[0]
 	if host == "" || host == "0.0.0.0" {
@@ -92,7 +78,7 @@ func printStartupSummary(env string, addr string, port int) {
 	fmt.Fprintf(os.Stdout, "  env: %s\n", env)
 	fmt.Fprintf(os.Stdout, "  listen: %s\n", addr)
 	fmt.Fprintf(os.Stdout, "  grpc: %s:%d\n", host, port)
-	fmt.Fprintf(os.Stdout, "  port_env: %s\n\n", grpcPortEnv)
+	fmt.Fprintf(os.Stdout, "  config: services.order.port\n\n")
 }
 
 func shutdownOnSignal(server *grpc.Server, log *zap.Logger) {

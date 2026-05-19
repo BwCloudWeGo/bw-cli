@@ -27,17 +27,17 @@ make proto
 make run-order
 ~~~
 
-默认端口是 `9100`，可以通过环境变量覆盖：
+默认端口写在 `configs/config.yaml`：
 
-~~~bash
-export APP_ORDER_GRPC_PORT=9100
+~~~yaml
+services:
+  order:
+    name: order-service
+    port: 9100
+    target: 127.0.0.1:9100
 ~~~
 
-Windows PowerShell：
-
-~~~powershell
-$env:APP_ORDER_GRPC_PORT="9100"; make run-order
-~~~
+需要修改端口时，直接修改 `services.order.port`。如果启用了 Nacos，请同步到 Nacos 中的完整业务配置。
 
 ## 基础 CRUD
 
@@ -61,7 +61,7 @@ PUT    /api/v1/orders/:id
 DELETE /api/v1/orders/:id
 ~~~
 
-gateway 默认调用 `order-service` 的 `127.0.0.1:9100`，无需改配置。如需覆盖目标地址，设置：
+gateway 默认调用 `services.order.target`。如需临时覆盖目标地址，设置：
 
 ~~~bash
 export APP_ORDER_GRPC_TARGET=127.0.0.1:9100

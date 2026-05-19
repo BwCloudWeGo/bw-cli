@@ -1,6 +1,10 @@
 package config
 
 import (
+	"fmt"
+	"io"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,17 +19,25 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/middleware"
 	"github.com/BwCloudWeGo/bw-cli/pkg/mongox"
 	"github.com/BwCloudWeGo/bw-cli/pkg/mysqlx"
+	"github.com/BwCloudWeGo/bw-cli/pkg/nacosx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/postgresx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/redisx"
 )
 
+var remoteConfigLoader = nacosx.LoadConfig
+
+// Source identifies where the process loaded its application config from.
+type Source string
+
+const (
+	SourceLocal Source = "local"
+	SourceNacos Source = "nacos"
+)
+
 // AppConfig contains project and service identity values shared by all processes.
 type AppConfig struct {
-	Name               string `mapstructure:"name" yaml:"name"`
-	Env                string `mapstructure:"env" yaml:"env"`
-	GatewayServiceName string `mapstructure:"gateway_service_name" yaml:"gateway_service_name"`
-	UserServiceName    string `mapstructure:"user_service_name" yaml:"user_service_name"`
-	NoteServiceName    string `mapstructure:"note_service_name" yaml:"note_service_name"`
+	Name string `mapstructure:"name" yaml:"name"`
+	Env  string `mapstructure:"env" yaml:"env"`
 }
 
 // HTTPConfig controls the Gin gateway listener and server timeouts.
@@ -38,11 +50,14 @@ type HTTPConfig struct {
 
 // GRPCConfig controls gRPC server ports and gateway client targets.
 type GRPCConfig struct {
-	Host       string `mapstructure:"host" yaml:"host"`
-	UserPort   int    `mapstructure:"user_port" yaml:"user_port"`
-	NotePort   int    `mapstructure:"note_port" yaml:"note_port"`
-	UserTarget string `mapstructure:"user_target" yaml:"user_target"`
-	NoteTarget string `mapstructure:"note_target" yaml:"note_target"`
+	Host string `mapstructure:"host" yaml:"host"`
+}
+
+// ServiceConfig describes one process-level service instance.
+type ServiceConfig struct {
+	Name   string `mapstructure:"name" yaml:"name"`
+	Port   int    `mapstructure:"port" yaml:"port"`
+	Target string `mapstructure:"target" yaml:"target"`
 }
 
 // DatabaseConfig selects the active database driver used by demo services.
@@ -123,24 +138,95 @@ type MiddlewareConfig struct {
 
 // Config is the root application configuration loaded by each process.
 type Config struct {
-	App           AppConfig        `mapstructure:"app" yaml:"app"`
-	HTTP          HTTPConfig       `mapstructure:"http" yaml:"http"`
-	GRPC          GRPCConfig       `mapstructure:"grpc" yaml:"grpc"`
-	Database      DatabaseConfig   `mapstructure:"database" yaml:"database"`
-	MySQL         MySQLConfig      `mapstructure:"mysql" yaml:"mysql"`
-	PostgreSQL    PostgreSQLConfig `mapstructure:"postgresql" yaml:"postgresql"`
-	MongoDB       MongoDBConfig    `mapstructure:"mongodb" yaml:"mongodb"`
-	FileStorage   filex.Config     `mapstructure:"file_storage" yaml:"file_storage"`
-	Redis         redisx.Config    `mapstructure:"redis" yaml:"redis"`
-	Elasticsearch esx.Config       `mapstructure:"elasticsearch" yaml:"elasticsearch"`
-	Kafka         kafkax.Config    `mapstructure:"kafka" yaml:"kafka"`
-	Alipay        alipayx.Config   `mapstructure:"alipay" yaml:"alipay"`
-	Middleware    MiddlewareConfig `mapstructure:"middleware" yaml:"middleware"`
-	Log           logger.Config    `mapstructure:"log" yaml:"log"`
+	Source        Source                   `mapstructure:"-" yaml:"-"`
+	App           AppConfig                `mapstructure:"app" yaml:"app"`
+	HTTP          HTTPConfig               `mapstructure:"http" yaml:"http"`
+	GRPC          GRPCConfig               `mapstructure:"grpc" yaml:"grpc"`
+	Services      map[string]ServiceConfig `mapstructure:"services" yaml:"services"`
+	Database      DatabaseConfig           `mapstructure:"database" yaml:"database"`
+	MySQL         MySQLConfig              `mapstructure:"mysql" yaml:"mysql"`
+	PostgreSQL    PostgreSQLConfig         `mapstructure:"postgresql" yaml:"postgresql"`
+	MongoDB       MongoDBConfig            `mapstructure:"mongodb" yaml:"mongodb"`
+	FileStorage   filex.Config             `mapstructure:"file_storage" yaml:"file_storage"`
+	Redis         redisx.Config            `mapstructure:"redis" yaml:"redis"`
+	Elasticsearch esx.Config               `mapstructure:"elasticsearch" yaml:"elasticsearch"`
+	Kafka         kafkax.Config            `mapstructure:"kafka" yaml:"kafka"`
+	Alipay        alipayx.Config           `mapstructure:"alipay" yaml:"alipay"`
+	Nacos         nacosx.Config            `mapstructure:"nacos" yaml:"nacos"`
+	Middleware    MiddlewareConfig         `mapstructure:"middleware" yaml:"middleware"`
+	Log           logger.Config            `mapstructure:"log" yaml:"log"`
+}
+
+// Service returns a named service config with a predictable fallback.
+func (cfg *Config) Service(key string) ServiceConfig {
+	if cfg == nil {
+		return ServiceConfig{}
+	}
+	key = strings.TrimSpace(key)
+	if svc, ok := cfg.Services[key]; ok {
+		if svc.Name == "" {
+			svc.Name = key + "-service"
+		}
+		return svc
+	}
+	return ServiceConfig{Name: key + "-service"}
+}
+
+// ServiceName returns the configured service name for logs and observability.
+func (cfg *Config) ServiceName(key string) string {
+	return cfg.Service(key).Name
+}
+
+// ServicePort returns the configured service port, or fallback when unset.
+func (cfg *Config) ServicePort(key string, fallback int) int {
+	if port := cfg.Service(key).Port; port > 0 {
+		return port
+	}
+	return fallback
+}
+
+// ServiceTarget returns the configured gRPC target, or localhost:fallbackPort.
+func (cfg *Config) ServiceTarget(key string, fallbackPort int) string {
+	if target := strings.TrimSpace(cfg.Service(key).Target); target != "" {
+		return target
+	}
+	return "127.0.0.1:" + strconv.Itoa(cfg.ServicePort(key, fallbackPort))
+}
+
+// UsingNacos reports whether this process is running with config loaded from Nacos.
+func (cfg *Config) UsingNacos() bool {
+	return cfg != nil && cfg.Source == SourceNacos
+}
+
+// PrintSourceNotice writes a startup notice when runtime config comes from Nacos.
+func PrintSourceNotice(cfg *Config, out io.Writer) {
+	if cfg == nil || out == nil || !cfg.UsingNacos() {
+		return
+	}
+	nacos := cfg.Nacos
+	fmt.Fprintf(out, "\n[Config]\n")
+	fmt.Fprintf(out, "  source: nacos\n")
+	fmt.Fprintf(out, "  server: %s:%d\n", nacos.ServerAddr, nacos.ServerPort)
+	if strings.TrimSpace(nacos.NamespaceID) != "" {
+		fmt.Fprintf(out, "  namespace_id: %s\n", nacos.NamespaceID)
+	}
+	fmt.Fprintf(out, "  group: %s\n", nacos.Group)
+	fmt.Fprintf(out, "  data_id: %s\n\n", nacos.DataID)
 }
 
 // Load reads YAML configuration and applies APP_* environment overrides.
 func Load(path string) (*Config, error) {
+	nacosCfg, err := loadNacosConfig(path)
+	if err != nil {
+		return nil, err
+	}
+	if nacosCfg.Enabled {
+		return loadFromNacos(nacosCfg, path)
+	}
+	return loadFromLocal(path)
+}
+
+func loadFromLocal(path string) (*Config, error) {
 	v := viper.New()
 	v.SetConfigType("yaml")
 	v.SetEnvPrefix("APP")
@@ -162,31 +248,101 @@ func Load(path string) (*Config, error) {
 	}
 
 	var cfg Config
-	if err := v.Unmarshal(&cfg, viper.DecodeHook(mapstructure.ComposeDecodeHookFunc(
+	if err := v.Unmarshal(&cfg, viper.DecodeHook(decodeHook())); err != nil {
+		return nil, err
+	}
+	cfg.Source = SourceLocal
+	return &cfg, nil
+}
+
+func loadFromNacos(nacosCfg nacosx.Config, fallbackPath string) (*Config, error) {
+	remoteYAML, err := remoteConfigLoader(nacosCfg)
+	if err != nil {
+		if nacosCfg.FailFast {
+			return nil, fmt.Errorf("load nacos config: %w", err)
+		}
+		return loadFromLocal(fallbackPath)
+	}
+	if strings.TrimSpace(remoteYAML) == "" {
+		if nacosCfg.FailFast {
+			return nil, fmt.Errorf("load nacos config: empty config data")
+		}
+		return loadFromLocal(fallbackPath)
+	}
+	v := viper.New()
+	v.SetConfigType("yaml")
+	v.SetEnvPrefix("APP")
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
+	setDefaults(v)
+	if err := v.ReadConfig(strings.NewReader(remoteYAML)); err != nil {
+		return nil, fmt.Errorf("parse nacos config: %w", err)
+	}
+	var cfg Config
+	if err := v.Unmarshal(&cfg, viper.DecodeHook(decodeHook())); err != nil {
+		return nil, err
+	}
+	cfg.Source = SourceNacos
+	cfg.Nacos = nacosCfg
+	return &cfg, nil
+}
+
+func loadNacosConfig(configPath string) (nacosx.Config, error) {
+	v := viper.New()
+	v.SetConfigType("yaml")
+	v.SetEnvPrefix("NACOS")
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
+	setNacosDefaults(v)
+	if configPath != "" {
+		v.SetConfigFile(filepath.Join(filepath.Dir(configPath), "nacos.yaml"))
+	} else {
+		v.SetConfigName("nacos")
+		v.AddConfigPath("configs")
+		v.AddConfigPath(".")
+	}
+	if err := v.ReadInConfig(); err != nil {
+		if !isConfigFileNotFound(err) {
+			return nacosx.Config{}, err
+		}
+	}
+	var cfg nacosx.Config
+	if err := v.Unmarshal(&cfg, viper.DecodeHook(decodeHook())); err != nil {
+		return nacosx.Config{}, err
+	}
+	return nacosx.WithDefaults(cfg), nil
+}
+
+func isConfigFileNotFound(err error) bool {
+	if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+		return true
+	}
+	return strings.Contains(err.Error(), "no such file or directory")
+}
+
+func decodeHook() mapstructure.DecodeHookFunc {
+	return mapstructure.ComposeDecodeHookFunc(
 		mapstructure.StringToTimeDurationHookFunc(),
 		mapstructure.StringToSliceHookFunc(","),
 		mapstructure.TextUnmarshallerHookFunc(),
-	))); err != nil {
-		return nil, err
-	}
-	return &cfg, nil
+	)
 }
 
 func setDefaults(v *viper.Viper) {
 	v.SetDefault("app.name", "xiaolanshu")
 	v.SetDefault("app.env", "local")
-	v.SetDefault("app.gateway_service_name", "gateway")
-	v.SetDefault("app.user_service_name", "user-service")
-	v.SetDefault("app.note_service_name", "note-service")
 	v.SetDefault("http.host", "0.0.0.0")
 	v.SetDefault("http.port", 8080)
 	v.SetDefault("http.read_timeout_seconds", 5)
 	v.SetDefault("http.write_timeout_seconds", 10)
 	v.SetDefault("grpc.host", "0.0.0.0")
-	v.SetDefault("grpc.user_port", 9001)
-	v.SetDefault("grpc.note_port", 9002)
-	v.SetDefault("grpc.user_target", "127.0.0.1:9001")
-	v.SetDefault("grpc.note_target", "127.0.0.1:9002")
+	v.SetDefault("services.gateway.name", "gateway")
+	v.SetDefault("services.user.name", "user-service")
+	v.SetDefault("services.user.port", 9001)
+	v.SetDefault("services.user.target", "127.0.0.1:9001")
+	v.SetDefault("services.note.name", "note-service")
+	v.SetDefault("services.note.port", 9002)
+	v.SetDefault("services.note.target", "127.0.0.1:9002")
 	v.SetDefault("database.driver", "sqlite")
 	v.SetDefault("database.dsn", "data/xiaolanshu.db")
 	v.SetDefault("mysql.dsn", mysqlx.DefaultConfig().DSN)
@@ -289,4 +445,21 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("log.file.max_backups", 14)
 	v.SetDefault("log.file.max_age_days", 7)
 	v.SetDefault("log.file.compress", true)
+}
+
+func setNacosDefaults(v *viper.Viper) {
+	v.SetDefault("enabled", nacosx.DefaultConfig().Enabled)
+	v.SetDefault("server_addr", nacosx.DefaultConfig().ServerAddr)
+	v.SetDefault("server_port", nacosx.DefaultConfig().ServerPort)
+	v.SetDefault("namespace_id", nacosx.DefaultConfig().NamespaceID)
+	v.SetDefault("group", nacosx.DefaultConfig().Group)
+	v.SetDefault("data_id", nacosx.DefaultConfig().DataID)
+	v.SetDefault("username", nacosx.DefaultConfig().Username)
+	v.SetDefault("password", nacosx.DefaultConfig().Password)
+	v.SetDefault("timeout_ms", nacosx.DefaultConfig().TimeoutMs)
+	v.SetDefault("log_dir", nacosx.DefaultConfig().LogDir)
+	v.SetDefault("cache_dir", nacosx.DefaultConfig().CacheDir)
+	v.SetDefault("log_level", nacosx.DefaultConfig().LogLevel)
+	v.SetDefault("fail_fast", nacosx.DefaultConfig().FailFast)
+	v.SetDefault("watch", nacosx.DefaultConfig().Watch)
 }

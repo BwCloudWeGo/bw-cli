@@ -88,7 +88,7 @@ func New(cfg Config) (*zap.Logger, error) {
 		encoder = zapcore.NewJSONEncoder(encoderCfg)
 	}
 
-	core := zapcore.NewCore(encoder, zapcore.AddSync(writer(cfg.File)), level)
+	core := zapcore.NewCore(encoder, writer(cfg.File), level)
 	log := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 	return log.With(
 		zap.String("service", cfg.Service),
@@ -97,14 +97,22 @@ func New(cfg Config) (*zap.Logger, error) {
 }
 
 func writer(cfg FileConfig) zapcore.WriteSyncer {
-	if !cfg.Enabled {
-		return zapcore.AddSync(os.Stdout)
+	return writerWithConsole(cfg, zapcore.AddSync(os.Stdout))
+}
+
+func writerWithConsole(cfg FileConfig, console zapcore.WriteSyncer) zapcore.WriteSyncer {
+	if console == nil {
+		console = zapcore.AddSync(os.Stdout)
 	}
-	return zapcore.AddSync(&lumberjack.Logger{
+	if !cfg.Enabled {
+		return console
+	}
+	file := zapcore.AddSync(&lumberjack.Logger{
 		Filename:   cfg.Filename,
 		MaxSize:    cfg.MaxSizeMB,
 		MaxBackups: cfg.MaxBackups,
 		MaxAge:     cfg.MaxAgeDays,
 		Compress:   cfg.Compress,
 	})
+	return zapcore.NewMultiWriteSyncer(console, file)
 }

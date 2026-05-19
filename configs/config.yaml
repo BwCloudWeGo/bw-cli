@@ -1,9 +1,6 @@
 app:
   name: xiaolanshu
   env: local
-  gateway_service_name: gateway
-  user_service_name: user-service
-  note_service_name: note-service
 
 http:
   host: 0.0.0.0
@@ -13,10 +10,22 @@ http:
 
 grpc:
   host: 0.0.0.0
-  user_port: 9001
-  note_port: 9002
-  user_target: 127.0.0.1:9001
-  note_target: 127.0.0.1:9002
+
+services:
+  gateway:
+    name: gateway
+  user:
+    name: user-service
+    port: 9001
+    target: 127.0.0.1:9001
+  note:
+    name: note-service
+    port: 9002
+    target: 127.0.0.1:9002
+  order:
+    name: order-service
+    port: 9100
+    target: 127.0.0.1:9100
 
 database:
   driver: mysql
