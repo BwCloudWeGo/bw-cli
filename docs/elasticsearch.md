@@ -22,16 +22,6 @@ elasticsearch:
     - http://127.0.0.1:9200
 ```
 
-环境变量：
-
-```bash
-export APP_ELASTICSEARCH_ADDRESSES='https://es.example.com:9200'
-export APP_ELASTICSEARCH_USERNAME='elastic'
-export APP_ELASTICSEARCH_PASSWORD='replace-with-real-password'
-export APP_ELASTICSEARCH_CLOUD_ID='deployment:cloud-id'
-export APP_ELASTICSEARCH_API_KEY='base64-api-key'
-```
-
 ## 初始化
 
 ```go

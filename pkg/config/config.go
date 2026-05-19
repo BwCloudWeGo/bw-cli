@@ -92,7 +92,7 @@ func (cfg PostgreSQLConfig) ConnMaxLifetime() time.Duration {
 	return time.Duration(cfg.ConnMaxLifetimeSeconds) * time.Second
 }
 
-// MongoDBConfig contains MongoDB client, database and pool settings loaded from YAML/env.
+// MongoDBConfig contains MongoDB client, database and pool settings loaded from YAML.
 type MongoDBConfig struct {
 	URI                           string `mapstructure:"uri" yaml:"uri"`
 	Username                      string `mapstructure:"username" yaml:"username"`
@@ -115,7 +115,7 @@ func (cfg MongoDBConfig) ServerSelectionTimeout() time.Duration {
 	return time.Duration(cfg.ServerSelectionTimeoutSeconds) * time.Second
 }
 
-// MongoxConfig converts YAML/env configuration into the shared MongoDB client config.
+// MongoxConfig converts YAML configuration into the shared MongoDB client config.
 func (cfg MongoDBConfig) MongoxConfig() mongox.Config {
 	return mongox.Config{
 		URI:                    cfg.URI,
@@ -130,7 +130,7 @@ func (cfg MongoDBConfig) MongoxConfig() mongox.Config {
 	}
 }
 
-// MiddlewareConfig groups HTTP middleware configuration loaded from YAML/env.
+// MiddlewareConfig groups HTTP middleware configuration loaded from YAML.
 type MiddlewareConfig struct {
 	CORS middleware.CORSConfig `mapstructure:"cors" yaml:"cors"`
 	JWT  middleware.JWTConfig  `mapstructure:"jwt" yaml:"jwt"`
@@ -185,12 +185,16 @@ func (cfg *Config) ServicePort(key string, fallback int) int {
 	return fallback
 }
 
-// ServiceTarget returns the configured gRPC target, or localhost:fallbackPort.
-func (cfg *Config) ServiceTarget(key string, fallbackPort int) string {
-	if target := strings.TrimSpace(cfg.Service(key).Target); target != "" {
+// ServiceTarget returns the configured gRPC target, or localhost:<configured port>.
+func (cfg *Config) ServiceTarget(key string) string {
+	svc := cfg.Service(key)
+	if target := strings.TrimSpace(svc.Target); target != "" {
 		return target
 	}
-	return "127.0.0.1:" + strconv.Itoa(cfg.ServicePort(key, fallbackPort))
+	if svc.Port > 0 {
+		return "127.0.0.1:" + strconv.Itoa(svc.Port)
+	}
+	return ""
 }
 
 // UsingNacos reports whether this process is running with config loaded from Nacos.
@@ -214,7 +218,7 @@ func PrintSourceNotice(cfg *Config, out io.Writer) {
 	fmt.Fprintf(out, "  data_id: %s\n\n", nacos.DataID)
 }
 
-// Load reads YAML configuration and applies APP_* environment overrides.
+// Load reads YAML configuration from local files or Nacos.
 func Load(path string) (*Config, error) {
 	nacosCfg, err := loadNacosConfig(path)
 	if err != nil {
@@ -229,9 +233,6 @@ func Load(path string) (*Config, error) {
 func loadFromLocal(path string) (*Config, error) {
 	v := viper.New()
 	v.SetConfigType("yaml")
-	v.SetEnvPrefix("APP")
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	v.AutomaticEnv()
 
 	setDefaults(v)
 	if path != "" {
@@ -271,9 +272,6 @@ func loadFromNacos(nacosCfg nacosx.Config, fallbackPath string) (*Config, error)
 	}
 	v := viper.New()
 	v.SetConfigType("yaml")
-	v.SetEnvPrefix("APP")
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	v.AutomaticEnv()
 	setDefaults(v)
 	if err := v.ReadConfig(strings.NewReader(remoteYAML)); err != nil {
 		return nil, fmt.Errorf("parse nacos config: %w", err)
@@ -290,9 +288,6 @@ func loadFromNacos(nacosCfg nacosx.Config, fallbackPath string) (*Config, error)
 func loadNacosConfig(configPath string) (nacosx.Config, error) {
 	v := viper.New()
 	v.SetConfigType("yaml")
-	v.SetEnvPrefix("NACOS")
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	v.AutomaticEnv()
 	setNacosDefaults(v)
 	if configPath != "" {
 		v.SetConfigFile(filepath.Join(filepath.Dir(configPath), "nacos.yaml"))

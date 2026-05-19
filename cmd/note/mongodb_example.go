@@ -35,9 +35,7 @@ func (noteMongoExampleDocument) MongoCollectionName() string {
 // 并通过公共 mongox.DocumentStore 类完成一次完整的数据操作。
 //
 // 这个函数不会在 main 中自动执行，避免服务每次启动都写入示例数据。
-// 本地验证时可以执行：
-//
-//	APP_RUN_NOTE_MONGODB_EXAMPLE=true go test ./cmd/note -run TestRunMongoDocumentStoreExampleUsesCurrentConfig -v
+// 本地验证时可以按需编写临时测试调用该函数。
 func runMongoDocumentStoreExample(ctx context.Context, cfg *config.Config, log *zap.Logger) (*noteMongoExampleDocument, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is nil")

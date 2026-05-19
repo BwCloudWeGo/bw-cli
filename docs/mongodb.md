@@ -136,7 +136,7 @@ cd test_cli
 
 ## 4. 准备 MongoDB 连接
 
-你只需要准备一个当前机器可以访问的 MongoDB 实例，然后把连接信息写入 `configs/config.yaml`：
+你只需要准备一个当前机器可以访问的 MongoDB 实例，然后把连接信息写入当前配置来源。默认写入 `configs/config.yaml`；启用 Nacos 后，同步到 Nacos 中的完整业务 YAML：
 
 ```yaml
 mongodb:
@@ -528,20 +528,16 @@ defer func() {
 }()
 ```
 
-note 服务还提供了一个可手动运行的 MongoDB 操作示例：
+note 服务还提供了一个可手动运行的 MongoDB 操作示例，示例代码位于 `cmd/note/mongodb_example.go`。
 
-```bash
-APP_RUN_NOTE_MONGODB_EXAMPLE=true go test ./cmd/note -run TestRunMongoCollectionExampleUsesCurrentConfig -v
-```
-
-这个示例会读取当前仓库的 `configs/config.yaml`，使用其中的 `mongodb.uri`、`mongodb.username`、`mongodb.password` 和 `mongodb.database` 创建客户端，然后通过 `mongox.NewCollection[T]` 对 `note_mongodb_examples` 集合执行：
+这个示例会读取当前配置来源中的 `mongodb.uri`、`mongodb.username`、`mongodb.password` 和 `mongodb.database` 创建客户端，然后通过 `mongox.NewCollection[T]` 对 `note_mongodb_examples` 集合执行：
 
 1. `UpsertByID` 写入或替换示例文档。
 2. `FindByID` 按 `_id` 查询示例文档。
 3. `UpdateOne` 局部更新示例文档。
 4. `Count` 统计当前 note 服务的示例文档数量。
 
-示例代码位于 `cmd/note/mongodb_example.go`。默认测试不会连接真实 MongoDB，只有显式设置 `APP_RUN_NOTE_MONGODB_EXAMPLE=true` 才会执行数据写入。
+默认测试不会连接真实 MongoDB，避免普通 `go test ./...` 写入外部数据库。
 
 ## 11. DDD 中 MongoDB 代码应该放在哪里
 
@@ -981,7 +977,7 @@ return err
 
 ## 23. 写一个集成测试
 
-MongoDB 集成测试依赖本地服务，不应该默认强制运行。推荐用显式开关控制。
+MongoDB 集成测试依赖本地服务，不应该默认强制运行。推荐默认跳过，需要联调时再按团队约定打开。
 
 文件：`cmd/note/mongodb_example_test.go`
 
@@ -990,7 +986,6 @@ package main
 
 import (
     "context"
-    "os"
     "path/filepath"
     "testing"
 
@@ -1001,9 +996,7 @@ import (
 )
 
 func TestRunMongoCollectionExampleUsesCurrentConfig(t *testing.T) {
-    if os.Getenv("APP_RUN_NOTE_MONGODB_EXAMPLE") != "true" {
-        t.Skip("set APP_RUN_NOTE_MONGODB_EXAMPLE=true to run this MongoDB example against configs/config.yaml")
-    }
+    t.Skip("enable manually when configs/config.yaml points to a test MongoDB")
 
     previous := config.GlobalConfig
     defer func() { config.GlobalConfig = previous }()
@@ -1017,13 +1010,6 @@ func TestRunMongoCollectionExampleUsesCurrentConfig(t *testing.T) {
     require.NotNil(t, document)
     require.Equal(t, cfg.ServiceName("note"), document.Service)
 }
-```
-
-运行：
-
-```bash
-export APP_RUN_NOTE_MONGODB_EXAMPLE=true
-go test ./cmd/note -run TestRunMongoCollectionExampleUsesCurrentConfig -v
 ```
 
 运行前确认 `configs/config.yaml` 中的 `mongodb.*` 已经指向可访问的 MongoDB。

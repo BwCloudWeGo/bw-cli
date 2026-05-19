@@ -6,7 +6,7 @@
 
 | 包 | 能力 | 典型使用位置 |
 | --- | --- | --- |
-| `pkg/config` | YAML 配置加载、环境变量覆盖、默认值 | `cmd/*/main.go` |
+| `pkg/config` | 本地 YAML / Nacos 配置加载和默认值 | `cmd/*/main.go` |
 | `pkg/logger` | Zap 结构化日志、按日期命名、Lumberjack 轮转 | 所有进程入口 |
 | `pkg/errors` | 业务错误码、HTTP/gRPC 状态映射 | `model/service/handler` |
 | `pkg/httpx` | HTTP 统一响应结构 | Gin handler |
@@ -73,9 +73,9 @@ make test
 
 调用流程：
 
-1. 在 `configs/config.yaml` 写入默认配置。
-2. 用 `APP_` 前缀环境变量覆盖敏感值或环境差异值。
-3. 进程启动时调用 `config.InitGlobal`。
+1. 默认把业务配置写在 `configs/config.yaml`。
+2. 如需启用 Nacos，先把完整 `configs/config.yaml` 复制到 Nacos，再打开 `configs/nacos.yaml` 的 `enabled`。
+3. 进程启动时调用 `config.InitGlobal`，由框架按开关选择本地 YAML 或 Nacos。
 4. 通过 `config.MustGlobal()` 获取全局配置，再传给日志、数据库、中间件、文件上传等初始化函数。
 
 示例：
@@ -85,20 +85,6 @@ if err := config.InitGlobal("configs/config.yaml"); err != nil {
     panic(err)
 }
 cfg := config.MustGlobal()
-```
-
-环境变量覆盖规则：
-
-```text
-APP_ + 配置路径大写 + 下划线
-```
-
-示例：
-
-```bash
-export APP_HTTP_PORT=8081
-export APP_DATABASE_DRIVER=postgres
-export APP_FILE_STORAGE_PROVIDER=minio
 ```
 
 ## 4. 日志：`pkg/logger`
@@ -177,11 +163,8 @@ token, err := middleware.GenerateToken(cfg.Middleware.JWT, middleware.JWTClaims{
 claims := middleware.ClaimsFromContext(c)
 ```
 
-JWT 密钥必须通过配置或环境变量提供：
+JWT 密钥必须通过 `configs/config.yaml` 的 `middleware.jwt.secret` 提供。
 
-```bash
-export APP_MIDDLEWARE_JWT_SECRET='replace-with-real-secret'
-```
 
 ## 6. HTTP 响应和错误：`pkg/httpx`、`pkg/errors`
 
@@ -229,7 +212,7 @@ server := grpc.NewServer(
 ```go
 conn, err := grpc.DialContext(
     ctx,
-    cfg.ServiceTarget("user", 9001),
+    cfg.ServiceTarget("user"),
     grpc.WithTransportCredentials(insecure.NewCredentials()),
     grpc.WithUnaryInterceptor(grpcx.UnaryClientInterceptor(requestID)),
 )
@@ -263,25 +246,11 @@ postgresql
 pg
 ```
 
-MySQL 环境变量示例：
-
-```bash
-export APP_DATABASE_DRIVER=mysql
-export APP_MYSQL_DSN='user:password@tcp(mysql.example.com:3306)/app?charset=utf8mb4&parseTime=True&loc=Local'
-```
-
-PostgreSQL 环境变量示例：
-
-```bash
-export APP_DATABASE_DRIVER=postgres
-export APP_POSTGRESQL_DSN='host=postgres.example.com user=app password=replace-with-real-password dbname=app port=5432 sslmode=require TimeZone=Asia/Shanghai'
-```
-
 独立使用 MySQL：
 
 ```go
 cfg := mysqlx.DefaultConfig()
-cfg.DSN = os.Getenv("APP_MYSQL_DSN")
+cfg.DSN = ""
 db, err := mysqlx.Open(cfg)
 ```
 
@@ -289,7 +258,7 @@ db, err := mysqlx.Open(cfg)
 
 ```go
 cfg := postgresx.DefaultConfig()
-cfg.DSN = os.Getenv("APP_POSTGRESQL_DSN")
+cfg.DSN = ""
 db, err := postgresx.Open(cfg)
 ```
 
@@ -297,7 +266,7 @@ db, err := postgresx.Open(cfg)
 
 调用流程：
 
-1. 在 `configs/config.yaml` 中配置 `mongodb.*`。
+1. 在当前配置来源中配置 `mongodb.*`。默认来源是 `configs/config.yaml`，启用 Nacos 后来源是 Nacos 中的完整业务 YAML。
 2. 进程启动时调用 `mongox.NewClient`。
 3. 调用 `mongox.Ping` 验证连接。
 4. 使用 `mongox.Database` 获取业务数据库。
@@ -634,14 +603,6 @@ file_storage:
     - .aac
 ```
 
-常用环境变量：
-
-```bash
-export APP_FILE_STORAGE_PROVIDER=minio
-export APP_FILE_STORAGE_MAX_SIZE_MB=100
-export APP_FILE_STORAGE_OBJECT_PREFIX=uploads
-export APP_FILE_STORAGE_PUBLIC_BASE_URL='https://cdn.example.com'
-```
 
 ### 13.2 MinIO 配置
 
@@ -657,16 +618,6 @@ file_storage:
     use_ssl: false
 ```
 
-环境变量：
-
-```bash
-export APP_FILE_STORAGE_PROVIDER=minio
-export APP_FILE_STORAGE_MINIO_ENDPOINT='127.0.0.1:9000'
-export APP_FILE_STORAGE_MINIO_ACCESS_KEY_ID='replace-with-real-access-key'
-export APP_FILE_STORAGE_MINIO_SECRET_ACCESS_KEY='replace-with-real-secret-key'
-export APP_FILE_STORAGE_MINIO_BUCKET='app-files'
-export APP_FILE_STORAGE_MINIO_USE_SSL=false
-```
 
 ### 13.3 阿里云 OSS 配置
 
@@ -680,15 +631,6 @@ file_storage:
     bucket: ""
 ```
 
-环境变量：
-
-```bash
-export APP_FILE_STORAGE_PROVIDER=oss
-export APP_FILE_STORAGE_OSS_ENDPOINT='https://oss-cn-hangzhou.aliyuncs.com'
-export APP_FILE_STORAGE_OSS_ACCESS_KEY_ID='replace-with-real-access-key'
-export APP_FILE_STORAGE_OSS_ACCESS_KEY_SECRET='replace-with-real-secret-key'
-export APP_FILE_STORAGE_OSS_BUCKET='app-files'
-```
 
 ### 13.4 七牛云 Kodo 配置
 
@@ -704,16 +646,6 @@ file_storage:
     use_cdn_domains: false
 ```
 
-环境变量：
-
-```bash
-export APP_FILE_STORAGE_PROVIDER=qiniu
-export APP_FILE_STORAGE_QINIU_ACCESS_KEY='replace-with-real-access-key'
-export APP_FILE_STORAGE_QINIU_SECRET_KEY='replace-with-real-secret-key'
-export APP_FILE_STORAGE_QINIU_BUCKET='app-files'
-export APP_FILE_STORAGE_QINIU_REGION='z0'
-export APP_FILE_STORAGE_QINIU_USE_HTTPS=true
-```
 
 ### 13.5 腾讯云 COS 配置
 
@@ -728,21 +660,9 @@ file_storage:
     bucket_url: ""
 ```
 
-环境变量：
-
-```bash
-export APP_FILE_STORAGE_PROVIDER=cos
-export APP_FILE_STORAGE_COS_SECRET_ID='replace-with-real-secret-id'
-export APP_FILE_STORAGE_COS_SECRET_KEY='replace-with-real-secret-key'
-export APP_FILE_STORAGE_COS_BUCKET='app-files-1250000000'
-export APP_FILE_STORAGE_COS_REGION='ap-guangzhou'
-```
 
 如果使用自定义 bucket 域名：
 
-```bash
-export APP_FILE_STORAGE_COS_BUCKET_URL='https://app-files-1250000000.cos.ap-guangzhou.myqcloud.com'
-```
 
 ### 13.6 直接调用上传接口
 
@@ -870,16 +790,6 @@ alipay:
   alipay_cert_public_key_path: "configs/certs/alipayCertPublicKey_RSA2.crt"
 ```
 
-常用环境变量：
-
-```bash
-export APP_ALIPAY_APP_ID='2021000000000000'
-export APP_ALIPAY_PRIVATE_KEY='-----BEGIN PRIVATE KEY-----...'
-export APP_ALIPAY_ALIPAY_PUBLIC_KEY='-----BEGIN PUBLIC KEY-----...'
-export APP_ALIPAY_PRODUCTION=false
-export APP_ALIPAY_NOTIFY_URL='https://api.example.com/payments/alipay/notify'
-export APP_ALIPAY_RETURN_URL='https://www.example.com/orders/alipay/return'
-```
 
 普通公钥模式和证书模式二选一，不要同时配置 `alipay_public_key` 和证书路径。
 

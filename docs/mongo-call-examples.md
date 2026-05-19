@@ -50,7 +50,7 @@ mongodb:
   server_selection_timeout_seconds: 5
 ```
 
-脚手架默认从配置文件读取 MongoDB 连接信息。启用账号密码时，直接填写 `username`、`password`、`database` 等配置项即可；服务启动后会通过 `cfg.MongoDB.MongoxConfig()` 统一转换成 `mongox.Config`。
+脚手架从当前配置来源读取 MongoDB 连接信息。默认来源是 `configs/config.yaml`；启用 Nacos 后，来源是 Nacos 中的完整业务 YAML。启用账号密码时，直接填写 `username`、`password`、`database` 等配置项即可；服务启动后会通过 `cfg.MongoDB.MongoxConfig()` 统一转换成 `mongox.Config`。
 
 配置读取链路：
 
@@ -630,13 +630,7 @@ require.Equal(t, note.Title, store.upsertDocument.Title)
 
 ## 11. 本地真实 MongoDB 联调
 
-默认测试不会连接真实 MongoDB。note 服务提供了一个显式开关的联调示例：
-
-```bash
-export APP_RUN_NOTE_MONGODB_EXAMPLE=true
-
-go test ./cmd/note -run TestRunMongoDocumentStoreExampleUsesCurrentConfig -v
-```
+默认测试不会连接真实 MongoDB。note 服务提供的联调示例位于 `cmd/note/mongodb_example.go`。
 
 运行前请先确认 `configs/config.yaml` 中的 `mongodb.*` 可以连接到本地或测试环境 MongoDB。这个测试会读取当前配置，调用 `cmd/note/mongodb_example.go`，对 `note_mongodb_examples` 集合执行：
 
@@ -646,7 +640,7 @@ go test ./cmd/note -run TestRunMongoDocumentStoreExampleUsesCurrentConfig -v
 4. `Count` 统计当前服务示例文档数量。
 5. 再次 `FindByID` 返回最终文档。
 
-如果没有设置 `APP_RUN_NOTE_MONGODB_EXAMPLE=true`，测试会自动跳过，不影响普通 `go test ./...`。
+普通 `go test ./...` 不会写入外部 MongoDB。
 
 ## 12. 常见错误
 

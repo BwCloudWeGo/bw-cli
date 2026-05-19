@@ -1,9 +1,9 @@
-enabled: true
-server_addr: 115.190.209.14
+enabled: false
+server_addr: 127.0.0.1
 server_port: 8848
-namespace_id: "b612b5b7-54de-4d44-b6d6-64d6091b2ea4"
-group: dev
-data_id: e2da04d1-be5b-4c87-8768-a95c948dfbde
+namespace_id: ""
+group: DEFAULT_GROUP
+data_id: xiaolanshu.yaml
 username: ""
 password: ""
 timeout_ms: 5000

@@ -16,6 +16,10 @@ import (
 const defaultServicePort = 9100
 
 var serviceNamePattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_-]*$`)
+var legacyGatewayTargetPattern = regexp.MustCompile(`(?s)\nfunc ` + `gateway` + `GRPC` + `Target` + `\(envName string, fallback string\) string \{\s*value := strings\.TrimSpace\(os\.Get` + `env\(envName\)\)\s*if value == "" \{\s*return fallback\s*\}\s*return value\s*\}\s*`)
+var legacyServiceTargetFallbackPattern = regexp.MustCompile(`cfg\.ServiceTarget\("([^"]+)",\s*[0-9]+\)`)
+var gatewayClientDialPattern = regexp.MustCompile(`(?m)^\t([A-Za-z]\w*)Conn, err := grpc\.Dial`)
+var gatewayClientConnsPattern = regexp.MustCompile(`conns:\s+\[\]\*grpc\.ClientConn\{([^}]*)\}`)
 
 // ServiceOptions controls bw-cli service generation inside an existing project.
 type ServiceOptions struct {
@@ -38,7 +42,6 @@ type serviceTemplateData struct {
 	GoIdent      string
 	Pascal       string
 	ServiceName  string
-	EnvPrefix    string
 	Port         int
 	TableName    string
 }
@@ -138,7 +141,6 @@ func buildServiceTemplateData(module string, rawName string, port int) (serviceT
 		GoIdent:      lowerFirst(pascal),
 		Pascal:       pascal,
 		ServiceName:  strings.Join(parts, "-") + "-service",
-		EnvPrefix:    strings.ToUpper(strings.Join(parts, "_")),
 		Port:         port,
 		TableName:    dir + "s",
 	}, nil
@@ -236,6 +238,10 @@ func writeGatewayServiceFiles(root string, data serviceTemplateData) error {
 	if err := ensureGatewayCommonFile(commonPath, data); err != nil {
 		return err
 	}
+	clientsPath := filepath.Join(root, "internal", "gateway", "client", "clients.go")
+	if err := ensureGatewayClientsFile(clientsPath, data); err != nil {
+		return err
+	}
 	files := map[string]string{
 		filepath.Join("internal", "gateway", "request", data.Dir+"_request.go"): renderServiceTemplate(gatewayRequestTemplate, data),
 		filepath.Join("internal", "gateway", "handler", data.Dir+"_handler.go"): renderServiceTemplate(gatewayHandlerTemplate, data),
@@ -261,13 +267,79 @@ func ensureGatewayCommonFile(path string, data serviceTemplateData) error {
 		return err
 	}
 	text := string(content)
-	if strings.Contains(text, "func gatewayGRPCTarget") {
+	if strings.Contains(text, "func "+"configuredGateway"+"GRPCTarget") {
 		return nil
 	}
-	text = ensureImport(text, "\"os\"")
-	text = ensureImport(text, "\"strings\"")
-	text = strings.TrimRight(text, "\n") + "\n\n" + gatewayTargetFunction
+	if legacyGatewayTargetPattern.MatchString(text) {
+		text = legacyGatewayTargetPattern.ReplaceAllString(text, "\n")
+		text = removeImport(text, "\"os\"")
+		return os.WriteFile(path, []byte(text), 0o644)
+	}
+	return nil
+}
+
+func ensureGatewayClientsFile(path string, data serviceTemplateData) error {
+	if !exists(path) {
+		return writeNewFile(path, []byte(renderServiceTemplate(gatewayClientsTemplate, data)))
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	text := string(content)
+	text = legacyServiceTargetFallbackPattern.ReplaceAllString(text, `cfg.ServiceTarget("$1")`)
+	field := fmt.Sprintf("\t%s  %s.%sServiceClient\n", data.Pascal, data.GoPackage, data.Pascal)
+	if strings.Contains(text, field) {
+		return nil
+	}
+
+	text = ensureImport(text, fmt.Sprintf("%s %q", data.GoPackage, data.Module+"/api/gen/"+data.Dir+"/v1"))
+	text = strings.Replace(text, "type Clients struct {\n", "type Clients struct {\n"+field, 1)
+
+	targetLine := fmt.Sprintf("\t%sTarget := cfg.ServiceTarget(%q)\n", data.GoIdent, data.Dir)
+	if loc := gatewayClientDialPattern.FindStringIndex(text); loc != nil {
+		text = text[:loc[0]] + targetLine + text[loc[0]:]
+	}
+
+	existingConnNames := gatewayClientConnNames(text)
+	dialBlock := fmt.Sprintf("\t%sConn, err := grpc.Dial(%sTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))\n\tif err != nil {\n%s\t\treturn nil, fmt.Errorf(\"dial %s service: %%w\", err)\n\t}\n", data.GoIdent, data.GoIdent, closeConnLines(existingConnNames), data.Dir)
+	if marker := "\n\tlog.Info(\"grpc clients initialized\","; strings.Contains(text, marker) {
+		text = strings.Replace(text, marker, "\n"+dialBlock+marker, 1)
+	}
+
+	zapLine := fmt.Sprintf("\t\tzap.String(\"%s_target\", %sTarget),", data.Dir, data.GoIdent)
+	if marker := "\n\t)\n\treturn &Clients{"; strings.Contains(text, marker) && !strings.Contains(text, zapLine) {
+		text = strings.Replace(text, marker, "\n"+zapLine+marker, 1)
+	}
+
+	clientLine := fmt.Sprintf("\t\t%s:  %s.New%sServiceClient(%sConn),\n", data.Pascal, data.GoPackage, data.Pascal, data.GoIdent)
+	if strings.Contains(text, "\t\tConfig: cfg,\n") {
+		text = strings.Replace(text, "\t\tConfig: cfg,\n", clientLine+"\t\tConfig: cfg,\n", 1)
+	}
+	text = gatewayClientConnsPattern.ReplaceAllStringFunc(text, func(value string) string {
+		if strings.Contains(value, data.GoIdent+"Conn") {
+			return value
+		}
+		return strings.TrimRight(value, "}") + ", " + data.GoIdent + "Conn}"
+	})
 	return os.WriteFile(path, []byte(text), 0o644)
+}
+
+func gatewayClientConnNames(text string) []string {
+	matches := gatewayClientDialPattern.FindAllStringSubmatch(text, -1)
+	names := make([]string, 0, len(matches))
+	for _, match := range matches {
+		names = append(names, match[1]+"Conn")
+	}
+	return names
+}
+
+func closeConnLines(connNames []string) string {
+	var b strings.Builder
+	for _, name := range connNames {
+		fmt.Fprintf(&b, "\t\t%s.Close()\n", name)
+	}
+	return b.String()
 }
 
 func ensureImport(text string, quotedPackage string) string {
@@ -278,6 +350,18 @@ func ensureImport(text string, quotedPackage string) string {
 		return strings.Replace(text, "import (\n", "import (\n\t"+quotedPackage+"\n", 1)
 	}
 	return text
+}
+
+func removeImport(text string, quotedPackage string) string {
+	lines := strings.Split(text, "\n")
+	out := lines[:0]
+	for _, line := range lines {
+		if strings.TrimSpace(line) == quotedPackage {
+			continue
+		}
+		out = append(out, line)
+	}
+	return strings.Join(out, "\n")
 }
 
 func writeNewFile(path string, data []byte) error {
@@ -446,12 +530,19 @@ func patchGatewayRouter(root string, data serviceTemplateData) error {
 			return err
 		}
 		routerText := string(routerBytes)
+		routerText = ensureImport(routerText, fmt.Sprintf("%q", data.Module+"/internal/gateway/client"))
+		if strings.Contains(routerText, "func New(log *zap.Logger, middlewareCfg config.MiddlewareConfig) *gin.Engine") {
+			routerText = strings.Replace(routerText, "func New(log *zap.Logger, middlewareCfg config.MiddlewareConfig) *gin.Engine", "func New(clients *client.Clients, log *zap.Logger, middlewareCfg config.MiddlewareConfig) *gin.Engine", 1)
+		}
 		if strings.Contains(routerText, "registerAPIRoutes(r)") {
 			routerText = strings.Replace(routerText, "registerAPIRoutes(r)", "registerAPIRoutes(r, clients, log)", 1)
-			if err := os.WriteFile(routerPath, []byte(routerText), 0o644); err != nil {
-				return err
-			}
 		}
+		if err := os.WriteFile(routerPath, []byte(routerText), 0o644); err != nil {
+			return err
+		}
+	}
+	if err := patchGatewayMain(root, data); err != nil {
+		return err
 	}
 
 	v1Path := filepath.Join(root, "internal", "gateway", "router", "v1.go")
@@ -463,7 +554,7 @@ func patchGatewayRouter(root string, data serviceTemplateData) error {
 		return err
 	}
 	v1Text := string(v1Bytes)
-	registration := fmt.Sprintf("register%sRoutes(v1, handler.New%sHandler(clients.Config.Service(%q), log))", data.Pascal, data.Pascal, data.Dir)
+	registration := fmt.Sprintf("register%sRoutes(v1, handler.New%sHandler(clients.%s, log))", data.Pascal, data.Pascal, data.Pascal)
 	if strings.Contains(v1Text, registration) {
 		return nil
 	}
@@ -483,6 +574,30 @@ func patchGatewayRouter(root string, data serviceTemplateData) error {
 	}
 	v1Text = v1Text[:index] + "\n\t" + registration + v1Text[index:]
 	return os.WriteFile(v1Path, []byte(v1Text), 0o644)
+}
+
+func patchGatewayMain(root string, data serviceTemplateData) error {
+	mainPath := filepath.Join(root, "cmd", "gateway", "main.go")
+	if !exists(mainPath) {
+		return nil
+	}
+	content, err := os.ReadFile(mainPath)
+	if err != nil {
+		return err
+	}
+	text := string(content)
+	text = ensureImport(text, fmt.Sprintf("%q", data.Module+"/internal/gateway/client"))
+	if strings.Contains(text, "engine := router.New(log, cfg.Middleware)") {
+		initBlock := `gatewayClients, err := client.New(cfg, log)
+	if err != nil {
+		log.Fatal("initialize grpc clients failed", zap.Error(err))
+	}
+	defer gatewayClients.Close()
+
+	engine := router.New(gatewayClients, log, cfg.Middleware)`
+		text = strings.Replace(text, "engine := router.New(log, cfg.Middleware)", initBlock, 1)
+	}
+	return os.WriteFile(mainPath, []byte(text), 0o644)
 }
 
 func runProjectCommand(root string, name string, args ...string) error {
@@ -1389,12 +1504,57 @@ func map{{ .Pascal }}Error(err error) error {
 }
 `
 
+const gatewayClientsTemplate = `package client
+
+import (
+	"fmt"
+
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
+	{{ .GoPackage }} "{{ .Module }}/api/gen/{{ .Dir }}/v1"
+	"{{ .Module }}/pkg/config"
+)
+
+// Clients groups all gRPC clients used by the HTTP gateway.
+type Clients struct {
+	{{ .Pascal }}  {{ .GoPackage }}.{{ .Pascal }}ServiceClient
+	Config *config.Config
+
+	conns []*grpc.ClientConn
+}
+
+// New dials configured gRPC targets and builds typed service clients.
+func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
+	{{ .GoIdent }}Target := cfg.ServiceTarget("{{ .Dir }}")
+	{{ .GoIdent }}Conn, err := grpc.Dial({{ .GoIdent }}Target, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("dial {{ .Dir }} service: %w", err)
+	}
+
+	log.Info("grpc clients initialized",
+		zap.String("{{ .Dir }}_target", {{ .GoIdent }}Target),
+	)
+	return &Clients{
+		{{ .Pascal }}:  {{ .GoPackage }}.New{{ .Pascal }}ServiceClient({{ .GoIdent }}Conn),
+		Config: cfg,
+		conns:  []*grpc.ClientConn{ {{ .GoIdent }}Conn },
+	}, nil
+}
+
+// Close releases all gateway gRPC client connections.
+func (c *Clients) Close() {
+	for _, conn := range c.conns {
+		_ = conn.Close()
+	}
+}
+`
+
 const gatewayCommonTemplate = `package handler
 
 import (
 	"context"
-	"os"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc/metadata"
@@ -1406,23 +1566,6 @@ import (
 // outgoingContext forwards gateway metadata such as request id to downstream gRPC calls.
 func outgoingContext(c *gin.Context) context.Context {
 	return metadata.AppendToOutgoingContext(c.Request.Context(), grpcx.MetadataRequestID, httpx.RequestID(c))
-}
-
-func gatewayGRPCTarget(envName string, fallback string) string {
-	value := strings.TrimSpace(os.Getenv(envName))
-	if value == "" {
-		return fallback
-	}
-	return value
-}
-`
-
-const gatewayTargetFunction = `func gatewayGRPCTarget(envName string, fallback string) string {
-	value := strings.TrimSpace(os.Getenv(envName))
-	if value == "" {
-		return fallback
-	}
-	return value
 }
 `
 
@@ -1450,40 +1593,28 @@ type List{{ .Pascal }}Request struct {
 const gatewayHandlerTemplate = `package handler
 
 import (
-	"sync"
-
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 
 	{{ .GoPackage }} "{{ .Module }}/api/gen/{{ .Dir }}/v1"
 	"{{ .Module }}/internal/gateway/request"
-	"{{ .Module }}/pkg/config"
 	apperrors "{{ .Module }}/pkg/errors"
 	"{{ .Module }}/pkg/httpx"
 )
 
-const {{ .GoIdent }}GatewayTargetEnv = "APP_{{ .EnvPrefix }}_GRPC_TARGET"
-const {{ .GoIdent }}GatewayDefaultTarget = "127.0.0.1:{{ .Port }}"
-
 // {{ .Pascal }}Handler adapts {{ .Dir }} HTTP endpoints to the generated gRPC client.
 type {{ .Pascal }}Handler struct {
-	target string
 	client {{ .GoPackage }}.{{ .Pascal }}ServiceClient
-	conn   *grpc.ClientConn
-	once   sync.Once
-	err    error
 	log    *zap.Logger
 }
 
-// New{{ .Pascal }}Handler builds a gateway handler with a default target that needs no config changes.
-func New{{ .Pascal }}Handler(serviceCfg config.ServiceConfig, log *zap.Logger) *{{ .Pascal }}Handler {
+// New{{ .Pascal }}Handler wires the {{ .Dir }} gRPC client into HTTP handler methods.
+func New{{ .Pascal }}Handler(client {{ .GoPackage }}.{{ .Pascal }}ServiceClient, log *zap.Logger) *{{ .Pascal }}Handler {
 	if log == nil {
 		log = zap.NewNop()
 	}
 	return &{{ .Pascal }}Handler{
-		target: configuredGatewayGRPCTarget({{ .GoIdent }}GatewayTargetEnv, serviceCfg.Target, serviceCfg.Port),
+		client: client,
 		log:    log,
 	}
 }
@@ -1495,12 +1626,7 @@ func (h *{{ .Pascal }}Handler) Create(c *gin.Context) {
 		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
 		return
 	}
-	client, err := h.grpcClient()
-	if err != nil {
-		httpx.Error(c, apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_grpc_client_error", "{{ .Dir }} grpc client error", err))
-		return
-	}
-	resp, err := client.Create{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Create{{ .Pascal }}Request{
+	resp, err := h.client.Create{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Create{{ .Pascal }}Request{
 		Name:        req.Name,
 		Description: req.Description,
 	})
@@ -1514,12 +1640,7 @@ func (h *{{ .Pascal }}Handler) Create(c *gin.Context) {
 
 // Get proxies GET /api/v1/{{ .TableName }}/:id to Get{{ .Pascal }}.
 func (h *{{ .Pascal }}Handler) Get(c *gin.Context) {
-	client, err := h.grpcClient()
-	if err != nil {
-		httpx.Error(c, apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_grpc_client_error", "{{ .Dir }} grpc client error", err))
-		return
-	}
-	resp, err := client.Get{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Get{{ .Pascal }}Request{Id: c.Param("id")})
+	resp, err := h.client.Get{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Get{{ .Pascal }}Request{Id: c.Param("id")})
 	if err != nil {
 		httpx.Error(c, apperrors.FromGRPC(err))
 		return
@@ -1534,12 +1655,7 @@ func (h *{{ .Pascal }}Handler) List(c *gin.Context) {
 		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
 		return
 	}
-	client, err := h.grpcClient()
-	if err != nil {
-		httpx.Error(c, apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_grpc_client_error", "{{ .Dir }} grpc client error", err))
-		return
-	}
-	resp, err := client.List{{ .Pascal }}s(outgoingContext(c), &{{ .GoPackage }}.List{{ .Pascal }}sRequest{
+	resp, err := h.client.List{{ .Pascal }}s(outgoingContext(c), &{{ .GoPackage }}.List{{ .Pascal }}sRequest{
 		Page:     req.Page,
 		PageSize: req.PageSize,
 	})
@@ -1557,12 +1673,7 @@ func (h *{{ .Pascal }}Handler) Update(c *gin.Context) {
 		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
 		return
 	}
-	client, err := h.grpcClient()
-	if err != nil {
-		httpx.Error(c, apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_grpc_client_error", "{{ .Dir }} grpc client error", err))
-		return
-	}
-	resp, err := client.Update{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Update{{ .Pascal }}Request{
+	resp, err := h.client.Update{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Update{{ .Pascal }}Request{
 		Id:          c.Param("id"),
 		Name:        req.Name,
 		Description: req.Description,
@@ -1577,32 +1688,13 @@ func (h *{{ .Pascal }}Handler) Update(c *gin.Context) {
 
 // Delete proxies DELETE /api/v1/{{ .TableName }}/:id to Delete{{ .Pascal }}.
 func (h *{{ .Pascal }}Handler) Delete(c *gin.Context) {
-	client, err := h.grpcClient()
-	if err != nil {
-		httpx.Error(c, apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_grpc_client_error", "{{ .Dir }} grpc client error", err))
-		return
-	}
-	resp, err := client.Delete{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Delete{{ .Pascal }}Request{Id: c.Param("id")})
+	resp, err := h.client.Delete{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Delete{{ .Pascal }}Request{Id: c.Param("id")})
 	if err != nil {
 		httpx.Error(c, apperrors.FromGRPC(err))
 		return
 	}
 	h.log.Info("gateway {{ .Dir }} delete proxied", zap.String("request_id", httpx.RequestID(c)), zap.String("aggregate_id", c.Param("id")))
 	httpx.OK(c, resp)
-}
-
-func (h *{{ .Pascal }}Handler) grpcClient() ({{ .GoPackage }}.{{ .Pascal }}ServiceClient, error) {
-	h.once.Do(func() {
-		conn, err := grpc.Dial(h.target, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			h.err = err
-			return
-		}
-		h.conn = conn
-		h.client = {{ .GoPackage }}.New{{ .Pascal }}ServiceClient(conn)
-		h.log.Info("gateway {{ .Dir }} grpc client initialized", zap.String("target", h.target), zap.String("target_env", {{ .GoIdent }}GatewayTargetEnv))
-	})
-	return h.client, h.err
 }
 `
 
@@ -1633,7 +1725,6 @@ import (
 
 	"{{ .Module }}/internal/gateway/client"
 	"{{ .Module }}/internal/gateway/handler"
-	"{{ .Module }}/pkg/config"
 )
 
 // registerAPIRoutes creates the /api/v1 route namespace before delegating by business module.
@@ -1641,11 +1732,7 @@ func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger) 
 	api := r.Group("/api")
 	v1 := api.Group("/v1")
 
-	cfg := clients.Config
-	if cfg == nil {
-		cfg = &config.Config{}
-	}
-	register{{ .Pascal }}Routes(v1, handler.New{{ .Pascal }}Handler(cfg.Service("{{ .Dir }}"), log))
+	register{{ .Pascal }}Routes(v1, handler.New{{ .Pascal }}Handler(clients.{{ .Pascal }}, log))
 }
 `
 
@@ -1712,11 +1799,7 @@ PUT    /api/v1/{{ .TableName }}/:id
 DELETE /api/v1/{{ .TableName }}/:id
 ~~~
 
-gateway 默认调用 ` + "`services.{{ .Dir }}.target`" + `。如需临时覆盖目标地址，设置：
-
-~~~bash
-export APP_{{ .EnvPrefix }}_GRPC_TARGET=127.0.0.1:{{ .Port }}
-~~~
+gateway client 默认调用 ` + "`services.{{ .Dir }}.target`" + `。如需调整地址，修改 ` + "`configs/config.yaml`" + ` 中的 ` + "`services.{{ .Dir }}.target`" + `。
 
 ## 开发顺序
 
@@ -1950,5 +2033,5 @@ internal/gateway/handler/{{ .Dir }}_handler.go
 internal/gateway/router/{{ .Dir }}_routes.go
 ~~~
 
-路由按 ` + "`版本/业务/具体接口`" + ` 拆分，当前业务挂在 ` + "`/api/v1/{{ .TableName }}`" + `。gateway handler 默认读取 ` + "`services.{{ .Dir }}.target`" + `，也可以使用 ` + "`APP_{{ .EnvPrefix }}_GRPC_TARGET`" + ` 临时覆盖。
+路由按 ` + "`版本/业务/具体接口`" + ` 拆分，当前业务挂在 ` + "`/api/v1/{{ .TableName }}`" + `。gateway client 默认读取 ` + "`services.{{ .Dir }}.target`" + `。
 `

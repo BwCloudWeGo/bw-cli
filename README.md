@@ -143,7 +143,7 @@ curl http://localhost:8080/healthz
 ```bash
 curl -X POST http://localhost:8080/api/v1/users/register \
   -H 'Content-Type: application/json' \
-  -d '{"email":"ada@example.com","display_name":"Ada","password":"secret123"}'
+  -d '{"email":"ada@example.com","display_name":"Ada","password":"<password>"}'
 ```
 
 登录用户：
@@ -151,7 +151,7 @@ curl -X POST http://localhost:8080/api/v1/users/register \
 ```bash
 curl -X POST http://localhost:8080/api/v1/users/login \
   -H 'Content-Type: application/json' \
-  -d '{"email":"ada@example.com","password":"secret123"}'
+  -d '{"email":"ada@example.com","password":"<password>"}'
 ```
 
 创建笔记：
@@ -306,7 +306,7 @@ make test
 bw-cli service order --tidy
 ```
 
-这条命令会自动读取当前项目的 `go.mod`，并生成一整套可编译、可启动、带基础 CRUD 的服务代码，不需要先修改 `configs/config.yaml`：
+这条命令会自动读取当前项目的 `go.mod`，并生成一整套可编译、可启动、带基础 CRUD 的服务代码，同时把服务配置追加到 `configs/config.yaml`：
 
 ```text
 api/proto/order/v1/order.proto
@@ -344,7 +344,7 @@ services:
     target: 127.0.0.1:9103
 ```
 
-需要修改端口时，直接修改 `services.order.port`。
+需要修改端口时，直接修改 `services.order.port`；gateway 连接地址同步修改 `services.order.target`。如果启用了 Nacos，把本地新增的 `services.order` 同步到 Nacos 中的完整业务配置。
 
 生成后的基础调用链已经成型：
 
@@ -384,7 +384,7 @@ PUT    /api/v1/orders/:id
 DELETE /api/v1/orders/:id
 ```
 
-gateway 默认读取 `services.order.target`，例如 `127.0.0.1:9103`；也可用 `APP_ORDER_GRPC_TARGET` 临时覆盖。
+gateway 默认读取 `services.order.target`，例如 `127.0.0.1:9103`。
 
 生成后常用流程：
 
@@ -559,38 +559,12 @@ Windows 仍需要安装 GNU Make；如果没有 `make`，可以直接执行等�
 | `make run-gateway` | 启动 HTTP gateway |
 | `make install-cli` | 本地安装 `bw-cli` |
 
-Windows PowerShell 设置临时环境变量时使用：
-
-```powershell
-$env:APP_HTTP_PORT="8081"; make run-gateway
-```
-
-macOS/Linux 使用：
-
-```bash
-APP_HTTP_PORT=8081 make run-gateway
-```
-
 ## 8. 配置说明
 
 默认配置文件：
 
 ```text
 configs/config.yaml
-```
-
-配置支持环境变量覆盖，规则是：
-
-```text
-APP_ + 配置路径大写 + 下划线
-```
-
-示例：
-
-```bash
-export APP_HTTP_PORT=8081
-export APP_GRPC_USER_TARGET='127.0.0.1:9001'
-export APP_LOG_LEVEL=debug
 ```
 
 ### 7.1 默认数据库
@@ -607,22 +581,28 @@ SQLite 文件会写入 `data/` 目录，该目录已被 `.gitignore` 忽略。
 
 ### 7.2 切换 MySQL
 
-```bash
-export APP_DATABASE_DRIVER=mysql
-export APP_MYSQL_DSN='user:pass@tcp(mysql.example.com:3306)/app?charset=utf8mb4&parseTime=True&loc=Local'
-export APP_MYSQL_MAX_IDLE_CONNS=10
-export APP_MYSQL_MAX_OPEN_CONNS=100
-export APP_MYSQL_CONN_MAX_LIFETIME_SECONDS=3600
+```yaml
+database:
+  driver: mysql
+
+mysql:
+  dsn: ""
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime_seconds: 3600
 ```
 
 ### 7.3 切换 PostgreSQL
 
-```bash
-export APP_DATABASE_DRIVER=postgres
-export APP_POSTGRESQL_DSN='host=postgres.example.com user=app password=replace-with-real-password dbname=app port=5432 sslmode=require TimeZone=Asia/Shanghai'
-export APP_POSTGRESQL_MAX_IDLE_CONNS=10
-export APP_POSTGRESQL_MAX_OPEN_CONNS=100
-export APP_POSTGRESQL_CONN_MAX_LIFETIME_SECONDS=3600
+```yaml
+database:
+  driver: postgres
+
+postgresql:
+  dsn: ""
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime_seconds: 3600
 ```
 
 支持的关系型数据库 driver：
@@ -696,16 +676,6 @@ qiniu
 cos
 ```
 
-常用环境变量：
-
-```bash
-export APP_FILE_STORAGE_PROVIDER=minio
-export APP_FILE_STORAGE_MAX_SIZE_MB=100
-export APP_FILE_STORAGE_MINIO_ENDPOINT='127.0.0.1:9000'
-export APP_FILE_STORAGE_MINIO_ACCESS_KEY_ID='replace-with-real-access-key'
-export APP_FILE_STORAGE_MINIO_SECRET_ACCESS_KEY='replace-with-real-secret-key'
-export APP_FILE_STORAGE_MINIO_BUCKET='app-files'
-```
 
 业务代码直接使用统一接口：
 
@@ -760,7 +730,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 
 | 包 | 说明 |
 | --- | --- |
-| `pkg/config` | Viper 配置加载和环境变量覆盖 |
+| `pkg/config` | Viper 配置加载和默认值 |
 | `pkg/logger` | Zap + Lumberjack 结构化日志 |
 | `pkg/errors` | 统一业务错误码 |
 | `pkg/middleware` | CORS、JWT、RequestID、请求日志 |
@@ -819,20 +789,8 @@ make proto
 9002 note-service
 ```
 
-可以通过环境变量覆盖：
+需要调整端口时，修改 `configs/config.yaml` 中的 `http.port` 和 `services.*.port`。同时记得调整 gateway 连接下游服务的 `services.*.target`。
 
-```bash
-export APP_HTTP_PORT=8081
-export APP_GRPC_USER_PORT=9101
-export APP_GRPC_NOTE_PORT=9102
-```
-
-同时记得调整 gateway 连接下游服务的 target：
-
-```bash
-export APP_GRPC_USER_TARGET='127.0.0.1:9101'
-export APP_GRPC_NOTE_TARGET='127.0.0.1:9102'
-```
 
 ## 12. 更多文档
 

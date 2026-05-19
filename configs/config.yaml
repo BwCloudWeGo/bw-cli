@@ -28,11 +28,11 @@ services:
     target: 127.0.0.1:9100
 
 database:
-  driver: mysql
+  driver: sqlite
   dsn: data/xiaolanshu.db
 
 mysql:
-  dsn: root:fyx711520@tcp(127.0.0.1:3306)/xiaolanshu?charset=utf8mb4&parseTime=True&loc=Local
+  dsn: ""
   max_idle_conns: 10
   max_open_conns: 100
   conn_max_lifetime_seconds: 3600
@@ -221,7 +221,7 @@ middleware:
       - X-Request-ID
     allow_credentials: false
   jwt:
-    secret: "xiaolanshu"
+    secret: ""
     issuer: xiaolanshu
     expire_seconds: 7200
 

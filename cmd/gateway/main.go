@@ -20,7 +20,7 @@ import (
 )
 
 func main() {
-	// Load all runtime settings from YAML/env before constructing dependencies.
+	// Load runtime settings before constructing dependencies.
 	if err := config.InitGlobal("configs/config.yaml"); err != nil {
 		panic(err)
 	}
@@ -37,7 +37,6 @@ func main() {
 	observability.Register(gatewayServiceName, log)
 	config.PrintSourceNotice(cfg, os.Stdout)
 
-	// gRPC targets are read from configuration so deployments can change them without recompilation.
 	clients, err := client.New(cfg, log)
 	if err != nil {
 		log.Fatal("initialize grpc clients failed", zap.Error(err))

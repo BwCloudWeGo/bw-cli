@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-	// Load service identity, database and logging settings from YAML/env.
+	// Load service identity, database and logging settings.
 	if err := config.InitGlobal("configs/config.yaml"); err != nil {
 		panic(err)
 	}

@@ -9,14 +9,12 @@
 - `enabled: false`：默认模式，读取本地 `configs/config.yaml`。
 - `enabled: true`：配置中心模式，从 Nacos 拉取完整业务配置，作为整套系统配置。
 
-环境变量 `APP_*` 始终拥有最高优先级，可以覆盖本地配置或 Nacos 配置。
-
 ```text
 默认模式：
-默认值 -> configs/config.yaml -> APP_* 环境变量
+默认值 -> configs/config.yaml
 
 Nacos 模式：
-默认值 -> Nacos 中的完整 YAML 配置 -> APP_* 环境变量
+默认值 -> Nacos 中的完整 YAML 配置
 ```
 
 `configs/nacos.yaml` 只负责控制是否启用 Nacos，以及如何连接 Nacos。不要把业务配置项写进 `configs/nacos.yaml`。
@@ -154,30 +152,7 @@ fail_fast: true
 
 这样 Nacos 拉取失败时服务直接启动失败，避免使用错误的本地兜底配置悄悄启动。
 
-## 6. 环境变量覆盖
-
-无论是否启用 Nacos，都可以用 `APP_*` 覆盖业务配置。
-
-示例：
-
-```bash
-export APP_HTTP_PORT=18080
-export APP_MIDDLEWARE_JWT_SECRET='replace-with-real-secret'
-export APP_MYSQL_DSN='user:password@tcp(mysql:3306)/xiaolanshu?charset=utf8mb4&parseTime=True&loc=Local'
-```
-
-Nacos 自身连接配置可以用 `NACOS_*` 覆盖：
-
-```bash
-export NACOS_ENABLED=true
-export NACOS_SERVER_ADDR=127.0.0.1
-export NACOS_SERVER_PORT=8848
-export NACOS_NAMESPACE_ID=''
-export NACOS_GROUP=DEFAULT_GROUP
-export NACOS_DATA_ID=xiaolanshu.yaml
-```
-
-## 7. 不需要修改 Config 结构体
+## 6. 不需要修改 Config 结构体
 
 Nacos 中存放的是和 `configs/config.yaml` 同结构的完整 YAML。
 
@@ -189,7 +164,7 @@ Nacos 中存放的是和 `configs/config.yaml` 同结构的完整 YAML。
 
 启用 Nacos 不需要为远程配置额外定义一套结构体，也不需要改业务读取配置的代码。
 
-## 8. 排查
+## 7. 排查
 
 如果启用 Nacos 后配置没有生效，按顺序检查：
 
@@ -198,6 +173,6 @@ Nacos 中存放的是和 `configs/config.yaml` 同结构的完整 YAML。
 3. `namespace_id` 是否填的是命名空间 ID，不是命名空间名称。
 4. Nacos 配置格式是否选择 YAML。
 5. Nacos 中的内容是否是完整业务配置，而不是只写了部分字段。
-6. 是否有 `APP_*` 环境变量覆盖了 Nacos 中的值。
+6. Nacos 中的 YAML 结构是否与本地 `configs/config.yaml` 保持一致。
 
 如果生产环境不允许本地兜底，把 `fail_fast` 设置为 `true`。

@@ -334,7 +334,7 @@ import (
 )
 
 func main() {
-	// Load runtime settings from YAML/env before constructing dependencies.
+	// Load runtime settings before constructing dependencies.
 	if err := config.InitGlobal("configs/config.yaml"); err != nil {
 		panic(err)
 	}
@@ -808,7 +808,7 @@ docs           # 使用和架构文档
 bw-cli service order --tidy
 `+"```"+`
 
-命令会生成 `+"`cmd/order`"+`、`+"`api/proto/order`"+`、`+"`internal/order/model`"+`、`+"`internal/order/dto`"+`、`+"`internal/order/service/service.go`"+`、`+"`repo/gorm_repository.go`"+`、`+"`repo/mongo_repository.go`"+`、`+"`handler`"+`、gateway request/handler/router 和 `+"`docs/services/order.md`"+`。生成后的服务默认带 Create/Get/List/Update/Delete 基础 CRUD，端口默认值写在 `+"`cmd/order/main.go`"+`，不需要修改 `+"`configs/config.yaml`"+`。默认启动使用 Gorm，MongoDB 仓储已通过 `+"`mongox.NewDocumentStore[T]`"+` 预先接好。
+命令会生成 `+"`cmd/order`"+`、`+"`api/proto/order`"+`、`+"`internal/order/model`"+`、`+"`internal/order/dto`"+`、`+"`internal/order/service/service.go`"+`、`+"`repo/gorm_repository.go`"+`、`+"`repo/mongo_repository.go`"+`、`+"`handler`"+`、gateway request/handler/router 和 `+"`docs/services/order.md`"+`。生成后的服务默认带 Create/Get/List/Update/Delete 基础 CRUD，并会把服务名、gRPC 端口和 gateway target 写入 `+"`configs/config.yaml`"+`。默认启动使用 Gorm，MongoDB 仓储已通过 `+"`mongox.NewDocumentStore[T]`"+` 预先接好。
 
 需要指定端口时使用：
 
@@ -816,7 +816,7 @@ bw-cli service order --tidy
 bw-cli service order --port 9103 --tidy
 `+"```"+`
 
-启动后控制台会输出服务名、环境、监听地址、gRPC 地址和端口环境变量。
+启动后控制台会输出服务名、环境、监听地址、gRPC 地址和配置项。
 
 如果项目包含 gateway，HTTP CRUD 路由也会自动挂载：
 
@@ -883,25 +883,7 @@ curl http://localhost:8080/healthz
 configs/config.yaml
 `+"```"+`
 
-环境变量覆盖规则：
-
-`+"```text"+`
-APP_ + 配置路径大写 + 下划线
-`+"```"+`
-
-示例：
-
-`+"```bash"+`
-export APP_HTTP_PORT=8081
-export APP_LOG_LEVEL=debug
-export APP_DATABASE_DRIVER=postgres
-`+"```"+`
-
-Windows PowerShell 使用：
-
-`+"```powershell"+`
-$env:APP_HTTP_PORT="8081"; make run-gateway
-`+"```"+`
+需要调整端口、日志级别或数据库类型时，修改 `+"`configs/config.yaml`"+`。
 
 ## 4. 当前 module
 
@@ -1127,7 +1109,7 @@ curl http://localhost:8080/healthz
 `+"```bash"+`
 curl -X POST http://localhost:8080/api/v1/users/register \
   -H 'Content-Type: application/json' \
-  -d '{"email":"ada@example.com","display_name":"Ada","password":"secret123"}'
+  -d '{"email":"ada@example.com","display_name":"Ada","password":"<password>"}'
 `+"```"+`
 
 ## 目录结构
@@ -1200,7 +1182,7 @@ curl http://localhost:8080/healthz
 `+"```bash"+`
 curl -X POST http://localhost:8080/api/v1/users/register \
   -H 'Content-Type: application/json' \
-  -d '{"email":"ada@example.com","display_name":"Ada","password":"secret123"}'
+  -d '{"email":"ada@example.com","display_name":"Ada","password":"<password>"}'
 `+"```"+`
 
 创建笔记：
@@ -1219,25 +1201,7 @@ curl -X POST http://localhost:8080/api/v1/notes \
 configs/config.yaml
 `+"```"+`
 
-环境变量覆盖规则：
-
-`+"```text"+`
-APP_ + 配置路径大写 + 下划线
-`+"```"+`
-
-示例：
-
-`+"```bash"+`
-export APP_HTTP_PORT=8081
-export APP_GRPC_USER_TARGET='127.0.0.1:9001'
-export APP_GRPC_NOTE_TARGET='127.0.0.1:9002'
-`+"```"+`
-
-Windows PowerShell 使用：
-
-`+"```powershell"+`
-$env:APP_HTTP_PORT="8081"; make run-gateway
-`+"```"+`
+需要调整 HTTP 端口或 gRPC target 时，修改 `+"`configs/config.yaml`"+` 中的 `+"`http`"+` 和 `+"`services`"+` 配置。
 
 ## 5. 公共工具
 
@@ -1323,7 +1287,7 @@ func generatedToolkitDoc(module string) string {
 
 | 包 | 能力 |
 | --- | --- |
-| `+"`pkg/config`"+` | YAML 配置加载和环境变量覆盖 |
+| `+"`pkg/config`"+` | YAML 配置加载和默认值 |
 | `+"`pkg/logger`"+` | Zap 结构化日志和文件轮转 |
 | `+"`pkg/errors`"+` | 统一业务错误码，HTTP/gRPC 状态映射 |
 | `+"`pkg/httpx`"+` | Gin HTTP 统一响应 |
@@ -1359,12 +1323,6 @@ if err := config.InitGlobal("configs/config.yaml"); err != nil {
     panic(err)
 }
 cfg := config.MustGlobal()
-`+"```"+`
-
-环境变量覆盖规则：
-
-`+"```text"+`
-APP_ + 配置路径大写 + 下划线
 `+"```"+`
 
 ## 4. 日志
@@ -1403,7 +1361,7 @@ if err != nil {
 }
 `+"```"+`
 
-`+"`middleware.jwt.secret`"+` 必须在 `+"`configs/config.yaml`"+` 或环境变量中设置。
+`+"`middleware.jwt.secret`"+` 必须在 `+"`configs/config.yaml`"+` 中设置。
 
 ## 6. Gorm 数据库
 
@@ -1639,14 +1597,14 @@ MongoDB 是文档数据库，保存的是 BSON 文档。关系型数据库常见
 
 ## 2. 准备连接信息
 
-脚手架不在文档中假设固定的 MongoDB 启动方式。你可以使用公司测试环境、本机已安装的 MongoDB 或云数据库，只需要拿到可连接的地址、账号、密码和 database 名称，然后写入 `+"`configs/config.yaml`"+`。
+脚手架不在文档中假设固定的 MongoDB 启动方式。你可以使用公司测试环境、本机已安装的 MongoDB 或云数据库，只需要把真实连接地址、认证信息和 database 名称写入 `+"`configs/config.yaml`"+`。
 
-示例连接信息：
+本地无认证示例：
 
 `+"```text"+`
 uri: mongodb://127.0.0.1:27017
-username: app_user
-password: app_password
+username: ""
+password: ""
 database: app
 `+"```"+`
 
@@ -1655,7 +1613,7 @@ database: app
 如果本机已经安装 `+"`mongosh`"+`，可以用配置文件中的连接信息进入数据库验证连通性：
 
 `+"```bash"+`
-mongosh 'mongodb://app_user:app_password@127.0.0.1:27017/app?authSource=app'
+mongosh 'mongodb://127.0.0.1:27017/app'
 `+"```"+`
 
 基础命令：

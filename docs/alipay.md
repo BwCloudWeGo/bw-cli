@@ -31,17 +31,6 @@ alipay:
   alipay_cert_public_key_path: "configs/certs/alipayCertPublicKey_RSA2.crt"
 ```
 
-常用环境变量：
-
-```bash
-export APP_ALIPAY_APP_ID='2021000000000000'
-export APP_ALIPAY_PRIVATE_KEY='-----BEGIN PRIVATE KEY-----...'
-export APP_ALIPAY_ALIPAY_PUBLIC_KEY='-----BEGIN PUBLIC KEY-----...'
-export APP_ALIPAY_PRODUCTION=false
-export APP_ALIPAY_NOTIFY_URL='https://api.example.com/payments/alipay/notify'
-export APP_ALIPAY_RETURN_URL='https://www.example.com/orders/alipay/return'
-```
-
 普通公钥模式和证书模式二选一。不要同时配置 `alipay_public_key` 和证书路径。
 
 ## 初始化

@@ -24,7 +24,7 @@ type Config struct {
 }
 
 // DefaultConfig 返回本地开发环境可直接使用的 MongoDB 默认配置。
-// 生产环境建议通过配置文件或 APP_* 环境变量覆盖 URI、账号、密码和连接池参数。
+// 生产环境应通过本地 YAML 或 Nacos 配置覆盖 URI、账号、密码和连接池参数。
 func DefaultConfig() Config {
 	return Config{
 		URI:                    "mongodb://127.0.0.1:27017",

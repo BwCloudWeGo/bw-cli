@@ -61,11 +61,7 @@ PUT    /api/v1/orders/:id
 DELETE /api/v1/orders/:id
 ~~~
 
-gateway 默认调用 `services.order.target`。如需临时覆盖目标地址，设置：
-
-~~~bash
-export APP_ORDER_GRPC_TARGET=127.0.0.1:9100
-~~~
+gateway client 默认调用 `services.order.target`。如需调整目标地址，修改 `configs/config.yaml` 中的 `services.order.target`。
 
 ## 开发顺序
 
@@ -299,4 +295,4 @@ internal/gateway/handler/order_handler.go
 internal/gateway/router/order_routes.go
 ~~~
 
-路由按 `版本/业务/具体接口` 拆分，当前业务挂在 `/api/v1/orders`。gateway handler 默认使用 `APP_ORDER_GRPC_TARGET` 覆盖目标地址，不配置时连接 `127.0.0.1:9100`。
+路由按 `版本/业务/具体接口` 拆分，当前业务挂在 `/api/v1/orders`。gateway client 默认读取 `services.order.target`，不配置时连接 `127.0.0.1:9100`。

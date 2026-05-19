@@ -318,15 +318,9 @@ http:
 
 修改端口后启动 gateway：
 
-```bash
-APP_HTTP_PORT=8081 make run-gateway
-```
 
 Windows PowerShell 使用：
 
-```powershell
-$env:APP_HTTP_PORT="8081"; make run-gateway
-```
 
 ### 6.3 gRPC 配置
 
@@ -361,14 +355,15 @@ database:
 
 ### 6.5 切换到 MySQL
 
-配置文件中不要写假账号密码。推荐通过环境变量注入：
+```yaml
+database:
+  driver: mysql
 
-```bash
-export APP_DATABASE_DRIVER=mysql
-export APP_MYSQL_DSN='user:pass@tcp(mysql.example.com:3306)/app?charset=utf8mb4&parseTime=True&loc=Local'
-export APP_MYSQL_MAX_IDLE_CONNS=10
-export APP_MYSQL_MAX_OPEN_CONNS=100
-export APP_MYSQL_CONN_MAX_LIFETIME_SECONDS=3600
+mysql:
+  dsn: ""
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime_seconds: 3600
 ```
 
 然后启动服务：
@@ -381,14 +376,17 @@ make run-gateway
 
 ### 6.6 切换到 PostgreSQL
 
-PostgreSQL 也走 Gorm 入口，适合替代 MySQL 作为主业务库。配置文件中不要写生产账号密码，推荐通过环境变量注入：
+PostgreSQL 也走 Gorm 入口，适合替代 MySQL 作为主业务库。
 
-```bash
-export APP_DATABASE_DRIVER=postgres
-export APP_POSTGRESQL_DSN='host=postgres.example.com user=app password=replace-with-real-password dbname=app port=5432 sslmode=require TimeZone=Asia/Shanghai'
-export APP_POSTGRESQL_MAX_IDLE_CONNS=10
-export APP_POSTGRESQL_MAX_OPEN_CONNS=100
-export APP_POSTGRESQL_CONN_MAX_LIFETIME_SECONDS=3600
+```yaml
+database:
+  driver: postgres
+
+postgresql:
+  dsn: ""
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime_seconds: 3600
 ```
 
 然后启动服务：
@@ -426,7 +424,7 @@ mongodb:
   server_selection_timeout_seconds: 5
 ```
 
-服务启动时只读取 `configs/config.yaml` 中的 `mongodb.*` 配置。需要账号密码时，填写 `username`、`password`；需要连接副本集或指定认证库时，把完整连接串写入 `uri`。
+服务启动时读取当前配置来源中的 `mongodb.*`。默认来源是 `configs/config.yaml`；启用 Nacos 后，来源是 Nacos 中的完整业务 YAML。需要账号密码时，填写 `username`、`password`；需要连接副本集或指定认证库时，把完整连接串写入 `uri`。
 
 脚手架调用全流程见 [MongoDB 调用示例全流程](mongo-call-examples.md)。
 
@@ -494,50 +492,15 @@ qiniu
 cos
 ```
 
-MinIO 环境变量示例：
-
-```bash
-export APP_FILE_STORAGE_PROVIDER=minio
-export APP_FILE_STORAGE_MAX_SIZE_MB=100
-export APP_FILE_STORAGE_OBJECT_PREFIX=uploads
-export APP_FILE_STORAGE_PUBLIC_BASE_URL='https://cdn.example.com'
-export APP_FILE_STORAGE_MINIO_ENDPOINT='127.0.0.1:9000'
-export APP_FILE_STORAGE_MINIO_ACCESS_KEY_ID='replace-with-real-access-key'
-export APP_FILE_STORAGE_MINIO_SECRET_ACCESS_KEY='replace-with-real-secret-key'
-export APP_FILE_STORAGE_MINIO_BUCKET='app-files'
-export APP_FILE_STORAGE_MINIO_USE_SSL=false
-```
 
 阿里云 OSS：
 
-```bash
-export APP_FILE_STORAGE_PROVIDER=oss
-export APP_FILE_STORAGE_OSS_ENDPOINT='https://oss-cn-hangzhou.aliyuncs.com'
-export APP_FILE_STORAGE_OSS_ACCESS_KEY_ID='replace-with-real-access-key'
-export APP_FILE_STORAGE_OSS_ACCESS_KEY_SECRET='replace-with-real-secret-key'
-export APP_FILE_STORAGE_OSS_BUCKET='app-files'
-```
 
 七牛云 Kodo：
 
-```bash
-export APP_FILE_STORAGE_PROVIDER=qiniu
-export APP_FILE_STORAGE_QINIU_ACCESS_KEY='replace-with-real-access-key'
-export APP_FILE_STORAGE_QINIU_SECRET_KEY='replace-with-real-secret-key'
-export APP_FILE_STORAGE_QINIU_BUCKET='app-files'
-export APP_FILE_STORAGE_QINIU_REGION='z0'
-export APP_FILE_STORAGE_QINIU_USE_HTTPS=true
-```
 
 腾讯云 COS：
 
-```bash
-export APP_FILE_STORAGE_PROVIDER=cos
-export APP_FILE_STORAGE_COS_SECRET_ID='replace-with-real-secret-id'
-export APP_FILE_STORAGE_COS_SECRET_KEY='replace-with-real-secret-key'
-export APP_FILE_STORAGE_COS_BUCKET='app-files-1250000000'
-export APP_FILE_STORAGE_COS_REGION='ap-guangzhou'
-```
 
 业务调用示例：
 
@@ -574,13 +537,6 @@ redis:
     default_ttl: 30s
 ```
 
-生产环境建议通过环境变量注入密码：
-
-```bash
-export APP_REDIS_ADDR='redis.example.com:6379'
-export APP_REDIS_PASSWORD='replace-with-real-password'
-export APP_REDIS_LOCK_KEY_PREFIX='xiaolanshu-prod'
-```
 
 调用示例见 [Redis：`pkg/redisx`](toolkit.md#10-redispkgredisx)，包含缓存读写和分布式锁。
 
@@ -598,15 +554,6 @@ elasticsearch:
   api_key: ""
 ```
 
-生产环境示例：
-
-```bash
-export APP_ELASTICSEARCH_ADDRESSES='https://es.example.com:9200'
-export APP_ELASTICSEARCH_USERNAME='elastic'
-export APP_ELASTICSEARCH_PASSWORD='replace-with-real-password'
-export APP_ELASTICSEARCH_CLOUD_ID='deployment:cloud-id'
-export APP_ELASTICSEARCH_API_KEY='base64-api-key'
-```
 
 ### 6.11 Kafka 配置
 
@@ -653,17 +600,6 @@ kafka:
     server_name: ""
 ```
 
-生产环境示例：
-
-```bash
-export APP_KAFKA_BROKERS='kafka-1.example.com:9092,kafka-2.example.com:9092'
-export APP_KAFKA_TOPIC='business-events'
-export APP_KAFKA_GROUP_ID='business-consumer'
-export APP_KAFKA_SASL_ENABLE=true
-export APP_KAFKA_SASL_USERNAME='kafka-user'
-export APP_KAFKA_SASL_PASSWORD='replace-with-real-password'
-export APP_KAFKA_TLS_ENABLE=true
-```
 
 调用示例见 [Kafka：`pkg/kafkax`](toolkit.md#12-kafkapkgkafkax)，包含生产者、消费者和原生 `kafka-go` 入口。
 
@@ -698,21 +634,18 @@ allow_origins:
 
 ### 6.13 JWT 配置
 
-JWT 密钥默认不提供假值，必须配置：
+JWT 密钥默认不提供假值，必须在 `configs/config.yaml` 的 `middleware.jwt.secret` 中配置。
 
-```bash
-export APP_MIDDLEWARE_JWT_SECRET='replace-with-a-real-secret'
-export APP_MIDDLEWARE_JWT_ISSUER='xiaolanshu'
-export APP_MIDDLEWARE_JWT_EXPIRE_SECONDS=7200
-```
 
 生成 token 示例：
 
 ```go
-cfg := middleware.DefaultJWTConfig()
-cfg.Secret = os.Getenv("APP_MIDDLEWARE_JWT_SECRET")
+appCfg, err := config.Load("configs/config.yaml")
+if err != nil {
+    return err
+}
 
-token, err := middleware.GenerateToken(cfg, middleware.JWTClaims{
+token, err := middleware.GenerateToken(appCfg.Middleware.JWT, middleware.JWTClaims{
     UserID: "user-1",
     Role:   "admin",
 })
@@ -826,7 +759,7 @@ HTTP/1.1 200 OK
 ```bash
 curl -i -X POST http://localhost:8080/api/v1/users/register \
   -H 'Content-Type: application/json' \
-  -d '{"email":"ada@example.com","display_name":"Ada","password":"secret123"}'
+  -d '{"email":"ada@example.com","display_name":"Ada","password":"<password>"}'
 ```
 
 预期：
@@ -849,7 +782,7 @@ curl -i -X POST http://localhost:8080/api/v1/users/register \
 ```bash
 curl -i -X POST http://localhost:8080/api/v1/users/login \
   -H 'Content-Type: application/json' \
-  -d '{"email":"ada@example.com","password":"secret123"}'
+  -d '{"email":"ada@example.com","password":"<password>"}'
 ```
 
 预期返回用户信息。
@@ -1046,7 +979,7 @@ services:
     target: 127.0.0.1:9103
 ```
 
-gateway 调用服务时读取 `services.comment.target`，也可以用 `APP_COMMENT_GRPC_TARGET` 临时覆盖。
+gateway 调用服务时读取 `services.comment.target`。如需调整地址，修改 `configs/config.yaml` 中的 `services.comment.target`。
 
 ### 10.2 每一层怎么写，为什么这么写
 
@@ -1184,7 +1117,7 @@ curl -i -X PUT http://localhost:8080/api/v1/comments/<id> \
 curl -i -X DELETE http://localhost:8080/api/v1/comments/<id>
 ```
 
-gateway handler 默认连接 `APP_COMMENT_GRPC_TARGET`，没有设置时使用生成服务端口 `127.0.0.1:9103`。因此只要按顺序启动即可：
+gateway client 默认读取 `services.comment.target`，没有设置时使用生成服务端口 `127.0.0.1:9103`。因此只要按顺序启动即可：
 
 ```bash
 make run-comment
@@ -1224,7 +1157,7 @@ import (
 
 func main() {
     cfg := mysqlx.DefaultConfig()
-    cfg.DSN = "user:pass@tcp(mysql.example.com:3306)/app?charset=utf8mb4&parseTime=True&loc=Local"
+    cfg.DSN = ""
 
     db, err := mysqlx.Open(cfg)
     if err != nil {
@@ -1314,6 +1247,4 @@ services:
 
 检查生成 token 和验证 token 使用的是同一个 secret：
 
-```bash
-echo $APP_MIDDLEWARE_JWT_SECRET
-```
+检查 `configs/config.yaml` 中的 `middleware.jwt.secret` 是否与签发 token 时使用的 secret 一致。
