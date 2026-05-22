@@ -28,5 +28,5 @@ func TestRunMongoDocumentStoreExampleUsesCurrentConfig(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, document)
 	require.NotEmpty(t, document.ID)
-	require.Equal(t, cfg.App.NoteServiceName, document.Service)
+	require.Equal(t, cfg.ServiceName("note"), document.Service)
 }

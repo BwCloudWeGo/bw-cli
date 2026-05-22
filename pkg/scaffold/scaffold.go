@@ -168,13 +168,15 @@ func stripDemo(root string, module string) error {
 		filepath.Join("internal", "gateway", "client"),
 		filepath.Join("internal", "gateway", "handler"),
 		filepath.Join("internal", "gateway", "request"),
-		filepath.Join("internal", "gateway", "router", "user_routes.go"),
-		filepath.Join("internal", "gateway", "router", "note_routes.go"),
 		filepath.Join("internal", "gateway", "router", "router_test.go"),
+		filepath.Join("docs", "services"),
 	} {
 		if err := os.RemoveAll(filepath.Join(root, rel)); err != nil {
 			return err
 		}
+	}
+	if err := removeChildrenExcept(filepath.Join(root, "internal", "gateway", "router"), "health.go", "router.go", "v1.go"); err != nil {
+		return err
 	}
 	if err := writeCleanGateway(root, module); err != nil {
 		return err
@@ -808,7 +810,7 @@ docs           # 使用和架构文档
 bw-cli service order --tidy
 `+"```"+`
 
-命令会生成 `+"`cmd/order`"+`、`+"`api/proto/order`"+`、`+"`internal/order/model`"+`、`+"`internal/order/dto`"+`、`+"`internal/order/service/service.go`"+`、`+"`repo/gorm_repository.go`"+`、`+"`repo/mongo_repository.go`"+`、`+"`handler`"+`、gateway request/handler/router 和 `+"`docs/services/order.md`"+`。生成后的服务默认带 Create/Get/List/Update/Delete 基础 CRUD，并会把服务名、gRPC 端口和 gateway target 写入 `+"`configs/config.yaml`"+`。默认启动使用 Gorm，MongoDB 仓储已通过 `+"`mongox.NewDocumentStore[T]`"+` 预先接好。
+命令会生成 `+"`cmd/order`"+`、`+"`api/proto/order`"+`、`+"`internal/order/domain`"+`、`+"`application`"+`、`+"`infrastructure/persistence`"+`、`+"`interfaces/rpc`"+`、gateway `+"`interfaces/http/order`"+` 和 `+"`docs/services/order.md`"+`。生成后的服务默认带 Create/Get/List/Update/Delete 基础 CRUD，并会把服务名、gRPC 端口和 gateway target 写入 `+"`configs/config.yaml`"+`。
 
 需要指定端口时使用：
 
@@ -932,7 +934,7 @@ bw-cli service comment --port 9103 --tidy
 - 服务名、gRPC 端口和 gateway target 写在 `+"`services.comment`"+`。
 - 数据库继续读取当前项目已有的 `+"`database`"+`、`+"`mysql`"+`、`+"`postgresql`"+` 配置。
 - 默认 SQLite 可直接本地运行，服务启动时自动执行 `+"`AutoMigrate`"+`。
-- proto、handler、service、model、repo、gateway HTTP 入口和 service 单测都会同时生成。
+- proto、domain、application、infrastructure、interfaces、gateway HTTP 入口和 application 单测都会同时生成。
 - 如果启用了 Nacos，命令行会提示把本地新增配置同步到 Nacos。
 
 生成结构：
@@ -941,25 +943,22 @@ bw-cli service comment --port 9103 --tidy
 api/proto/comment/v1/comment.proto
 api/gen/comment/v1
 cmd/comment/main.go
-internal/comment/model      # 领域实体、业务错误、Repository 接口
-internal/comment/dto/command.go      # 业务用例入参命令
-internal/comment/dto/comment.go      # 业务用例出参 DTO 和转换
-internal/comment/service/service.go  # 业务流程编排
-internal/comment/repo       # 数据库访问，默认 Gorm，同时生成 MongoDB 实现
-internal/comment/handler    # gRPC 协议转换
-internal/gateway/request/comment_request.go
-internal/gateway/handler/comment_handler.go
-internal/gateway/router/comment_routes.go
+internal/comment/domain                      # 领域实体、业务错误、Repository 接口
+internal/comment/application                 # 命令、DTO、用例服务和单测
+internal/comment/infrastructure/persistence  # Gorm/MongoDB 表结构、文档结构、mapper 和仓储实现
+internal/comment/interfaces/rpc              # gRPC 协议适配
+internal/gateway/svc/context.go              # gateway 依赖聚合
+internal/gateway/interfaces/http/comment     # HTTP request/handler/routes
 docs/services/comment.md    # 单服务详细开发说明
 `+"```"+`
 
 生成后的基础 CRUD 调用链：
 
 `+"```text"+`
-gRPC client -> proto -> handler -> service -> model.Repository -> repo(Gorm) -> database
+gRPC client -> proto -> interfaces/rpc -> application.Service -> domain.Repository -> infrastructure/gorm -> database
 `+"```"+`
 
-默认启动使用 `+"`repo/gorm_repository.go`"+`。如果业务更适合 MongoDB，生成的 `+"`repo/mongo_repository.go`"+` 已经包含 `+"`MongoCollectionName()`"+`、`+"`mongox.NewDocumentStore[T]`"+` 和基础 CRUD 方法，只需要在服务 main 中改为注入 `+"`repo.NewMongoRepository`"+`。
+默认启动使用 `+"`infrastructure/persistence/gorm`"+`。如果业务更适合 MongoDB，生成的 `+"`infrastructure/persistence/mongo`"+` 已经包含 `+"`MongoCollectionName()`"+`、`+"`mongox.NewDocumentStore[T]`"+` 和基础 CRUD 方法，只需要在服务 main 中改为注入 Mongo repository。
 
 HTTP 入口也已挂载：
 
@@ -983,11 +982,11 @@ DeleteComment
 
 开发原则：
 
-- `+"`model`"+` 写业务核心，不依赖 Gin、gRPC、Gorm。
-- `+"`dto/command.go`"+` 写业务入参，`+"`dto/<service>.go`"+` 写业务出参，`+"`service/service.go`"+` 写业务流程。
-- `+"`repo`"+` 是数据库操作唯一入口，Gorm/MongoDB/Redis 查询都放这里。
-- `+"`handler`"+` 只做 gRPC request/response 转换和错误映射。
-- HTTP 入参放 `+"`internal/gateway/request`"+`，路由按 `+"`/api/v1/<business>`"+` 拆分。
+- `+"`domain`"+` 写业务核心，不依赖 Gin、gRPC、Gorm。
+- `+"`application`"+` 写命令、DTO、用例编排和单元测试。
+- `+"`infrastructure/persistence`"+` 是数据库操作唯一入口，Gorm/MongoDB 查询都放这里。
+- `+"`interfaces/rpc`"+` 只做 gRPC request/response 转换和错误映射。
+- HTTP 入口放 `+"`internal/gateway/interfaces/http/<service>`"+`，路由按 `+"`/api/v1/<business>`"+` 拆分。
 
 数据库操作示例见每次生成的 `+"`docs/services/<service>.md`"+`。
 `, module)
@@ -1003,22 +1002,22 @@ func cleanArchitectureDoc() string {
 新增服务时按以下包名组织：
 
 ~~~text
-internal/<service>/model    # 实体、值对象、业务错误、仓储接口
-internal/<service>/dto/command.go      # 业务用例入参命令
-internal/<service>/dto/<service>.go    # 业务用例出参 DTO 和转换
-internal/<service>/service/service.go  # 业务流程编排
-internal/<service>/repo     # Gorm、MongoDB、Redis、外部依赖实现
-internal/<service>/handler  # gRPC/HTTP 入站适配
+internal/<service>/domain       # 实体、值对象、业务错误、仓储接口
+internal/<service>/application  # 命令、DTO、用例服务和单测
+internal/<service>/infrastructure/persistence
+  ├── gorm                  # 表结构、mapper、仓储、迁移
+  └── mongo                 # 文档结构、mapper、仓储
+internal/<service>/interfaces/rpc # gRPC 入站适配
 ~~~
 
 依赖方向：
 
 ~~~text
-handler -> service -> model
-repo -> model
+interfaces/rpc -> application -> domain
+infrastructure -> domain
 ~~~
 
-model 不依赖 Gin、gRPC、Gorm 或云 SDK，便于测试和替换基础设施。service 继续拆为 command、dto、service 三个文件：command 放业务入参，dto 放业务出参和转换，service 放业务流程。
+domain 不依赖 Gin、gRPC、Gorm 或云 SDK，便于测试和替换基础设施。application 放 command、dto 和 service，infrastructure 只实现持久化细节。
 
 ## Gateway
 

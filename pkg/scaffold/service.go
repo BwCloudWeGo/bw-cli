@@ -40,6 +40,7 @@ type serviceTemplateData struct {
 	ProtoPackage string
 	GoPackage    string
 	GoIdent      string
+	HTTPAlias    string
 	Pascal       string
 	ServiceName  string
 	Port         int
@@ -139,6 +140,7 @@ func buildServiceTemplateData(module string, rawName string, port int) (serviceT
 		ProtoPackage: dir + ".v1",
 		GoPackage:    strings.ToLower(pascal) + "v1",
 		GoIdent:      lowerFirst(pascal),
+		HTTPAlias:    strings.ToLower(pascal) + "http",
 		Pascal:       pascal,
 		ServiceName:  strings.Join(parts, "-") + "-service",
 		Port:         port,
@@ -208,18 +210,23 @@ func ensureServiceDoesNotExist(root string, data serviceTemplateData) error {
 
 func writeServiceFiles(root string, data serviceTemplateData) error {
 	files := map[string]string{
-		filepath.Join("api", "proto", data.Dir, "v1", data.ProtoFile):      renderServiceTemplate(serviceProtoTemplate, data),
-		filepath.Join("cmd", data.Dir, "main.go"):                          renderServiceTemplate(serviceMainTemplate, data),
-		filepath.Join("internal", data.Dir, "model", data.Dir+".go"):       renderServiceTemplate(serviceModelTemplate, data),
-		filepath.Join("internal", data.Dir, "model", "repository.go"):      renderServiceTemplate(serviceRepositoryTemplate, data),
-		filepath.Join("internal", data.Dir, "dto", "command.go"):           renderServiceTemplate(serviceCommandTemplate, data),
-		filepath.Join("internal", data.Dir, "dto", data.Dir+".go"):         renderServiceTemplate(serviceDTOTemplate, data),
-		filepath.Join("internal", data.Dir, "service", "service.go"):       renderServiceTemplate(serviceUseCaseTemplate, data),
-		filepath.Join("internal", data.Dir, "service", "service_test.go"):  renderServiceTemplate(serviceUseCaseTestTemplate, data),
-		filepath.Join("internal", data.Dir, "repo", "gorm_repository.go"):  renderServiceTemplate(serviceGormRepoTemplate, data),
-		filepath.Join("internal", data.Dir, "repo", "mongo_repository.go"): renderServiceTemplate(serviceMongoRepoTemplate, data),
-		filepath.Join("internal", data.Dir, "handler", "server.go"):        renderServiceTemplate(serviceHandlerTemplate, data),
-		filepath.Join("docs", "services", data.Dir+".md"):                  renderServiceTemplate(serviceDocTemplate, data),
+		filepath.Join("api", "proto", data.Dir, "v1", data.ProtoFile):                                  renderServiceTemplate(serviceProtoTemplate, data),
+		filepath.Join("cmd", data.Dir, "main.go"):                                                      renderServiceTemplate(serviceMainTemplate, data),
+		filepath.Join("internal", data.Dir, "domain", "entity.go"):                                     renderServiceTemplate(serviceModelTemplate, data),
+		filepath.Join("internal", data.Dir, "domain", "repository.go"):                                 renderServiceTemplate(serviceRepositoryTemplate, data),
+		filepath.Join("internal", data.Dir, "application", "command.go"):                               renderServiceTemplate(serviceCommandTemplate, data),
+		filepath.Join("internal", data.Dir, "application", "dto.go"):                                   renderServiceTemplate(serviceDTOTemplate, data),
+		filepath.Join("internal", data.Dir, "application", "service.go"):                               renderServiceTemplate(serviceUseCaseTemplate, data),
+		filepath.Join("internal", data.Dir, "application", "service_test.go"):                          renderServiceTemplate(serviceUseCaseTestTemplate, data),
+		filepath.Join("internal", data.Dir, "infrastructure", "persistence", "gorm", "model.go"):       renderServiceTemplate(serviceGormModelTemplate, data),
+		filepath.Join("internal", data.Dir, "infrastructure", "persistence", "gorm", "mapper.go"):      renderServiceTemplate(serviceGormMapperTemplate, data),
+		filepath.Join("internal", data.Dir, "infrastructure", "persistence", "gorm", "repository.go"):  renderServiceTemplate(serviceGormRepoTemplate, data),
+		filepath.Join("internal", data.Dir, "infrastructure", "persistence", "gorm", "migrate.go"):     renderServiceTemplate(serviceGormMigrateTemplate, data),
+		filepath.Join("internal", data.Dir, "infrastructure", "persistence", "mongo", "document.go"):   renderServiceTemplate(serviceMongoDocumentTemplate, data),
+		filepath.Join("internal", data.Dir, "infrastructure", "persistence", "mongo", "mapper.go"):     renderServiceTemplate(serviceMongoMapperTemplate, data),
+		filepath.Join("internal", data.Dir, "infrastructure", "persistence", "mongo", "repository.go"): renderServiceTemplate(serviceMongoRepoTemplate, data),
+		filepath.Join("internal", data.Dir, "interfaces", "rpc", "server.go"):                          renderServiceTemplate(serviceHandlerTemplate, data),
+		filepath.Join("docs", "services", data.Dir+".md"):                                              renderServiceTemplate(serviceDocTemplate, data),
 	}
 	for rel, content := range files {
 		if err := writeNewFile(filepath.Join(root, rel), []byte(content)); err != nil {
@@ -234,18 +241,16 @@ func writeGatewayServiceFiles(root string, data serviceTemplateData) error {
 	if !exists(routerDir) {
 		return nil
 	}
-	commonPath := filepath.Join(root, "internal", "gateway", "handler", "common.go")
-	if err := ensureGatewayCommonFile(commonPath, data); err != nil {
-		return err
-	}
-	clientsPath := filepath.Join(root, "internal", "gateway", "client", "clients.go")
-	if err := ensureGatewayClientsFile(clientsPath, data); err != nil {
-		return err
+	contextPath := filepath.Join(root, "internal", "gateway", "svc", "context.go")
+	if !exists(contextPath) {
+		if err := writeNewFile(contextPath, []byte(renderServiceTemplate(gatewayServiceContextTemplate, data))); err != nil {
+			return err
+		}
 	}
 	files := map[string]string{
-		filepath.Join("internal", "gateway", "request", data.Dir+"_request.go"): renderServiceTemplate(gatewayRequestTemplate, data),
-		filepath.Join("internal", "gateway", "handler", data.Dir+"_handler.go"): renderServiceTemplate(gatewayHandlerTemplate, data),
-		filepath.Join("internal", "gateway", "router", data.Dir+"_routes.go"):   renderServiceTemplate(gatewayRoutesTemplate, data),
+		filepath.Join("internal", "gateway", "interfaces", "http", data.Dir, "request.go"): renderServiceTemplate(gatewayRequestTemplate, data),
+		filepath.Join("internal", "gateway", "interfaces", "http", data.Dir, "handler.go"): renderServiceTemplate(gatewayHandlerTemplate, data),
+		filepath.Join("internal", "gateway", "interfaces", "http", data.Dir, "routes.go"):  renderServiceTemplate(gatewayRoutesTemplate, data),
 	}
 	for rel, content := range files {
 		if err := writeNewFile(filepath.Join(root, rel), []byte(content)); err != nil {
@@ -497,21 +502,26 @@ func nacosEnabled(root string) (bool, string) {
 func gofmtService(root string, serviceDir string) error {
 	args := []string{
 		filepath.Join("cmd", serviceDir, "main.go"),
-		filepath.Join("internal", serviceDir, "model", serviceDir+".go"),
-		filepath.Join("internal", serviceDir, "model", "repository.go"),
-		filepath.Join("internal", serviceDir, "dto", "command.go"),
-		filepath.Join("internal", serviceDir, "dto", serviceDir+".go"),
-		filepath.Join("internal", serviceDir, "service", "service.go"),
-		filepath.Join("internal", serviceDir, "service", "service_test.go"),
-		filepath.Join("internal", serviceDir, "repo", "gorm_repository.go"),
-		filepath.Join("internal", serviceDir, "repo", "mongo_repository.go"),
-		filepath.Join("internal", serviceDir, "handler", "server.go"),
+		filepath.Join("internal", serviceDir, "domain", "entity.go"),
+		filepath.Join("internal", serviceDir, "domain", "repository.go"),
+		filepath.Join("internal", serviceDir, "application", "command.go"),
+		filepath.Join("internal", serviceDir, "application", "dto.go"),
+		filepath.Join("internal", serviceDir, "application", "service.go"),
+		filepath.Join("internal", serviceDir, "application", "service_test.go"),
+		filepath.Join("internal", serviceDir, "infrastructure", "persistence", "gorm", "model.go"),
+		filepath.Join("internal", serviceDir, "infrastructure", "persistence", "gorm", "mapper.go"),
+		filepath.Join("internal", serviceDir, "infrastructure", "persistence", "gorm", "repository.go"),
+		filepath.Join("internal", serviceDir, "infrastructure", "persistence", "gorm", "migrate.go"),
+		filepath.Join("internal", serviceDir, "infrastructure", "persistence", "mongo", "document.go"),
+		filepath.Join("internal", serviceDir, "infrastructure", "persistence", "mongo", "mapper.go"),
+		filepath.Join("internal", serviceDir, "infrastructure", "persistence", "mongo", "repository.go"),
+		filepath.Join("internal", serviceDir, "interfaces", "rpc", "server.go"),
 	}
 	for _, rel := range []string{
-		filepath.Join("internal", "gateway", "handler", "common.go"),
-		filepath.Join("internal", "gateway", "request", serviceDir+"_request.go"),
-		filepath.Join("internal", "gateway", "handler", serviceDir+"_handler.go"),
-		filepath.Join("internal", "gateway", "router", serviceDir+"_routes.go"),
+		filepath.Join("internal", "gateway", "svc", "context.go"),
+		filepath.Join("internal", "gateway", "interfaces", "http", serviceDir, "request.go"),
+		filepath.Join("internal", "gateway", "interfaces", "http", serviceDir, "handler.go"),
+		filepath.Join("internal", "gateway", "interfaces", "http", serviceDir, "routes.go"),
 		filepath.Join("internal", "gateway", "router", "router.go"),
 		filepath.Join("internal", "gateway", "router", "v1.go"),
 	} {
@@ -530,12 +540,16 @@ func patchGatewayRouter(root string, data serviceTemplateData) error {
 			return err
 		}
 		routerText := string(routerBytes)
-		routerText = ensureImport(routerText, fmt.Sprintf("%q", data.Module+"/internal/gateway/client"))
-		if strings.Contains(routerText, "func New(log *zap.Logger, middlewareCfg config.MiddlewareConfig) *gin.Engine") {
-			routerText = strings.Replace(routerText, "func New(log *zap.Logger, middlewareCfg config.MiddlewareConfig) *gin.Engine", "func New(clients *client.Clients, log *zap.Logger, middlewareCfg config.MiddlewareConfig) *gin.Engine", 1)
+		routerText = ensureImport(routerText, fmt.Sprintf("%q", data.Module+"/internal/gateway/svc"))
+		routerText = removeImport(routerText, fmt.Sprintf("%q", data.Module+"/internal/gateway/client"))
+		if strings.Contains(routerText, "func New(clients *client.Clients, log *zap.Logger, middlewareCfg config.MiddlewareConfig) *gin.Engine") {
+			routerText = strings.Replace(routerText, "func New(clients *client.Clients, log *zap.Logger, middlewareCfg config.MiddlewareConfig) *gin.Engine", "func New(log *zap.Logger, middlewareCfg config.MiddlewareConfig) *gin.Engine", 1)
 		}
 		if strings.Contains(routerText, "registerAPIRoutes(r)") {
-			routerText = strings.Replace(routerText, "registerAPIRoutes(r)", "registerAPIRoutes(r, clients, log)", 1)
+			routerText = strings.Replace(routerText, "registerAPIRoutes(r)", "ctx := svc.NewServiceContext(log)\n\tregisterAPIRoutes(r, ctx)", 1)
+		}
+		if strings.Contains(routerText, "registerAPIRoutes(r, clients, log)") {
+			routerText = strings.Replace(routerText, "registerAPIRoutes(r, clients, log)", "ctx := svc.NewServiceContext(log)\n\tregisterAPIRoutes(r, ctx)", 1)
 		}
 		if err := os.WriteFile(routerPath, []byte(routerText), 0o644); err != nil {
 			return err
@@ -554,16 +568,17 @@ func patchGatewayRouter(root string, data serviceTemplateData) error {
 		return err
 	}
 	v1Text := string(v1Bytes)
-	registration := fmt.Sprintf("register%sRoutes(v1, handler.New%sHandler(clients.%s, log))", data.Pascal, data.Pascal, data.Pascal)
+	registration := fmt.Sprintf("%s.RegisterRoutes(v1, ctx)", data.HTTPAlias)
 	if strings.Contains(v1Text, registration) {
 		return nil
 	}
 	if strings.Contains(v1Text, "func registerAPIRoutes(r *gin.Engine)") {
 		return os.WriteFile(v1Path, []byte(renderServiceTemplate(cleanGatewayV1WithServiceTemplate, data)), 0o644)
 	}
-	if !strings.Contains(v1Text, "func registerAPIRoutes(r *gin.Engine, clients *client.Clients") {
+	if !strings.Contains(v1Text, "func registerAPIRoutes(r *gin.Engine, ctx *svc.ServiceContext)") {
 		return nil
 	}
+	v1Text = ensureImport(v1Text, fmt.Sprintf("%s %q", data.HTTPAlias, data.Module+"/internal/gateway/interfaces/http/"+data.Dir))
 	if strings.Contains(v1Text, "\n\t_ = v1\n") {
 		v1Text = strings.Replace(v1Text, "\n\t_ = v1\n", "\n\t"+registration+"\n", 1)
 		return os.WriteFile(v1Path, []byte(v1Text), 0o644)
@@ -586,17 +601,8 @@ func patchGatewayMain(root string, data serviceTemplateData) error {
 		return err
 	}
 	text := string(content)
-	text = ensureImport(text, fmt.Sprintf("%q", data.Module+"/internal/gateway/client"))
-	if strings.Contains(text, "engine := router.New(log, cfg.Middleware)") {
-		initBlock := `gatewayClients, err := client.New(cfg, log)
-	if err != nil {
-		log.Fatal("initialize grpc clients failed", zap.Error(err))
-	}
-	defer gatewayClients.Close()
-
-	engine := router.New(gatewayClients, log, cfg.Middleware)`
-		text = strings.Replace(text, "engine := router.New(log, cfg.Middleware)", initBlock, 1)
-	}
+	text = removeImport(text, fmt.Sprintf("%q", data.Module+"/internal/gateway/client"))
+	text = strings.Replace(text, "engine := router.New(gatewayClients, log, cfg.Middleware)", "engine := router.New(log, cfg.Middleware)", 1)
 	return os.WriteFile(mainPath, []byte(text), 0o644)
 }
 
@@ -681,9 +687,9 @@ import (
 	"google.golang.org/grpc"
 
 	{{ .GoPackage }} "{{ .Module }}/api/gen/{{ .Dir }}/v1"
-	{{ .GoIdent }}handler "{{ .Module }}/internal/{{ .Dir }}/handler"
-	{{ .GoIdent }}repo "{{ .Module }}/internal/{{ .Dir }}/repo"
-	{{ .GoIdent }}service "{{ .Module }}/internal/{{ .Dir }}/service"
+	{{ .GoIdent }}app "{{ .Module }}/internal/{{ .Dir }}/application"
+	{{ .GoIdent }}gorm "{{ .Module }}/internal/{{ .Dir }}/infrastructure/persistence/gorm"
+	{{ .GoIdent }}rpc "{{ .Module }}/internal/{{ .Dir }}/interfaces/rpc"
 	"{{ .Module }}/pkg/config"
 	"{{ .Module }}/pkg/database"
 	"{{ .Module }}/pkg/grpcx"
@@ -712,14 +718,14 @@ func main() {
 	if err != nil {
 		log.Fatal("open database failed", zap.Error(err))
 	}
-	if err := {{ .GoIdent }}repo.AutoMigrate(db); err != nil {
+	if err := {{ .GoIdent }}gorm.AutoMigrate(db); err != nil {
 		log.Fatal("migrate {{ .Dir }} database failed", zap.Error(err))
 	}
 
-	repo := {{ .GoIdent }}repo.NewGormRepository(db, log)
-	svc := {{ .GoIdent }}service.NewService(repo, log)
+	repo := {{ .GoIdent }}gorm.NewRepository(db, log)
+	svc := {{ .GoIdent }}app.NewService(repo, log)
 	server := grpc.NewServer(grpc.UnaryInterceptor(grpcx.UnaryServerInterceptor(log)))
-	{{ .GoPackage }}.Register{{ .Pascal }}ServiceServer(server, {{ .GoIdent }}handler.NewServer(svc, log))
+	{{ .GoPackage }}.Register{{ .Pascal }}ServiceServer(server, {{ .GoIdent }}rpc.NewServer(svc, log))
 
 	port := cfg.ServicePort("{{ .Dir }}", defaultGRPCPort)
 	addr := fmt.Sprintf("%s:%d", cfg.GRPC.Host, port)
@@ -758,7 +764,7 @@ func shutdownOnSignal(server *grpc.Server, log *zap.Logger) {
 }
 `
 
-const serviceModelTemplate = `package model
+const serviceModelTemplate = `package domain
 
 import (
 	"errors"
@@ -814,7 +820,7 @@ func (item *{{ .Pascal }}) Update(name string, description string) error {
 }
 `
 
-const serviceRepositoryTemplate = `package model
+const serviceRepositoryTemplate = `package domain
 
 import "context"
 
@@ -827,7 +833,7 @@ type Repository interface {
 }
 `
 
-const serviceCommandTemplate = `package dto
+const serviceCommandTemplate = `package application
 
 // CreateCommand contains input for creating a {{ .Dir }} record.
 type CreateCommand struct {
@@ -849,12 +855,12 @@ type ListCommand struct {
 }
 `
 
-const serviceDTOTemplate = `package dto
+const serviceDTOTemplate = `package application
 
 import (
 	"time"
 
-	"{{ .Module }}/internal/{{ .Dir }}/model"
+	"{{ .Module }}/internal/{{ .Dir }}/domain"
 )
 
 // {{ .Pascal }}DTO is returned by use cases and converted by handlers.
@@ -873,7 +879,7 @@ type List{{ .Pascal }}DTO struct {
 }
 
 // From{{ .Pascal }} converts a {{ .Dir }} aggregate into the service response DTO.
-func From{{ .Pascal }}(item *model.{{ .Pascal }}) *{{ .Pascal }}DTO {
+func From{{ .Pascal }}(item *domain.{{ .Pascal }}) *{{ .Pascal }}DTO {
 	return &{{ .Pascal }}DTO{
 		ID:          item.ID,
 		Name:        item.Name,
@@ -892,25 +898,24 @@ func formatTime(value time.Time) string {
 }
 `
 
-const serviceUseCaseTemplate = `package service
+const serviceUseCaseTemplate = `package application
 
 import (
 	"context"
 
 	"go.uber.org/zap"
 
-	"{{ .Module }}/internal/{{ .Dir }}/dto"
-	"{{ .Module }}/internal/{{ .Dir }}/model"
+	"{{ .Module }}/internal/{{ .Dir }}/domain"
 )
 
 // Service orchestrates {{ .Dir }} use cases.
 type Service struct {
-	repo model.Repository
+	repo domain.Repository
 	log  *zap.Logger
 }
 
 // NewService constructs the {{ .Dir }} use-case service.
-func NewService(repo model.Repository, log *zap.Logger) *Service {
+func NewService(repo domain.Repository, log *zap.Logger) *Service {
 	if log == nil {
 		log = zap.NewNop()
 	}
@@ -918,8 +923,8 @@ func NewService(repo model.Repository, log *zap.Logger) *Service {
 }
 
 // Create creates a {{ .Dir }} record.
-func (s *Service) Create(ctx context.Context, cmd dto.CreateCommand) (*dto.{{ .Pascal }}DTO, error) {
-	item, err := model.New{{ .Pascal }}(cmd.Name, cmd.Description)
+func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*{{ .Pascal }}DTO, error) {
+	item, err := domain.New{{ .Pascal }}(cmd.Name, cmd.Description)
 	if err != nil {
 		return nil, err
 	}
@@ -927,34 +932,34 @@ func (s *Service) Create(ctx context.Context, cmd dto.CreateCommand) (*dto.{{ .P
 		return nil, err
 	}
 	s.log.Info("{{ .Dir }} created", zap.String("aggregate_id", item.ID), zap.String("use_case", "Create{{ .Pascal }}"))
-	return dto.From{{ .Pascal }}(item), nil
+	return From{{ .Pascal }}(item), nil
 }
 
 // Get returns one {{ .Dir }} record by id.
-func (s *Service) Get(ctx context.Context, id string) (*dto.{{ .Pascal }}DTO, error) {
+func (s *Service) Get(ctx context.Context, id string) (*{{ .Pascal }}DTO, error) {
 	item, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return dto.From{{ .Pascal }}(item), nil
+	return From{{ .Pascal }}(item), nil
 }
 
 // List returns paginated {{ .Dir }} records.
-func (s *Service) List(ctx context.Context, cmd dto.ListCommand) (*dto.List{{ .Pascal }}DTO, error) {
+func (s *Service) List(ctx context.Context, cmd ListCommand) (*List{{ .Pascal }}DTO, error) {
 	offset, limit := normalizePagination(cmd.Page, cmd.PageSize)
 	items, total, err := s.repo.List(ctx, offset, limit)
 	if err != nil {
 		return nil, err
 	}
-	output := &dto.List{{ .Pascal }}DTO{Items: make([]*dto.{{ .Pascal }}DTO, 0, len(items)), Total: total}
+	output := &List{{ .Pascal }}DTO{Items: make([]*{{ .Pascal }}DTO, 0, len(items)), Total: total}
 	for _, item := range items {
-		output.Items = append(output.Items, dto.From{{ .Pascal }}(item))
+		output.Items = append(output.Items, From{{ .Pascal }}(item))
 	}
 	return output, nil
 }
 
 // Update changes one {{ .Dir }} record by id.
-func (s *Service) Update(ctx context.Context, cmd dto.UpdateCommand) (*dto.{{ .Pascal }}DTO, error) {
+func (s *Service) Update(ctx context.Context, cmd UpdateCommand) (*{{ .Pascal }}DTO, error) {
 	item, err := s.repo.FindByID(ctx, cmd.ID)
 	if err != nil {
 		return nil, err
@@ -966,7 +971,7 @@ func (s *Service) Update(ctx context.Context, cmd dto.UpdateCommand) (*dto.{{ .P
 		return nil, err
 	}
 	s.log.Info("{{ .Dir }} updated", zap.String("aggregate_id", item.ID), zap.String("use_case", "Update{{ .Pascal }}"))
-	return dto.From{{ .Pascal }}(item), nil
+	return From{{ .Pascal }}(item), nil
 }
 
 // Delete removes one {{ .Dir }} record by id.
@@ -992,14 +997,13 @@ func normalizePagination(page int32, pageSize int32) (int, int) {
 }
 `
 
-const serviceUseCaseTestTemplate = `package service
+const serviceUseCaseTestTemplate = `package application
 
 import (
 	"context"
 	"testing"
 
-	"{{ .Module }}/internal/{{ .Dir }}/dto"
-	"{{ .Module }}/internal/{{ .Dir }}/model"
+	"{{ .Module }}/internal/{{ .Dir }}/domain"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
@@ -1015,7 +1019,7 @@ func TestServiceCRUD(t *testing.T) {
 	repo := newFakeRepository()
 	svc := NewService(repo, zap.NewNop())
 
-	created, err := svc.Create(ctx, dto.CreateCommand{Name: "first", Description: "created from service test"})
+	created, err := svc.Create(ctx, CreateCommand{Name: "first", Description: "created from service test"})
 	require.NoError(t, err)
 	require.NotEmpty(t, created.ID)
 	require.Equal(t, "first", created.Name)
@@ -1024,45 +1028,45 @@ func TestServiceCRUD(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, created.ID, got.ID)
 
-	list, err := svc.List(ctx, dto.ListCommand{Page: 1, PageSize: 10})
+	list, err := svc.List(ctx, ListCommand{Page: 1, PageSize: 10})
 	require.NoError(t, err)
 	require.Equal(t, int64(1), list.Total)
 	require.Len(t, list.Items, 1)
 
-	updated, err := svc.Update(ctx, dto.UpdateCommand{ID: created.ID, Name: "updated", Description: "updated from service test"})
+	updated, err := svc.Update(ctx, UpdateCommand{ID: created.ID, Name: "updated", Description: "updated from service test"})
 	require.NoError(t, err)
 	require.Equal(t, "updated", updated.Name)
 
 	require.NoError(t, svc.Delete(ctx, created.ID))
 	_, err = svc.Get(ctx, created.ID)
-	require.ErrorIs(t, err, model.Err{{ .Pascal }}NotFound)
+	require.ErrorIs(t, err, domain.Err{{ .Pascal }}NotFound)
 }
 
 type fakeRepository struct {
-	items map[string]*model.{{ .Pascal }}
+	items map[string]*domain.{{ .Pascal }}
 }
 
 func newFakeRepository() *fakeRepository {
-	return &fakeRepository{items: make(map[string]*model.{{ .Pascal }})}
+	return &fakeRepository{items: make(map[string]*domain.{{ .Pascal }})}
 }
 
-func (r *fakeRepository) Save(ctx context.Context, item *model.{{ .Pascal }}) error {
+func (r *fakeRepository) Save(ctx context.Context, item *domain.{{ .Pascal }}) error {
 	copy := *item
 	r.items[item.ID] = &copy
 	return nil
 }
 
-func (r *fakeRepository) FindByID(ctx context.Context, id string) (*model.{{ .Pascal }}, error) {
+func (r *fakeRepository) FindByID(ctx context.Context, id string) (*domain.{{ .Pascal }}, error) {
 	item, ok := r.items[id]
 	if !ok {
-		return nil, model.Err{{ .Pascal }}NotFound
+		return nil, domain.Err{{ .Pascal }}NotFound
 	}
 	copy := *item
 	return &copy, nil
 }
 
-func (r *fakeRepository) List(ctx context.Context, offset int, limit int) ([]*model.{{ .Pascal }}, int64, error) {
-	items := make([]*model.{{ .Pascal }}, 0, len(r.items))
+func (r *fakeRepository) List(ctx context.Context, offset int, limit int) ([]*domain.{{ .Pascal }}, int64, error) {
+	items := make([]*domain.{{ .Pascal }}, 0, len(r.items))
 	for _, item := range r.items {
 		copy := *item
 		items = append(items, &copy)
@@ -1079,27 +1083,18 @@ func (r *fakeRepository) List(ctx context.Context, offset int, limit int) ([]*mo
 
 func (r *fakeRepository) Delete(ctx context.Context, id string) error {
 	if _, ok := r.items[id]; !ok {
-		return model.Err{{ .Pascal }}NotFound
+		return domain.Err{{ .Pascal }}NotFound
 	}
 	delete(r.items, id)
 	return nil
 }
 
-var _ model.Repository = (*fakeRepository)(nil)
+var _ domain.Repository = (*fakeRepository)(nil)
 `
 
-const serviceGormRepoTemplate = `package repo
+const serviceGormModelTemplate = `package gorm
 
-import (
-	"context"
-	"errors"
-	"time"
-
-	"go.uber.org/zap"
-	"gorm.io/gorm"
-
-	"{{ .Module }}/internal/{{ .Dir }}/model"
-)
+import "time"
 
 // {{ .Pascal }}Model is the Gorm persistence model for the {{ .TableName }} table.
 type {{ .Pascal }}Model struct {
@@ -1113,29 +1108,73 @@ type {{ .Pascal }}Model struct {
 func ({{ .Pascal }}Model) TableName() string {
 	return "{{ .TableName }}"
 }
+`
 
-// GormRepository persists {{ .Dir }} aggregates with Gorm.
-type GormRepository struct {
-	db  *gorm.DB
-	log *zap.Logger
-}
+const serviceGormMapperTemplate = `package gorm
 
-// NewGormRepository constructs a {{ .Dir }} repository with optional structured logging.
-func NewGormRepository(db *gorm.DB, loggers ...*zap.Logger) *GormRepository {
-	log := zap.NewNop()
-	if len(loggers) > 0 && loggers[0] != nil {
-		log = loggers[0]
+import "{{ .Module }}/internal/{{ .Dir }}/domain"
+
+func toRecord(item *domain.{{ .Pascal }}) *{{ .Pascal }}Model {
+	return &{{ .Pascal }}Model{
+		ID:          item.ID,
+		Name:        item.Name,
+		Description: item.Description,
+		CreatedAt:   item.CreatedAt,
+		UpdatedAt:   item.UpdatedAt,
 	}
-	return &GormRepository{db: db, log: log}
 }
+
+func toDomain(record *{{ .Pascal }}Model) *domain.{{ .Pascal }} {
+	return &domain.{{ .Pascal }}{
+		ID:          record.ID,
+		Name:        record.Name,
+		Description: record.Description,
+		CreatedAt:   record.CreatedAt,
+		UpdatedAt:   record.UpdatedAt,
+	}
+}
+`
+
+const serviceGormMigrateTemplate = `package gorm
+
+import "gorm.io/gorm"
 
 // AutoMigrate creates or updates the {{ .TableName }} table schema.
 func AutoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(&{{ .Pascal }}Model{})
 }
+`
+
+const serviceGormRepoTemplate = `package gorm
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"go.uber.org/zap"
+	"gorm.io/gorm"
+
+	"{{ .Module }}/internal/{{ .Dir }}/domain"
+)
+
+// Repository persists {{ .Dir }} aggregates with Gorm.
+type Repository struct {
+	db  *gorm.DB
+	log *zap.Logger
+}
+
+// NewRepository constructs a {{ .Dir }} Gorm repository with optional structured logging.
+func NewRepository(db *gorm.DB, loggers ...*zap.Logger) *Repository {
+	log := zap.NewNop()
+	if len(loggers) > 0 && loggers[0] != nil {
+		log = loggers[0]
+	}
+	return &Repository{db: db, log: log}
+}
 
 // Save inserts or updates a {{ .Dir }} aggregate.
-func (r *GormRepository) Save(ctx context.Context, item *model.{{ .Pascal }}) error {
+func (r *Repository) Save(ctx context.Context, item *domain.{{ .Pascal }}) error {
 	start := time.Now()
 	tx := r.db.WithContext(ctx).Save(toRecord(item))
 	r.logOperation("Save", tx.RowsAffected, start, tx.Error)
@@ -1143,13 +1182,13 @@ func (r *GormRepository) Save(ctx context.Context, item *model.{{ .Pascal }}) er
 }
 
 // FindByID loads a {{ .Dir }} aggregate by id.
-func (r *GormRepository) FindByID(ctx context.Context, id string) (*model.{{ .Pascal }}, error) {
+func (r *Repository) FindByID(ctx context.Context, id string) (*domain.{{ .Pascal }}, error) {
 	start := time.Now()
 	var record {{ .Pascal }}Model
 	tx := r.db.WithContext(ctx).Where("id = ?", id).First(&record)
 	err := tx.Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		err = model.Err{{ .Pascal }}NotFound
+		err = domain.Err{{ .Pascal }}NotFound
 	}
 	if err != nil {
 		r.logOperation("FindByID", tx.RowsAffected, start, err)
@@ -1160,7 +1199,7 @@ func (r *GormRepository) FindByID(ctx context.Context, id string) (*model.{{ .Pa
 }
 
 // List loads paginated {{ .Dir }} aggregates.
-func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*model.{{ .Pascal }}, int64, error) {
+func (r *Repository) List(ctx context.Context, offset int, limit int) ([]*domain.{{ .Pascal }}, int64, error) {
 	start := time.Now()
 	var total int64
 	countTx := r.db.WithContext(ctx).Model(&{{ .Pascal }}Model{}).Count(&total)
@@ -1178,7 +1217,7 @@ func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*mo
 		r.logOperation("List", tx.RowsAffected, start, tx.Error)
 		return nil, 0, tx.Error
 	}
-	items := make([]*model.{{ .Pascal }}, 0, len(records))
+	items := make([]*domain.{{ .Pascal }}, 0, len(records))
 	for i := range records {
 		items = append(items, toDomain(&records[i]))
 	}
@@ -1187,18 +1226,18 @@ func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*mo
 }
 
 // Delete removes a {{ .Dir }} aggregate by id.
-func (r *GormRepository) Delete(ctx context.Context, id string) error {
+func (r *Repository) Delete(ctx context.Context, id string) error {
 	start := time.Now()
 	tx := r.db.WithContext(ctx).Where("id = ?", id).Delete(&{{ .Pascal }}Model{})
 	err := tx.Error
 	if err == nil && tx.RowsAffected == 0 {
-		err = model.Err{{ .Pascal }}NotFound
+		err = domain.Err{{ .Pascal }}NotFound
 	}
 	r.logOperation("Delete", tx.RowsAffected, start, err)
 	return err
 }
 
-func (r *GormRepository) logOperation(operation string, rows int64, start time.Time, err error) {
+func (r *Repository) logOperation(operation string, rows int64, start time.Time, err error) {
 	fields := []zap.Field{
 		zap.String("repository", "{{ .Dir }}"),
 		zap.String("operation", operation),
@@ -1213,8 +1252,36 @@ func (r *GormRepository) logOperation(operation string, rows int64, start time.T
 	r.log.Info("repository operation completed", fields...)
 }
 
-func toRecord(item *model.{{ .Pascal }}) *{{ .Pascal }}Model {
-	return &{{ .Pascal }}Model{
+var _ domain.Repository = (*Repository)(nil)
+`
+
+const serviceMongoDocumentTemplate = `package mongo
+
+import "time"
+
+const {{ .GoIdent }}MongoCollectionName = "{{ .TableName }}"
+
+// {{ .Pascal }}Document is the MongoDB document for the {{ .Dir }} aggregate.
+type {{ .Pascal }}Document struct {
+	ID          string    ` + "`bson:\"_id\"`" + `
+	Name        string    ` + "`bson:\"name\"`" + `
+	Description string    ` + "`bson:\"description\"`" + `
+	CreatedAt   time.Time ` + "`bson:\"created_at\"`" + `
+	UpdatedAt   time.Time ` + "`bson:\"updated_at\"`" + `
+}
+
+// MongoCollectionName declares the MongoDB collection for {{ .Pascal }}Document.
+func ({{ .Pascal }}Document) MongoCollectionName() string {
+	return {{ .GoIdent }}MongoCollectionName
+}
+`
+
+const serviceMongoMapperTemplate = `package mongo
+
+import "{{ .Module }}/internal/{{ .Dir }}/domain"
+
+func toDocument(item *domain.{{ .Pascal }}) *{{ .Pascal }}Document {
+	return &{{ .Pascal }}Document{
 		ID:          item.ID,
 		Name:        item.Name,
 		Description: item.Description,
@@ -1223,20 +1290,18 @@ func toRecord(item *model.{{ .Pascal }}) *{{ .Pascal }}Model {
 	}
 }
 
-func toDomain(record *{{ .Pascal }}Model) *model.{{ .Pascal }} {
-	return &model.{{ .Pascal }}{
-		ID:          record.ID,
-		Name:        record.Name,
-		Description: record.Description,
-		CreatedAt:   record.CreatedAt,
-		UpdatedAt:   record.UpdatedAt,
+func toDomainFromDocument(document *{{ .Pascal }}Document) *domain.{{ .Pascal }} {
+	return &domain.{{ .Pascal }}{
+		ID:          document.ID,
+		Name:        document.Name,
+		Description: document.Description,
+		CreatedAt:   document.CreatedAt,
+		UpdatedAt:   document.UpdatedAt,
 	}
 }
-
-var _ model.Repository = (*GormRepository)(nil)
 `
 
-const serviceMongoRepoTemplate = `package repo
+const serviceMongoRepoTemplate = `package mongo
 
 import (
 	"context"
@@ -1248,50 +1313,30 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.uber.org/zap"
 
-	"{{ .Module }}/internal/{{ .Dir }}/model"
+	"{{ .Module }}/internal/{{ .Dir }}/domain"
 	"{{ .Module }}/pkg/mongox"
 )
 
-const {{ .GoIdent }}MongoCollectionName = "{{ .TableName }}"
-
-// {{ .Pascal }}Document is the MongoDB document for the {{ .Dir }} aggregate.
-// Keep BSON tags in repo layer only, so the domain model stays storage-agnostic.
-type {{ .Pascal }}Document struct {
-	ID          string    ` + "`bson:\"_id\"`" + `
-	Name        string    ` + "`bson:\"name\"`" + `
-	Description string    ` + "`bson:\"description\"`" + `
-	CreatedAt   time.Time ` + "`bson:\"created_at\"`" + `
-	UpdatedAt   time.Time ` + "`bson:\"updated_at\"`" + `
-}
-
-// MongoCollectionName declares the MongoDB collection for {{ .Pascal }}Document.
-// mongox.NewDocumentStore reads this value, so business repositories do not need
-// to repeat NewCollection boilerplate for every service.
-func ({{ .Pascal }}Document) MongoCollectionName() string {
-	return {{ .GoIdent }}MongoCollectionName
-}
-
-// MongoRepository persists {{ .Dir }} aggregates with the shared mongox DocumentStore.
-// It implements model.Repository and can replace GormRepository without changing service code.
-type MongoRepository struct {
+// Repository persists {{ .Dir }} aggregates with the shared mongox DocumentStore.
+type Repository struct {
 	documents *mongox.DocumentStore[{{ .Pascal }}Document]
 	log       *zap.Logger
 }
 
-// NewMongoRepository constructs a MongoDB repository using the configured database.
-func NewMongoRepository(db *mongo.Database, loggers ...*zap.Logger) *MongoRepository {
+// NewRepository constructs a MongoDB repository using the configured database.
+func NewRepository(db *mongo.Database, loggers ...*zap.Logger) *Repository {
 	log := zap.NewNop()
 	if len(loggers) > 0 && loggers[0] != nil {
 		log = loggers[0]
 	}
-	return &MongoRepository{
+	return &Repository{
 		documents: mongox.NewDocumentStore[{{ .Pascal }}Document](db, log),
 		log:       log,
 	}
 }
 
 // Save inserts or updates a {{ .Dir }} aggregate by MongoDB _id.
-func (r *MongoRepository) Save(ctx context.Context, item *model.{{ .Pascal }}) error {
+func (r *Repository) Save(ctx context.Context, item *domain.{{ .Pascal }}) error {
 	start := time.Now()
 	_, err := r.documents.UpsertByID(ctx, item.ID, toDocument(item))
 	r.logOperation("Save", item.ID, 0, start, err)
@@ -1299,11 +1344,11 @@ func (r *MongoRepository) Save(ctx context.Context, item *model.{{ .Pascal }}) e
 }
 
 // FindByID loads a {{ .Dir }} aggregate by MongoDB _id.
-func (r *MongoRepository) FindByID(ctx context.Context, id string) (*model.{{ .Pascal }}, error) {
+func (r *Repository) FindByID(ctx context.Context, id string) (*domain.{{ .Pascal }}, error) {
 	start := time.Now()
 	document, err := r.documents.FindByID(ctx, id)
 	if errors.Is(err, mongox.ErrNotFound) {
-		err = model.Err{{ .Pascal }}NotFound
+		err = domain.Err{{ .Pascal }}NotFound
 	}
 	r.logOperation("FindByID", id, 0, start, err)
 	if err != nil {
@@ -1313,7 +1358,7 @@ func (r *MongoRepository) FindByID(ctx context.Context, id string) (*model.{{ .P
 }
 
 // List loads paginated {{ .Dir }} aggregates ordered by creation time.
-func (r *MongoRepository) List(ctx context.Context, offset int, limit int) ([]*model.{{ .Pascal }}, int64, error) {
+func (r *Repository) List(ctx context.Context, offset int, limit int) ([]*domain.{{ .Pascal }}, int64, error) {
 	start := time.Now()
 	filter := bson.M{}
 	total, err := r.documents.Count(ctx, filter)
@@ -1333,7 +1378,7 @@ func (r *MongoRepository) List(ctx context.Context, offset int, limit int) ([]*m
 		return nil, 0, err
 	}
 
-	items := make([]*model.{{ .Pascal }}, 0, len(documents))
+	items := make([]*domain.{{ .Pascal }}, 0, len(documents))
 	for i := range documents {
 		items = append(items, toDomainFromDocument(&documents[i]))
 	}
@@ -1342,17 +1387,17 @@ func (r *MongoRepository) List(ctx context.Context, offset int, limit int) ([]*m
 }
 
 // Delete removes a {{ .Dir }} aggregate by MongoDB _id.
-func (r *MongoRepository) Delete(ctx context.Context, id string) error {
+func (r *Repository) Delete(ctx context.Context, id string) error {
 	start := time.Now()
 	result, err := r.documents.DeleteByID(ctx, id)
 	if err == nil && result != nil && result.DeletedCount == 0 {
-		err = model.Err{{ .Pascal }}NotFound
+		err = domain.Err{{ .Pascal }}NotFound
 	}
 	r.logOperation("Delete", id, 0, start, err)
 	return err
 }
 
-func (r *MongoRepository) logOperation(operation string, id string, total int64, start time.Time, err error) {
+func (r *Repository) logOperation(operation string, id string, total int64, start time.Time, err error) {
 	fields := []zap.Field{
 		zap.String("repository", "{{ .Dir }}_mongo"),
 		zap.String("operation", operation),
@@ -1368,30 +1413,10 @@ func (r *MongoRepository) logOperation(operation string, id string, total int64,
 	r.log.Info("mongodb repository operation completed", fields...)
 }
 
-func toDocument(item *model.{{ .Pascal }}) *{{ .Pascal }}Document {
-	return &{{ .Pascal }}Document{
-		ID:          item.ID,
-		Name:        item.Name,
-		Description: item.Description,
-		CreatedAt:   item.CreatedAt,
-		UpdatedAt:   item.UpdatedAt,
-	}
-}
-
-func toDomainFromDocument(document *{{ .Pascal }}Document) *model.{{ .Pascal }} {
-	return &model.{{ .Pascal }}{
-		ID:          document.ID,
-		Name:        document.Name,
-		Description: document.Description,
-		CreatedAt:   document.CreatedAt,
-		UpdatedAt:   document.UpdatedAt,
-	}
-}
-
-var _ model.Repository = (*MongoRepository)(nil)
+var _ domain.Repository = (*Repository)(nil)
 `
 
-const serviceHandlerTemplate = `package handler
+const serviceHandlerTemplate = `package rpc
 
 import (
 	"context"
@@ -1400,21 +1425,20 @@ import (
 	"go.uber.org/zap"
 
 	{{ .GoPackage }} "{{ .Module }}/api/gen/{{ .Dir }}/v1"
-	"{{ .Module }}/internal/{{ .Dir }}/dto"
-	"{{ .Module }}/internal/{{ .Dir }}/model"
-	"{{ .Module }}/internal/{{ .Dir }}/service"
+	"{{ .Module }}/internal/{{ .Dir }}/application"
+	"{{ .Module }}/internal/{{ .Dir }}/domain"
 	apperrors "{{ .Module }}/pkg/errors"
 )
 
-// Server adapts {{ .Dir }} gRPC requests to service use cases.
+// Server adapts {{ .Dir }} gRPC requests to application use cases.
 type Server struct {
 	{{ .GoPackage }}.Unimplemented{{ .Pascal }}ServiceServer
-	svc *service.Service
+	svc *application.Service
 	log *zap.Logger
 }
 
 // NewServer constructs the {{ .Dir }} gRPC server adapter.
-func NewServer(svc *service.Service, log *zap.Logger) *Server {
+func NewServer(svc *application.Service, log *zap.Logger) *Server {
 	if log == nil {
 		log = zap.NewNop()
 	}
@@ -1423,7 +1447,7 @@ func NewServer(svc *service.Service, log *zap.Logger) *Server {
 
 // Create{{ .Pascal }} handles the create RPC.
 func (s *Server) Create{{ .Pascal }}(ctx context.Context, req *{{ .GoPackage }}.Create{{ .Pascal }}Request) (*{{ .GoPackage }}.{{ .Pascal }}Response, error) {
-	item, err := s.svc.Create(ctx, dto.CreateCommand{
+	item, err := s.svc.Create(ctx, application.CreateCommand{
 		Name:        req.GetName(),
 		Description: req.GetDescription(),
 	})
@@ -1444,7 +1468,7 @@ func (s *Server) Get{{ .Pascal }}(ctx context.Context, req *{{ .GoPackage }}.Get
 
 // List{{ .Pascal }}s handles paginated listing.
 func (s *Server) List{{ .Pascal }}s(ctx context.Context, req *{{ .GoPackage }}.List{{ .Pascal }}sRequest) (*{{ .GoPackage }}.List{{ .Pascal }}sResponse, error) {
-	list, err := s.svc.List(ctx, dto.ListCommand{
+	list, err := s.svc.List(ctx, application.ListCommand{
 		Page:     req.GetPage(),
 		PageSize: req.GetPageSize(),
 	})
@@ -1463,7 +1487,7 @@ func (s *Server) List{{ .Pascal }}s(ctx context.Context, req *{{ .GoPackage }}.L
 
 // Update{{ .Pascal }} handles updates by id.
 func (s *Server) Update{{ .Pascal }}(ctx context.Context, req *{{ .GoPackage }}.Update{{ .Pascal }}Request) (*{{ .GoPackage }}.{{ .Pascal }}Response, error) {
-	item, err := s.svc.Update(ctx, dto.UpdateCommand{
+	item, err := s.svc.Update(ctx, application.UpdateCommand{
 		ID:          req.GetId(),
 		Name:        req.GetName(),
 		Description: req.GetDescription(),
@@ -1482,7 +1506,7 @@ func (s *Server) Delete{{ .Pascal }}(ctx context.Context, req *{{ .GoPackage }}.
 	return &{{ .GoPackage }}.Delete{{ .Pascal }}Response{Success: true}, nil
 }
 
-func toProto(item *dto.{{ .Pascal }}DTO) *{{ .GoPackage }}.{{ .Pascal }}Response {
+func toProto(item *application.{{ .Pascal }}DTO) *{{ .GoPackage }}.{{ .Pascal }}Response {
 	return &{{ .GoPackage }}.{{ .Pascal }}Response{
 		Id:          item.ID,
 		Name:        item.Name,
@@ -1494,82 +1518,57 @@ func toProto(item *dto.{{ .Pascal }}DTO) *{{ .GoPackage }}.{{ .Pascal }}Response
 
 func map{{ .Pascal }}Error(err error) error {
 	switch {
-	case stderrors.Is(err, model.ErrInvalid{{ .Pascal }}):
+	case stderrors.Is(err, domain.ErrInvalid{{ .Pascal }}):
 		return apperrors.InvalidArgument("invalid_{{ .Dir }}", "invalid {{ .Dir }} input")
-	case stderrors.Is(err, model.Err{{ .Pascal }}NotFound):
+	case stderrors.Is(err, domain.Err{{ .Pascal }}NotFound):
 		return apperrors.NotFound("{{ .Dir }}_not_found", "{{ .Dir }} not found")
 	default:
 		return apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_service_error", "{{ .Dir }} service error", err)
 	}
 }
 `
-
 const gatewayClientsTemplate = `package client
-
-import (
-	"fmt"
-
-	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
-	{{ .GoPackage }} "{{ .Module }}/api/gen/{{ .Dir }}/v1"
-	"{{ .Module }}/pkg/config"
-)
-
-// Clients groups all gRPC clients used by the HTTP gateway.
-type Clients struct {
-	{{ .Pascal }}  {{ .GoPackage }}.{{ .Pascal }}ServiceClient
-	Config *config.Config
-
-	conns []*grpc.ClientConn
-}
-
-// New dials configured gRPC targets and builds typed service clients.
-func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
-	{{ .GoIdent }}Target := cfg.ServiceTarget("{{ .Dir }}")
-	{{ .GoIdent }}Conn, err := grpc.Dial({{ .GoIdent }}Target, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, fmt.Errorf("dial {{ .Dir }} service: %w", err)
-	}
-
-	log.Info("grpc clients initialized",
-		zap.String("{{ .Dir }}_target", {{ .GoIdent }}Target),
-	)
-	return &Clients{
-		{{ .Pascal }}:  {{ .GoPackage }}.New{{ .Pascal }}ServiceClient({{ .GoIdent }}Conn),
-		Config: cfg,
-		conns:  []*grpc.ClientConn{ {{ .GoIdent }}Conn },
-	}, nil
-}
-
-// Close releases all gateway gRPC client connections.
-func (c *Clients) Close() {
-	for _, conn := range c.conns {
-		_ = conn.Close()
-	}
-}
 `
 
 const gatewayCommonTemplate = `package handler
+`
+
+const gatewayServiceContextTemplate = `package svc
 
 import (
-	"context"
+	"strings"
 
-	"github.com/gin-gonic/gin"
-	"google.golang.org/grpc/metadata"
+	"go.uber.org/zap"
 
-	"{{ .Module }}/pkg/grpcx"
-	"{{ .Module }}/pkg/httpx"
+	"{{ .Module }}/pkg/config"
 )
 
-// outgoingContext forwards gateway metadata such as request id to downstream gRPC calls.
-func outgoingContext(c *gin.Context) context.Context {
-	return metadata.AppendToOutgoingContext(c.Request.Context(), grpcx.MetadataRequestID, httpx.RequestID(c))
+// ServiceContext groups shared gateway dependencies, similar to go-zero svc context.
+type ServiceContext struct {
+	Config *config.Config
+	Log    *zap.Logger
+}
+
+// NewServiceContext constructs gateway dependencies shared by HTTP interface modules.
+func NewServiceContext(log *zap.Logger) *ServiceContext {
+	if log == nil {
+		log = zap.NewNop()
+	}
+	return &ServiceContext{Config: config.MustGlobal(), Log: log}
+}
+
+// GRPCTarget returns services.<name>.target or a conservative fallback.
+func (c *ServiceContext) GRPCTarget(serviceName string, fallback string) string {
+	if c != nil && c.Config != nil {
+		if target := strings.TrimSpace(c.Config.ServiceTarget(serviceName)); target != "" {
+			return target
+		}
+	}
+	return fallback
 }
 `
 
-const gatewayRequestTemplate = `package request
+const gatewayRequestTemplate = `package {{ .Dir }}
 
 // Create{{ .Pascal }}Request is the JSON payload used by POST /api/v1/{{ .TableName }}.
 type Create{{ .Pascal }}Request struct {
@@ -1590,38 +1589,63 @@ type List{{ .Pascal }}Request struct {
 }
 `
 
-const gatewayHandlerTemplate = `package handler
+const gatewayHandlerTemplate = `package {{ .Dir }}
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 
 	{{ .GoPackage }} "{{ .Module }}/api/gen/{{ .Dir }}/v1"
-	"{{ .Module }}/internal/gateway/request"
+	"{{ .Module }}/internal/gateway/svc"
 	apperrors "{{ .Module }}/pkg/errors"
+	"{{ .Module }}/pkg/grpcx"
 	"{{ .Module }}/pkg/httpx"
 )
 
+const {{ .GoIdent }}DefaultGRPCTarget = "127.0.0.1:{{ .Port }}"
+
 // {{ .Pascal }}Handler adapts {{ .Dir }} HTTP endpoints to the generated gRPC client.
 type {{ .Pascal }}Handler struct {
+	ctx    *svc.ServiceContext
 	client {{ .GoPackage }}.{{ .Pascal }}ServiceClient
-	log    *zap.Logger
+	conn   *grpc.ClientConn
 }
 
-// New{{ .Pascal }}Handler wires the {{ .Dir }} gRPC client into HTTP handler methods.
-func New{{ .Pascal }}Handler(client {{ .GoPackage }}.{{ .Pascal }}ServiceClient, log *zap.Logger) *{{ .Pascal }}Handler {
-	if log == nil {
-		log = zap.NewNop()
+// New{{ .Pascal }}Handler dials the {{ .Dir }} service and wires HTTP handler methods.
+func New{{ .Pascal }}Handler(ctx *svc.ServiceContext) (*{{ .Pascal }}Handler, error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("gateway service context is nil")
 	}
+	target := ctx.GRPCTarget("{{ .Dir }}", {{ .GoIdent }}DefaultGRPCTarget)
+	conn, err := grpc.Dial(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("dial {{ .Dir }} service: %w", err)
+	}
+	ctx.Log.Info("gateway grpc client initialized", zap.String("service", "{{ .Dir }}"), zap.String("target", target))
 	return &{{ .Pascal }}Handler{
-		client: client,
-		log:    log,
+		ctx:    ctx,
+		client: {{ .GoPackage }}.New{{ .Pascal }}ServiceClient(conn),
+		conn:   conn,
+	}, nil
+}
+
+// Close releases the handler-owned gRPC connection.
+func (h *{{ .Pascal }}Handler) Close() error {
+	if h == nil || h.conn == nil {
+		return nil
 	}
+	return h.conn.Close()
 }
 
 // Create proxies POST /api/v1/{{ .TableName }} to Create{{ .Pascal }}.
 func (h *{{ .Pascal }}Handler) Create(c *gin.Context) {
-	var req request.Create{{ .Pascal }}Request
+	var req Create{{ .Pascal }}Request
 	if err := c.ShouldBindJSON(&req); err != nil {
 		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
 		return
@@ -1634,7 +1658,7 @@ func (h *{{ .Pascal }}Handler) Create(c *gin.Context) {
 		httpx.Error(c, apperrors.FromGRPC(err))
 		return
 	}
-	h.log.Info("gateway {{ .Dir }} create proxied", zap.String("request_id", httpx.RequestID(c)), zap.String("aggregate_id", resp.GetId()))
+	h.ctx.Log.Info("gateway {{ .Dir }} create proxied", zap.String("request_id", httpx.RequestID(c)), zap.String("aggregate_id", resp.GetId()))
 	httpx.Created(c, resp)
 }
 
@@ -1650,7 +1674,7 @@ func (h *{{ .Pascal }}Handler) Get(c *gin.Context) {
 
 // List proxies GET /api/v1/{{ .TableName }} to List{{ .Pascal }}s.
 func (h *{{ .Pascal }}Handler) List(c *gin.Context) {
-	var req request.List{{ .Pascal }}Request
+	var req List{{ .Pascal }}Request
 	if err := c.ShouldBindQuery(&req); err != nil {
 		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
 		return
@@ -1668,7 +1692,7 @@ func (h *{{ .Pascal }}Handler) List(c *gin.Context) {
 
 // Update proxies PUT /api/v1/{{ .TableName }}/:id to Update{{ .Pascal }}.
 func (h *{{ .Pascal }}Handler) Update(c *gin.Context) {
-	var req request.Update{{ .Pascal }}Request
+	var req Update{{ .Pascal }}Request
 	if err := c.ShouldBindJSON(&req); err != nil {
 		httpx.Error(c, apperrors.InvalidArgument("invalid_request", err.Error()))
 		return
@@ -1682,7 +1706,7 @@ func (h *{{ .Pascal }}Handler) Update(c *gin.Context) {
 		httpx.Error(c, apperrors.FromGRPC(err))
 		return
 	}
-	h.log.Info("gateway {{ .Dir }} update proxied", zap.String("request_id", httpx.RequestID(c)), zap.String("aggregate_id", resp.GetId()))
+	h.ctx.Log.Info("gateway {{ .Dir }} update proxied", zap.String("request_id", httpx.RequestID(c)), zap.String("aggregate_id", resp.GetId()))
 	httpx.OK(c, resp)
 }
 
@@ -1693,27 +1717,36 @@ func (h *{{ .Pascal }}Handler) Delete(c *gin.Context) {
 		httpx.Error(c, apperrors.FromGRPC(err))
 		return
 	}
-	h.log.Info("gateway {{ .Dir }} delete proxied", zap.String("request_id", httpx.RequestID(c)), zap.String("aggregate_id", c.Param("id")))
+	h.ctx.Log.Info("gateway {{ .Dir }} delete proxied", zap.String("request_id", httpx.RequestID(c)), zap.String("aggregate_id", c.Param("id")))
 	httpx.OK(c, resp)
+}
+
+func outgoingContext(c *gin.Context) context.Context {
+	return metadata.AppendToOutgoingContext(c.Request.Context(), grpcx.MetadataRequestID, httpx.RequestID(c))
 }
 `
 
-const gatewayRoutesTemplate = `package router
+const gatewayRoutesTemplate = `package {{ .Dir }}
 
 import (
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
-	"{{ .Module }}/internal/gateway/handler"
+	"{{ .Module }}/internal/gateway/svc"
 )
 
-// register{{ .Pascal }}Routes registers /api/v1/{{ .TableName }} endpoints in one business-specific file.
-func register{{ .Pascal }}Routes(v1 *gin.RouterGroup, {{ .GoIdent }}Handler *handler.{{ .Pascal }}Handler) {
+// RegisterRoutes registers /api/v1/{{ .TableName }} endpoints in the {{ .Dir }} HTTP module.
+func RegisterRoutes(v1 *gin.RouterGroup, ctx *svc.ServiceContext) {
+	handler, err := New{{ .Pascal }}Handler(ctx)
+	if err != nil {
+		ctx.Log.Fatal("initialize {{ .Dir }} gateway handler failed", zap.Error(err))
+	}
 	routes := v1.Group("/{{ .TableName }}")
-	routes.POST("", {{ .GoIdent }}Handler.Create)
-	routes.GET("", {{ .GoIdent }}Handler.List)
-	routes.GET("/:id", {{ .GoIdent }}Handler.Get)
-	routes.PUT("/:id", {{ .GoIdent }}Handler.Update)
-	routes.DELETE("/:id", {{ .GoIdent }}Handler.Delete)
+	routes.POST("", handler.Create)
+	routes.GET("", handler.List)
+	routes.GET("/:id", handler.Get)
+	routes.PUT("/:id", handler.Update)
+	routes.DELETE("/:id", handler.Delete)
 }
 `
 
@@ -1721,18 +1754,17 @@ const cleanGatewayV1WithServiceTemplate = `package router
 
 import (
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 
-	"{{ .Module }}/internal/gateway/client"
-	"{{ .Module }}/internal/gateway/handler"
+	{{ .HTTPAlias }} "{{ .Module }}/internal/gateway/interfaces/http/{{ .Dir }}"
+	"{{ .Module }}/internal/gateway/svc"
 )
 
 // registerAPIRoutes creates the /api/v1 route namespace before delegating by business module.
-func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger) {
+func registerAPIRoutes(r *gin.Engine, ctx *svc.ServiceContext) {
 	api := r.Group("/api")
 	v1 := api.Group("/v1")
 
-	register{{ .Pascal }}Routes(v1, handler.New{{ .Pascal }}Handler(clients.{{ .Pascal }}, log))
+	{{ .HTTPAlias }}.RegisterRoutes(v1, ctx)
 }
 `
 
@@ -1747,15 +1779,19 @@ bw-cli service {{ .InputName }} --port {{ .Port }}
 ## 目录结构
 
 ~~~text
-api/proto/{{ .Dir }}/v1/{{ .ProtoFile }}       # gRPC 协议定义
-api/gen/{{ .Dir }}/v1                          # make proto 生成代码
-cmd/{{ .Dir }}/main.go                         # gRPC 服务启动入口
-internal/{{ .Dir }}/model                      # 领域实体和仓储接口
-internal/{{ .Dir }}/dto/command.go             # 业务用例入参命令
-internal/{{ .Dir }}/dto/{{ .Dir }}.go          # 业务用例出参 DTO 和转换
-internal/{{ .Dir }}/service/service.go         # 业务流程编排
-internal/{{ .Dir }}/repo                       # Gorm 和 MongoDB 仓储实现
-internal/{{ .Dir }}/handler                    # gRPC 入站适配器
+api/proto/{{ .Dir }}/v1/{{ .ProtoFile }}                         # gRPC 协议定义
+api/gen/{{ .Dir }}/v1                                            # make proto 生成代码
+cmd/{{ .Dir }}/main.go                                           # 服务启动与依赖装配
+internal/{{ .Dir }}/domain/entity.go                             # 领域实体和值对象
+internal/{{ .Dir }}/domain/repository.go                         # 仓储接口
+internal/{{ .Dir }}/application/command.go                       # 用例入参命令
+internal/{{ .Dir }}/application/dto.go                           # 用例出参 DTO 和转换
+internal/{{ .Dir }}/application/service.go                       # 用例编排
+internal/{{ .Dir }}/infrastructure/persistence/gorm              # 表结构、mapper、仓储、迁移
+internal/{{ .Dir }}/infrastructure/persistence/mongo             # 文档结构、mapper、仓储
+internal/{{ .Dir }}/interfaces/rpc/server.go                     # gRPC 入站适配
+internal/gateway/svc/context.go                                  # gateway 依赖聚合
+internal/gateway/interfaces/http/{{ .Dir }}                      # HTTP request/handler/routes
 ~~~
 
 ## 启动
@@ -1775,19 +1811,15 @@ services:
     target: 127.0.0.1:{{ .Port }}
 ~~~
 
-如果要修改端口，改 ` + "`services.{{ .Dir }}.port`" + ` 即可。如果项目启用了 Nacos，请把本地 ` + "`configs/config.yaml`" + ` 中新增的 ` + "`services.{{ .Dir }}`" + ` 同步到 Nacos 对应配置。
-
 ## 基础 CRUD
 
 生成后的服务已经提供 Create/Get/List/Update/Delete 的基础调用链：
 
 ~~~text
-proto RPC -> handler -> service -> model.Repository -> repo(Gorm) -> database
+proto RPC -> interfaces/rpc -> application.Service -> domain.Repository -> infrastructure/gorm -> database
 ~~~
 
-默认启动使用 ` + "`repo/gorm_repository.go`" + `，无需改配置即可运行。命令同时生成 ` + "`repo/mongo_repository.go`" + `，MongoDB 仓储已通过 ` + "`mongox.NewDocumentStore[{{ .Pascal }}Document]`" + ` 接好基础 CRUD；需要切换 MongoDB 时，只替换 ` + "`cmd/{{ .Dir }}/main.go`" + ` 中注入的 repository。
-
-用户可以直接把示例字段 ` + "`Name`" + `、` + "`Description`" + ` 替换成真实业务字段，或者在此基础上新增业务方法。
+默认启动使用 ` + "`infrastructure/persistence/gorm`" + `。命令同时生成 ` + "`infrastructure/persistence/mongo`" + `，MongoDB 仓储已通过 ` + "`mongox.NewDocumentStore[{{ .Pascal }}Document]`" + ` 接好基础 CRUD；需要切换 MongoDB 时，只替换 ` + "`cmd/{{ .Dir }}/main.go`" + ` 中注入的 repository。
 
 如果项目包含 Gin gateway，命令也会生成 HTTP 入口：
 
@@ -1799,239 +1831,33 @@ PUT    /api/v1/{{ .TableName }}/:id
 DELETE /api/v1/{{ .TableName }}/:id
 ~~~
 
-gateway client 默认调用 ` + "`services.{{ .Dir }}.target`" + `。如需调整地址，修改 ` + "`configs/config.yaml`" + ` 中的 ` + "`services.{{ .Dir }}.target`" + `。
+gateway 默认读取 ` + "`services.{{ .Dir }}.target`" + `。如需调整地址，修改 ` + "`configs/config.yaml`" + ` 中的 ` + "`services.{{ .Dir }}.target`" + `。
 
 ## 开发顺序
 
 1. 在 ` + "`api/proto/{{ .Dir }}/v1/{{ .ProtoFile }}`" + ` 中定义 RPC、Request、Response。
 2. 执行 ` + "`make proto`" + ` 生成 ` + "`api/gen/{{ .Dir }}/v1`" + `。
-3. 在 ` + "`internal/{{ .Dir }}/model`" + ` 补充领域实体、业务错误和仓储接口。
-4. 在 ` + "`internal/{{ .Dir }}/dto/command.go`" + ` 写入参，在 ` + "`dto/{{ .Dir }}.go`" + ` 写出参和转换，在 ` + "`service/service.go`" + ` 编排业务用例。
-5. 在 ` + "`internal/{{ .Dir }}/repo`" + ` 实现数据库访问。
-6. 在 ` + "`internal/{{ .Dir }}/handler`" + ` 将 gRPC 请求转成业务命令。
-7. 在 ` + "`internal/gateway/request`" + `、` + "`handler`" + `、` + "`router`" + ` 调整 HTTP 入参、控制器和路由。
+3. 在 ` + "`internal/{{ .Dir }}/domain`" + ` 补充领域实体、业务错误和仓储接口。
+4. 在 ` + "`internal/{{ .Dir }}/application`" + ` 写命令、DTO 和用例编排。
+5. 在 ` + "`internal/{{ .Dir }}/infrastructure/persistence`" + ` 实现数据库访问。
+6. 在 ` + "`internal/{{ .Dir }}/interfaces/rpc`" + ` 将 gRPC 请求转成业务命令。
+7. 在 ` + "`internal/gateway/interfaces/http/{{ .Dir }}`" + ` 调整 HTTP 入参、控制器和路由。
 
-## 每一层怎么写，为什么这么写
+## 分层约束
 
 | 层级 | 写什么 | 为什么 |
 | --- | --- | --- |
-| ` + "`api/proto/{{ .Dir }}/v1`" + ` | RPC、Request、Response、` + "`go_package`" + ` | 先稳定外部契约，避免内部模型直接暴露 |
-| ` + "`api/gen/{{ .Dir }}/v1`" + ` | ` + "`make proto`" + ` 生成代码 | 保持 proto 与 Go 类型一致，不手写 |
-| ` + "`cmd/{{ .Dir }}`" + ` | 配置、日志、数据库、gRPC server 组装 | main 只负责依赖装配，不写业务 |
-| ` + "`internal/{{ .Dir }}/model`" + ` | 领域实体、业务错误、Repository 接口 | 业务核心不依赖 Gin、gRPC、Gorm |
-| ` + "`internal/{{ .Dir }}/dto/command.go`" + ` | 业务用例入参，例如 ` + "`CreateCommand`" + `、` + "`UpdateCommand`" + ` | handler 只负责组装命令，入参与流程分开 |
-| ` + "`internal/{{ .Dir }}/dto/{{ .Dir }}.go`" + ` | 业务用例出参和领域模型转换 | 对外不暴露领域模型和数据库模型 |
-| ` + "`internal/{{ .Dir }}/service/service.go`" + ` | 用例编排、事务意图、调用仓储接口 | 表达业务流程，依赖接口而不是数据库实现 |
-| ` + "`internal/{{ .Dir }}/repo`" + ` | Gorm/MongoDB/Redis 等实现 | 数据库访问集中管理，方便替换和测试 |
-| ` + "`internal/{{ .Dir }}/handler`" + ` | gRPC request/response 适配 | 协议转换和错误映射，不写数据库逻辑 |
-| ` + "`internal/gateway/request`" + ` | HTTP 入参 DTO | 控制器不堆字段，入参校验更清楚 |
-| ` + "`internal/gateway/handler`" + ` | HTTP 控制器 | 只做绑定、调用 gRPC client 和统一响应 |
-| ` + "`internal/gateway/router`" + ` | HTTP 路由 | 按版本/业务拆分，避免路由堆在一个文件 |
-
-## model 层
-
-` + "`model`" + ` 放业务核心，不引入 Gorm、Gin、gRPC SDK。
-
-~~~go
-package model
-
-import (
-	"errors"
-	"time"
-
-	"github.com/google/uuid"
-)
-
-var (
-	Err{{ .Pascal }}NotFound = errors.New("{{ .Dir }} not found")
-	ErrInvalid{{ .Pascal }} = errors.New("invalid {{ .Dir }}")
-)
-
-type {{ .Pascal }} struct {
-	ID          string
-	Name        string
-	Description string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-}
-
-func New{{ .Pascal }}(name string, description string) (*{{ .Pascal }}, error) {
-	now := time.Now().UTC()
-	return &{{ .Pascal }}{
-		ID:          uuid.NewString(),
-		Name:        name,
-		Description: description,
-		CreatedAt:   now,
-		UpdatedAt:   now,
-	}, nil
-}
-~~~
-
-仓储接口也放在 ` + "`model`" + `：
-
-~~~go
-package model
-
-import "context"
-
-type Repository interface {
-	Save(ctx context.Context, item *{{ .Pascal }}) error
-	FindByID(ctx context.Context, id string) (*{{ .Pascal }}, error)
-	List(ctx context.Context, offset int, limit int) ([]*{{ .Pascal }}, int64, error)
-	Delete(ctx context.Context, id string) error
-}
-~~~
-
-这样写的原因是：` + "`service`" + ` 只关心业务需要的能力，不关心底层用 MySQL、PostgreSQL、MongoDB 还是测试 fake。
-
-## service 层
-
-` + "`dto`" + ` 和 ` + "`service`" + ` 按职责拆开，避免一个文件同时承担入参、出参和流程编排：
-
-~~~text
-internal/{{ .Dir }}/dto/command.go      # CreateCommand、UpdateCommand、ListCommand
-internal/{{ .Dir }}/dto/{{ .Dir }}.go   # {{ .Pascal }}DTO、List{{ .Pascal }}DTO、From{{ .Pascal }}
-internal/{{ .Dir }}/service/service.go  # Service、NewService、Create/Get/List/Update/Delete
-~~~
-
-` + "`service.go`" + ` 只编排业务流程，只依赖 ` + "`model.Repository`" + `。
-
-~~~go
-package service
-
-import (
-	"go.uber.org/zap"
-
-	"{{ .Module }}/internal/{{ .Dir }}/model"
-)
-
-type Service struct {
-	repo model.Repository
-	log  *zap.Logger
-}
-
-func NewService(repo model.Repository, log *zap.Logger) *Service {
-	if log == nil {
-		log = zap.NewNop()
-	}
-	return &Service{repo: repo, log: log}
-}
-~~~
-
-新增业务时先在 ` + "`dto/command.go`" + ` 定义命令对象，例如 ` + "`CreateCommand`" + `，再在 ` + "`service/service.go`" + ` 调用领域模型和仓储接口，最后在 ` + "`dto/{{ .Dir }}.go`" + ` 做出参转换。这样 handler 不会堆业务判断，service 也更容易写单元测试。
-
-## repo 层：数据库在哪里操作，如何操作
-
-数据库操作只放在 ` + "`internal/{{ .Dir }}/repo`" + `。脚手架会同时生成两个仓储实现：
-
-~~~text
-internal/{{ .Dir }}/repo/gorm_repository.go   # 默认启用，适合 MySQL/PostgreSQL/SQLite
-internal/{{ .Dir }}/repo/mongo_repository.go  # 已封装 DocumentStore，适合文档存储
-~~~
-
-启动入口 ` + "`cmd/{{ .Dir }}/main.go`" + ` 默认打开 Gorm 数据库并注入 repo：
-
-~~~go
-db, err := database.Open(cfg.Database, cfg.MySQL, cfg.PostgreSQL, log)
-repo := {{ .GoIdent }}repo.NewGormRepository(db, log)
-svc := {{ .GoIdent }}service.NewService(repo, log)
-~~~
-
-Gorm 仓储示例：
-
-~~~go
-type {{ .Pascal }}Model struct {
-	ID          string ` + "`gorm:\"primaryKey;size:64\"`" + `
-	Name        string ` + "`gorm:\"size:128;not null\"`" + `
-	Description string ` + "`gorm:\"type:text\"`" + `
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-}
-
-func ({{ .Pascal }}Model) TableName() string {
-	return "{{ .TableName }}"
-}
-
-type GormRepository struct {
-	db  *gorm.DB
-	log *zap.Logger
-}
-
-func AutoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(&{{ .Pascal }}Model{})
-}
-~~~
-
-MongoDB 仓储也已经生成，核心是文档结构体自己声明 collection 名称，然后直接创建公共 ` + "`DocumentStore`" + `：
-
-~~~go
-type {{ .Pascal }}Document struct {
-	ID          string    ` + "`bson:\"_id\"`" + `
-	Name        string    ` + "`bson:\"name\"`" + `
-	Description string    ` + "`bson:\"description\"`" + `
-	CreatedAt   time.Time ` + "`bson:\"created_at\"`" + `
-	UpdatedAt   time.Time ` + "`bson:\"updated_at\"`" + `
-}
-
-func ({{ .Pascal }}Document) MongoCollectionName() string {
-	return "{{ .TableName }}"
-}
-
-type MongoRepository struct {
-	documents *mongox.DocumentStore[{{ .Pascal }}Document]
-}
-
-func NewMongoRepository(db *mongo.Database, log *zap.Logger) *MongoRepository {
-	return &MongoRepository{
-		documents: mongox.NewDocumentStore[{{ .Pascal }}Document](db, log),
-	}
-}
-~~~
-
-切换到 MongoDB 时，在 ` + "`cmd/{{ .Dir }}/main.go`" + ` 中用配置文件创建 Mongo client 和 database，然后把 repo 注入改成：
-
-~~~go
-mongoClient, err := mongox.NewClient(cfg.MongoDB.MongoxConfig())
-if err != nil {
-	log.Fatal("create mongodb client failed", zap.Error(err))
-}
-defer mongoClient.Disconnect(context.Background())
-
-mongoDB := mongox.Database(mongoClient, cfg.MongoDB.Database)
-repo := {{ .GoIdent }}repo.NewMongoRepository(mongoDB, log)
-svc := {{ .GoIdent }}service.NewService(repo, log)
-~~~
+| ` + "`domain`" + ` | 领域实体、业务错误、Repository 接口 | 业务核心不依赖 Gin、gRPC、Gorm |
+| ` + "`application`" + ` | Command、DTO、Service | 用例编排独立，方便单测 |
+| ` + "`infrastructure/persistence/gorm`" + ` | Gorm Model、mapper、repository、AutoMigrate | 表结构和数据库操作集中管理 |
+| ` + "`infrastructure/persistence/mongo`" + ` | Mongo Document、mapper、repository | 文档结构不污染领域模型 |
+| ` + "`interfaces/rpc`" + ` | proto request/response 适配 | 协议转换和错误映射，不写数据库逻辑 |
+| ` + "`internal/gateway/interfaces/http/{{ .Dir }}`" + ` | HTTP request、handler、routes | HTTP 层只处理 Web 协议和 gRPC 调用 |
 
 数据库操作规则：
 
-- ` + "`handler`" + ` 不直接操作数据库。
-- ` + "`service`" + ` 不直接使用 ` + "`*gorm.DB`" + `。
-- ` + "`model`" + ` 不写 Gorm tag，避免领域模型和数据库实现耦合。
-- 查询、分页、事务、锁、索引相关实现都放在 ` + "`repo`" + `。
-- 需要事务时，在 repo 层内部使用 ` + "`db.Transaction(func(tx *gorm.DB) error { ... })`" + `。
-- 多数据源时保持接口不变，例如 ` + "`GormRepository`" + `、` + "`MongoRepository`" + ` 都实现 ` + "`model.Repository`" + `。
-
-## handler 层
-
-` + "`handler`" + ` 只做 gRPC 协议转换：
-
-1. 从 proto request 取字段。
-2. 组装 service command。
-3. 调用 service。
-4. 把 DTO 转成 proto response。
-5. 把业务错误转成统一错误。
-
-不要在 handler 中写 SQL、Gorm 查询、复杂业务判断。
-
-## gateway 层
-
-HTTP 入口由脚手架同步生成：
-
-~~~text
-internal/gateway/request/{{ .Dir }}_request.go
-internal/gateway/handler/{{ .Dir }}_handler.go
-internal/gateway/router/{{ .Dir }}_routes.go
-~~~
-
-路由按 ` + "`版本/业务/具体接口`" + ` 拆分，当前业务挂在 ` + "`/api/v1/{{ .TableName }}`" + `。gateway client 默认读取 ` + "`services.{{ .Dir }}.target`" + `。
+- ` + "`domain`" + ` 不写 Gorm tag。
+- ` + "`application`" + ` 不直接使用 ` + "`*gorm.DB`" + `、Mongo collection 或外部 SDK。
+- 查询、分页、事务、锁、索引相关实现都放在 ` + "`infrastructure/persistence`" + `。
+- 多数据源时保持接口不变，例如 Gorm 和 Mongo repository 都实现 ` + "`domain.Repository`" + `。
 `
