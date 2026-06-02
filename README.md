@@ -328,7 +328,7 @@ docs/services/order.md
 make run-order
 ```
 
-默认 gRPC 端口是 `9100`。如果需要指定端口，可以在生成时传 `--port`：
+默认 gRPC 端口会从 `configs/config.yaml` 中已有服务端口继续递增。如果需要指定端口，可以在生成时传 `--port`：
 
 ```bash
 bw-cli service order --port 9103 --tidy
@@ -345,6 +345,22 @@ services:
 ```
 
 需要修改端口时，直接修改 `services.order.port`；gateway 连接地址同步修改 `services.order.target`。如果启用了 Nacos，把本地新增的 `services.order` 同步到 Nacos 中的完整业务配置。
+
+如果已经有一张符合默认 CRUD 字段的表，可以用 `--table` 让生成的 Gorm 仓储直接绑定已有表：
+
+```bash
+bw-cli service order --table orders --tidy
+```
+
+当前 `--table` 会校验表存在，并要求字段包含 `id`、`name`、`description`、`created_at`、`updated_at`，其中 `id` 必须是主键。生成后的服务会跳过 `AutoMigrate`，避免脚手架修改既有表结构。MySQL 或 PostgreSQL 需要指定 schema 时，可以传 `--schema`。
+
+删除脚手架生成的服务：
+
+```bash
+bw-cli delete-service order --tidy
+```
+
+该命令会移除服务目录、proto/gen、gateway request/handler/router、`Makefile` 目标和 `configs/config.yaml` 中的服务配置。如果启用了 Nacos，控制台会提示把本地删除结果同步到 Nacos。
 
 生成后的基础调用链已经成型：
 
@@ -743,6 +759,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 | `pkg/esx` | Elasticsearch 客户端初始化 |
 | `pkg/kafkax` | Kafka reader/writer 初始化 |
 | `pkg/filex` | 文件上传校验和 MinIO/OSS/Qiniu/COS 存储适配 |
+| `pkg/timex` | 周岁计算、中文相对时间和日期时间格式化 |
 | `pkg/scaffold` | 脚手架生成逻辑 |
 
 ## 11. 常见问题

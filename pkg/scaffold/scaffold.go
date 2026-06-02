@@ -168,13 +168,14 @@ func stripDemo(root string, module string) error {
 		filepath.Join("internal", "gateway", "client"),
 		filepath.Join("internal", "gateway", "handler"),
 		filepath.Join("internal", "gateway", "request"),
-		filepath.Join("internal", "gateway", "router", "user_routes.go"),
-		filepath.Join("internal", "gateway", "router", "note_routes.go"),
 		filepath.Join("internal", "gateway", "router", "router_test.go"),
 	} {
 		if err := os.RemoveAll(filepath.Join(root, rel)); err != nil {
 			return err
 		}
+	}
+	if err := removeGeneratedGatewayRoutes(filepath.Join(root, "internal", "gateway", "router")); err != nil {
+		return err
 	}
 	if err := writeCleanGateway(root, module); err != nil {
 		return err
@@ -187,6 +188,25 @@ func stripDemo(root string, module string) error {
 	}
 	if err := writeCleanDocs(root, module); err != nil {
 		return err
+	}
+	return nil
+}
+
+func removeGeneratedGatewayRoutes(routerDir string) error {
+	entries, err := os.ReadDir(routerDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), "_routes.go") {
+			continue
+		}
+		if err := os.RemoveAll(filepath.Join(routerDir, entry.Name())); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -921,11 +941,19 @@ docs/toolkit.md
 bw-cli service comment --tidy
 `+"```"+`
 
-不传 `+"`--port`"+` 时默认端口是 `+"`9100`"+`。需要指定端口时使用：
+不传 `+"`--port`"+` 时会根据 `+"`configs/config.yaml`"+` 中已有服务端口自动递增。需要指定端口时使用：
 
 `+"```bash"+`
 bw-cli service comment --port 9103 --tidy
 `+"```"+`
+
+如果要绑定已有数据库表，可以使用 `+"`--table`"+`：
+
+`+"```bash"+`
+bw-cli service comment --table comments --tidy
+`+"```"+`
+
+当前 `+"`--table`"+` 会校验表存在，并要求字段包含 `+"`id`"+`、`+"`name`"+`、`+"`description`"+`、`+"`created_at`"+`、`+"`updated_at`"+`，其中 `+"`id`"+` 必须是主键。生成后的服务会跳过 `+"`AutoMigrate`"+`，避免修改既有表结构。MySQL 或 PostgreSQL 需要指定 schema 时，可以传 `+"`--schema`"+`。
 
 生成后的服务会自动追加 `+"`configs/config.yaml`"+`：
 
@@ -952,6 +980,14 @@ internal/gateway/handler/comment_handler.go
 internal/gateway/router/comment_routes.go
 docs/services/comment.md    # 单服务详细开发说明
 `+"```"+`
+
+删除脚手架生成的服务：
+
+`+"```bash"+`
+bw-cli delete-service comment --tidy
+`+"```"+`
+
+删除命令会清理服务目录、proto/gen、gateway request/handler/router、`+"`docs/services/comment.md`"+`、`+"`Makefile`"+` 目标和 `+"`configs/config.yaml`"+` 中的服务配置。如果启用了 Nacos，命令行会提示把本地配置删除结果同步到 Nacos。
 
 生成后的基础 CRUD 调用链：
 
@@ -1302,6 +1338,7 @@ func generatedToolkitDoc(module string) string {
 | `+"`pkg/kafkax`"+` | Kafka producer/consumer 和原生 reader/writer 初始化 |
 | `+"`pkg/filex`"+` | MinIO/OSS/Qiniu/COS 文件上传封装 |
 | `+"`pkg/alipayx`"+` | 支付宝支付、回调验签和退款封装 |
+| `+"`pkg/timex`"+` | 周岁计算、中文相对时间和日期时间格式化 |
 | `+"`pkg/validator`"+` | 轻量参数校验 |
 
 ## 2. 推荐初始化顺序
@@ -1338,7 +1375,16 @@ defer log.Sync()
 
 默认日志保留 7 天，文件名按服务名和日期生成。
 
-## 5. HTTP 中间件和 JWT
+## 5. 时间处理
+
+`+"```go"+`
+age := timex.Age(user.Birthday)
+display := timex.RelativeTime(note.CreatedAt)
+`+"```"+`
+
+`+"`RelativeTime`"+` 会按时间差返回 `+"`N秒前`"+`、`+"`N分钟前`"+`、`+"`N小时前`"+`、`+"`N天前`"+`、`+"`N月前`"+`，超过一年返回 `+"`2006-01-02 15:04:05`"+` 格式的具体日期时间。需要固定当前时间时使用 `+"`AgeAt`"+` 或 `+"`RelativeTimeAt`"+`。
+
+## 6. HTTP 中间件和 JWT
 
 `+"```go"+`
 r.Use(middleware.RequestID())

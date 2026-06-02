@@ -28,6 +28,8 @@ func main() {
 		runGenerate(os.Args[2:], true)
 	case "service", "add-service":
 		runService(os.Args[2:])
+	case "delete-service", "remove-service":
+		runDeleteService(os.Args[2:])
 	default:
 		usage()
 		os.Exit(2)
@@ -68,6 +70,24 @@ func runService(args []string) {
 		os.Exit(1)
 	}
 	fmt.Printf("service %s initialized at %s\n", opts.Name, opts.RootDir)
+}
+
+func runDeleteService(args []string) {
+	opts, err := parseDeleteServiceOptions(args)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			usage()
+			os.Exit(0)
+		}
+		fmt.Fprintln(os.Stderr, err)
+		usage()
+		os.Exit(2)
+	}
+	if err := scaffold.DeleteService(opts); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	fmt.Printf("service %s removed from %s\n", opts.Name, opts.RootDir)
 }
 
 func parseGenerateOptions(args []string, includeDemo bool) (scaffold.InitOptions, error) {
@@ -121,6 +141,8 @@ func parseServiceOptions(args []string) (scaffold.ServiceOptions, error) {
 	fs.SetOutput(io.Discard)
 	rootDir := fs.String("dir", ".", "project root directory, defaults to current directory")
 	port := fs.Int("port", 0, "default gRPC port for the generated service; 0 means auto-increment from configs/config.yaml")
+	tableName := fs.String("table", "", "existing table name used by generated Gorm repository")
+	schemaName := fs.String("schema", "", "database schema name used with --table for MySQL/PostgreSQL")
 	skipProto := fs.Bool("skip-proto", false, "skip proto code generation after writing files")
 	tidy := fs.Bool("tidy", false, "run go mod tidy after generating service")
 
@@ -139,9 +161,40 @@ func parseServiceOptions(args []string) (scaffold.ServiceOptions, error) {
 		return scaffold.ServiceOptions{}, err
 	}
 	return scaffold.ServiceOptions{
+		RootDir:    root,
+		Name:       serviceArg,
+		Port:       *port,
+		TableName:  *tableName,
+		SchemaName: *schemaName,
+		RunProto:   !*skipProto,
+		RunTidy:    *tidy,
+	}, nil
+}
+
+func parseDeleteServiceOptions(args []string) (scaffold.DeleteServiceOptions, error) {
+	fs := flag.NewFlagSet("delete-service", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	rootDir := fs.String("dir", ".", "project root directory, defaults to current directory")
+	skipProto := fs.Bool("skip-proto", false, "skip proto code generation after removing service")
+	tidy := fs.Bool("tidy", false, "run go mod tidy after removing service")
+
+	serviceArg, parseArgs := splitTargetArg(args)
+	if err := fs.Parse(parseArgs); err != nil {
+		return scaffold.DeleteServiceOptions{}, err
+	}
+	if serviceArg == "" && fs.NArg() == 1 {
+		serviceArg = fs.Arg(0)
+	}
+	if serviceArg == "" {
+		return scaffold.DeleteServiceOptions{}, fmt.Errorf("service name is required")
+	}
+	root, err := filepath.Abs(*rootDir)
+	if err != nil {
+		return scaffold.DeleteServiceOptions{}, err
+	}
+	return scaffold.DeleteServiceOptions{
 		RootDir:  root,
 		Name:     serviceArg,
-		Port:     *port,
 		RunProto: !*skipProto,
 		RunTidy:  *tidy,
 	}, nil
@@ -159,5 +212,6 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  bw-cli new <target-dir> --module github.com/acme/demo [--tidy]")
 	fmt.Fprintln(os.Stderr, "  bw-cli demo <target-dir> --module github.com/acme/demo [--tidy]")
 	fmt.Fprintln(os.Stderr, "  bw-cli new <target-dir> --module github.com/acme/demo --source . [--tidy]")
-	fmt.Fprintln(os.Stderr, "  bw-cli service <service-name> [--dir .] [--port 9100] [--tidy]")
+	fmt.Fprintln(os.Stderr, "  bw-cli service <service-name> [--dir .] [--port 9100] [--table table_name] [--schema schema_name] [--tidy]")
+	fmt.Fprintln(os.Stderr, "  bw-cli delete-service <service-name> [--dir .] [--tidy]")
 }

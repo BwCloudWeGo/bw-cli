@@ -21,6 +21,7 @@
 | `pkg/kafkax` | Kafka reader/writer 初始化 | 事件发布和消费 |
 | `pkg/filex` | 文件上传校验、对象 key 生成、MinIO/OSS/Qiniu/COS 上传 | `service` 或 `handler` |
 | `pkg/alipayx` | 支付宝支付、同步回调验签、异步通知解析、退款封装 | `service` 或支付 handler |
+| `pkg/timex` | 周岁计算、中文相对时间、统一日期时间格式化 | DTO 转换、用户资料、动态时间展示 |
 | `pkg/validator` | 简单通用校验函数 | DTO 或业务入参校验 |
 | `pkg/scaffold` | `bw-cli new` 项目生成逻辑 | CLI 内部 |
 | `pkg/observability` | 可观测性注册占位入口 | 进程启动 |
@@ -42,6 +43,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/database
 go get github.com/BwCloudWeGo/bw-cli/pkg/mongox
 go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 go get github.com/BwCloudWeGo/bw-cli/pkg/alipayx
+go get github.com/BwCloudWeGo/bw-cli/pkg/timex
 ```
 
 生成完整项目：
@@ -1010,7 +1012,44 @@ err := scaffold.Init(scaffold.InitOptions{
 })
 ```
 
-## 17. 推荐启动顺序
+## 17. 时间处理：`pkg/timex`
+
+`timex` 提供业务代码中常见的时间展示函数，不读取配置，也不依赖全局状态。
+
+计算生日对应的周岁：
+
+```go
+age := timex.Age(user.Birthday)
+```
+
+如果需要在测试或批处理里固定当前时间，使用 `AgeAt`：
+
+```go
+now := time.Date(2026, 6, 2, 10, 0, 0, 0, time.Local)
+birthday := time.Date(2000, 7, 1, 0, 0, 0, 0, time.Local)
+age := timex.AgeAt(birthday, now)
+```
+
+动态、评论、消息等场景可以使用中文相对时间：
+
+```go
+display := timex.RelativeTime(note.CreatedAt)
+```
+
+返回规则：
+
+```text
+N秒前
+N分钟前
+N小时前
+N天前
+N月前
+2006-01-02 15:04:05
+```
+
+超过一年会返回具体日期时间。需要指定时区时，使用 `RelativeTimeInLocation(value, now, loc)`。
+
+## 18. 推荐启动顺序
 
 在生成项目后，推荐按这个顺序把工具串起来：
 

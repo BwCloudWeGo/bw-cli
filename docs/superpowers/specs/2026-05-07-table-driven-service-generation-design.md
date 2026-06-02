@@ -1,5 +1,11 @@
 # 按数据库表字段生成服务设计
 
+## 当前落地状态
+
+当前代码已经支持 `bw-cli service <service> --table <table>` 绑定既有默认 CRUD 表：命令会读取 `configs/config.yaml` 中的数据库配置，校验表存在，并要求表字段包含 `id`、`name`、`description`、`created_at`、`updated_at`，其中 `id` 必须是主键。生成后的 Gorm repository 会使用传入表名，服务启动入口会跳过 `AutoMigrate`，避免修改既有表结构。
+
+本文下面记录的是“任意表字段反推 proto/model/dto/repo”的完整扩展方案，尚未全部落地。后续如果要支持任意字段生成，应继续按本文方案拆分实现和验证。
+
 ## 目标
 
 升级 `bw-cli service`，让用户在项目已经配置数据库的前提下，可以指定表名并自动生成完整服务结构：

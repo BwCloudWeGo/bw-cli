@@ -899,6 +899,24 @@ bw-cli service comment --tidy
 bw-cli service comment --port 9103 --tidy
 ```
 
+如果要绑定已有数据库表，可以使用 `--table`：
+
+```bash
+bw-cli service comment --table comments --tidy
+```
+
+当前 `--table` 面向默认 CRUD 模板，启动时会跳过 `AutoMigrate`，避免修改既有表结构。它会先连接 `configs/config.yaml` 中配置的数据库并校验表结构，要求表中包含：
+
+```text
+id
+name
+description
+created_at
+updated_at
+```
+
+其中 `id` 必须是主键。MySQL 或 PostgreSQL 需要指定 schema 时，增加 `--schema <schema_name>`。
+
 生成后命令会自动追加 `configs/config.yaml`：
 
 - 服务名、gRPC 端口和 gateway target 会写入 `services.comment`。
@@ -930,6 +948,14 @@ make run-comment
 ```
 
 默认端口在 `services.comment.port` 中修改，gateway 目标地址在 `services.comment.target` 中修改。
+
+需要删除脚手架生成的服务时执行：
+
+```bash
+bw-cli delete-service comment --tidy
+```
+
+删除命令会清理 `cmd/comment`、`internal/comment`、`api/proto/comment`、`api/gen/comment`、gateway 对应 request/handler/router、`docs/services/comment.md`、`Makefile` 的 `run-comment` 目标，以及 `configs/config.yaml` 中的 `services.comment`。如果项目启用了 Nacos，命令行会提示把本地配置删除结果同步到 Nacos。
 
 ### 10.1 生成后已经具备什么
 
