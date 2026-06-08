@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// InitOptions controls how bw-cli generates a new project from this scaffold.
+// InitOptions 控制 bw-cli 如何基于当前脚手架生成新项目。
 type InitOptions struct {
 	SourceDir   string
 	TargetDir   string
@@ -22,7 +22,7 @@ type InitOptions struct {
 	IncludeDemo bool
 }
 
-// Init copies or clones the scaffold, then rewrites module paths for the target project.
+// Init 复制或克隆脚手架，并为目标项目重写 module 路径。
 func Init(opts InitOptions) error {
 	if opts.TargetDir == "" {
 		return errors.New("target dir is required")
@@ -87,7 +87,7 @@ func clone(opts InitOptions) error {
 	if err := cmd.Run(); err != nil {
 		return err
 	}
-	// Generated projects should not inherit the scaffold repository remote.
+	// 生成项目不应继承脚手架仓库的远程地址。
 	return os.RemoveAll(filepath.Join(opts.TargetDir, ".git"))
 }
 
@@ -354,7 +354,7 @@ import (
 )
 
 func main() {
-	// Load runtime settings before constructing dependencies.
+	// 构建依赖前先加载运行时配置。
 	if err := config.InitGlobal("configs/config.yaml"); err != nil {
 		panic(err)
 	}
@@ -434,7 +434,7 @@ func waitForShutdown(server *http.Server, log *zap.Logger) {
 }
 
 func cleanRouter(module string) string {
-	return fmt.Sprintf(`// Package router owns Gin engine construction and route registration.
+	return fmt.Sprintf(`// router 包负责 Gin 引擎构建和路由注册。
 package router
 
 import (
@@ -447,7 +447,7 @@ import (
 	"%s/pkg/middleware"
 )
 
-// New builds the gateway Gin engine with configured middleware and versioned API routes.
+// New 使用配置好的中间件和版本化 API 路由构建网关 Gin 引擎。
 func New(log *zap.Logger, middlewareCfg config.MiddlewareConfig) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
@@ -473,8 +473,8 @@ func cleanV1Router() string {
 
 import "github.com/gin-gonic/gin"
 
-// registerAPIRoutes creates the /api/v1 route namespace.
-// Add business-specific route files beside this file as services are introduced.
+// registerAPIRoutes 创建 /api/v1 路由命名空间。
+// 新增服务时，在该文件旁边增加对应业务路由文件。
 func registerAPIRoutes(r *gin.Engine) {
 	api := r.Group("/api")
 	v1 := api.Group("/v1")

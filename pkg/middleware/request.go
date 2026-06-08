@@ -8,10 +8,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// HeaderRequestID is the public HTTP header used for request correlation.
+// HeaderRequestID 是用于请求关联的公开 HTTP 头。
 const HeaderRequestID = "X-Request-ID"
 
-// RequestID ensures every request has a stable correlation id.
+// RequestID 确保每个请求都有稳定的关联 ID。
 func RequestID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestID := c.GetHeader(HeaderRequestID)
@@ -24,7 +24,7 @@ func RequestID() gin.HandlerFunc {
 	}
 }
 
-// RequestLogger records structured HTTP access logs after each request completes.
+// RequestLogger 在每个请求完成后记录结构化 HTTP 访问日志。
 func RequestLogger(log *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()

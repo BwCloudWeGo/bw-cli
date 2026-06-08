@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CORSConfig controls the gateway cross-origin policy.
+// CORSConfig 控制 gateway 跨域策略。
 type CORSConfig struct {
 	AllowOrigins     []string      `mapstructure:"allow_origins" yaml:"allow_origins"`
 	AllowMethods     []string      `mapstructure:"allow_methods" yaml:"allow_methods"`
@@ -19,7 +19,7 @@ type CORSConfig struct {
 	MaxAge           time.Duration `mapstructure:"max_age" yaml:"max_age"`
 }
 
-// DefaultCORSConfig returns permissive local-development CORS defaults.
+// DefaultCORSConfig 返回本地开发可用的宽松 CORS 默认配置。
 func DefaultCORSConfig() CORSConfig {
 	return CORSConfig{
 		AllowOrigins:  []string{"*"},
@@ -30,7 +30,7 @@ func DefaultCORSConfig() CORSConfig {
 	}
 }
 
-// CORS applies the configured cross-origin policy and handles preflight requests.
+// CORS 应用配置的跨域策略，并处理预检请求。
 func CORS(cfg CORSConfig) gin.HandlerFunc {
 	cfg = fillCORSDefaults(cfg)
 

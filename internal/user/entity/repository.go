@@ -2,7 +2,7 @@ package entity
 
 import "context"
 
-// Repository defines persistence behavior required by the user service layer.
+// Repository 定义 user 服务层需要的持久化行为。
 type Repository interface {
 	Save(ctx context.Context, user *User) error
 	FindByID(ctx context.Context, id string) (*User, error)

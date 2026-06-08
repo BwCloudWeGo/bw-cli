@@ -9,7 +9,7 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/config"
 )
 
-// registerAPIRoutes creates the /api/v1 route namespace before delegating by business module.
+// registerAPIRoutes 创建 /api/v1 路由命名空间，再按业务模块分发。
 func registerAPIRoutes(r *gin.Engine, clients *client.Clients, log *zap.Logger, middlewareCfg config.MiddlewareConfig) {
 	api := r.Group("/api")
 	v1 := api.Group("/v1")

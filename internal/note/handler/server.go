@@ -13,19 +13,19 @@ import (
 	apperrors "github.com/BwCloudWeGo/bw-cli/pkg/errors"
 )
 
-// Server adapts note gRPC requests to note service use cases.
+// Server 将 note gRPC 请求适配到 note 用例服务。
 type Server struct {
 	notev1.UnimplementedNoteServiceServer
 	svc *service.Service
 	log *zap.Logger
 }
 
-// NewServer constructs the note gRPC server adapter.
+// NewServer 创建 note gRPC 服务端适配器。
 func NewServer(svc *service.Service, log *zap.Logger) *Server {
 	return &Server{svc: svc, log: log}
 }
 
-// CreateNote handles the note creation RPC.
+// CreateNote 处理创建笔记 RPC。
 func (s *Server) CreateNote(ctx context.Context, req *notev1.CreateNoteRequest) (*notev1.NoteResponse, error) {
 	note, err := s.svc.Create(ctx, dto.CreateNoteCommand{
 		AuthorID: req.GetAuthorId(),
@@ -39,7 +39,7 @@ func (s *Server) CreateNote(ctx context.Context, req *notev1.CreateNoteRequest) 
 	return toProto(note), nil
 }
 
-// GetNote handles note lookup by id.
+// GetNote 处理按 ID 查询笔记 RPC。
 func (s *Server) GetNote(ctx context.Context, req *notev1.GetNoteRequest) (*notev1.NoteResponse, error) {
 	note, err := s.svc.Get(ctx, req.GetId())
 	if err != nil {

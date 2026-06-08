@@ -15,7 +15,7 @@ type qiniuBackend struct {
 	cfg      QiniuConfig
 }
 
-// newQiniuBackend validates Qiniu Kodo configuration and prepares the form uploader.
+// newQiniuBackend 校验七牛 Kodo 配置并准备表单上传器。
 func newQiniuBackend(cfg Config) (backend, error) {
 	qiniuCfg := cfg.Qiniu
 	if qiniuCfg.AccessKey == "" {
@@ -51,7 +51,7 @@ func (b *qiniuBackend) Bucket() string {
 	return b.cfg.Bucket
 }
 
-// Put uploads the object to Qiniu Kodo and applies provider-side size and MIME limits.
+// Put 将对象上传到七牛 Kodo，并应用服务端大小和 MIME 限制。
 func (b *qiniuBackend) Put(ctx context.Context, req preparedUpload) (string, error) {
 	policy := storage.PutPolicy{
 		Scope:      b.cfg.Bucket + ":" + req.Key,
@@ -70,7 +70,7 @@ func (b *qiniuBackend) Put(ctx context.Context, req preparedUpload) (string, err
 	return ret.Hash, nil
 }
 
-// qiniuMetadata normalizes custom metadata names to Qiniu's accepted prefixes.
+// qiniuMetadata 将自定义元数据名称规范化为七牛接受的前缀。
 func qiniuMetadata(metadata map[string]string) map[string]string {
 	if len(metadata) == 0 {
 		return nil

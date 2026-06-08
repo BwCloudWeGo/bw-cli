@@ -12,13 +12,13 @@ import (
 	dbmodel "github.com/BwCloudWeGo/bw-cli/internal/order/model"
 )
 
-// GormRepository persists order aggregates with Gorm.
+// GormRepository 使用 Gorm 持久化 order 聚合。
 type GormRepository struct {
 	db  *gorm.DB
 	log *zap.Logger
 }
 
-// NewGormRepository constructs a order repository with optional structured logging.
+// NewGormRepository 创建 order 仓储，并支持可选结构化日志。
 func NewGormRepository(db *gorm.DB, loggers ...*zap.Logger) *GormRepository {
 	log := zap.NewNop()
 	if len(loggers) > 0 && loggers[0] != nil {
@@ -27,12 +27,12 @@ func NewGormRepository(db *gorm.DB, loggers ...*zap.Logger) *GormRepository {
 	return &GormRepository{db: db, log: log}
 }
 
-// AutoMigrate creates or updates the orders table schema.
+// AutoMigrate 创建或更新 orders 表结构。
 func AutoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(&dbmodel.OrderModel{})
 }
 
-// Save inserts or updates a order aggregate.
+// Save 新增或更新 order 聚合。
 func (r *GormRepository) Save(ctx context.Context, item *entity.Order) error {
 	start := time.Now()
 	tx := r.db.WithContext(ctx).Save(toRecord(item))
@@ -40,7 +40,7 @@ func (r *GormRepository) Save(ctx context.Context, item *entity.Order) error {
 	return tx.Error
 }
 
-// FindByID loads a order aggregate by id.
+// FindByID 根据 ID 加载 order 聚合。
 func (r *GormRepository) FindByID(ctx context.Context, id string) (*entity.Order, error) {
 	start := time.Now()
 	var record dbmodel.OrderModel
@@ -57,7 +57,7 @@ func (r *GormRepository) FindByID(ctx context.Context, id string) (*entity.Order
 	return toDomain(&record), nil
 }
 
-// List loads paginated order aggregates.
+// List 加载分页 order 聚合。
 func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*entity.Order, int64, error) {
 	start := time.Now()
 	var total int64
@@ -84,7 +84,7 @@ func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*en
 	return items, total, nil
 }
 
-// Delete removes a order aggregate by id.
+// Delete 根据 ID 删除 order 聚合。
 func (r *GormRepository) Delete(ctx context.Context, id string) error {
 	start := time.Now()
 	tx := r.db.WithContext(ctx).Where("id = ?", id).Delete(&dbmodel.OrderModel{})

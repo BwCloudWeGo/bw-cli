@@ -13,7 +13,7 @@ var (
 	ErrInvalidNote  = errors.New("invalid note")
 )
 
-// NoteStatus is the lifecycle state exposed by the note domain and API.
+// NoteStatus 是 note 业务和 API 暴露的生命周期状态。
 type NoteStatus string
 
 const (
@@ -24,7 +24,7 @@ const (
 	NoteStatusPublishedCode int32 = 2
 )
 
-// Note is the note aggregate used by the note service.
+// Note 是 note 服务使用的笔记聚合。
 type Note struct {
 	ID          string
 	AuthorID    string
@@ -40,7 +40,7 @@ type Note struct {
 	UpdatedAt   time.Time
 }
 
-// NewNote validates input and creates a draft note.
+// NewNote 校验输入并创建草稿笔记。
 func NewNote(authorID string, title string, content string) (*Note, error) {
 	authorID = strings.TrimSpace(authorID)
 	title = strings.TrimSpace(title)
@@ -60,7 +60,7 @@ func NewNote(authorID string, title string, content string) (*Note, error) {
 	}, nil
 }
 
-// Publish moves a draft note to the published state; it is idempotent.
+// Publish 将草稿笔记切换到已发布状态；该操作幂等。
 func (n *Note) Publish() {
 	if n == nil || n.Status == NoteStatusPublished {
 		return
@@ -71,7 +71,7 @@ func (n *Note) Publish() {
 	n.UpdatedAt = now
 }
 
-// NoteStatusFromCode converts database/form status codes to a domain status.
+// NoteStatusFromCode 将数据库或表单状态码转换为业务状态。
 func NoteStatusFromCode(code int32) NoteStatus {
 	switch code {
 	case NoteStatusDraftCode:
@@ -83,7 +83,7 @@ func NoteStatusFromCode(code int32) NoteStatus {
 	}
 }
 
-// Code converts a domain status to the integer stored in the notes table.
+// Code 将业务状态转换为 notes 表中存储的整数。
 func (s NoteStatus) Code() int32 {
 	switch s {
 	case NoteStatusDraft:

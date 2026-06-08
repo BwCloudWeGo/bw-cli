@@ -13,14 +13,14 @@ import (
 	apperrors "github.com/BwCloudWeGo/bw-cli/pkg/errors"
 )
 
-// Server adapts order gRPC requests to service use cases.
+// Server 将 order gRPC 请求适配到 service 用例。
 type Server struct {
 	orderv1.UnimplementedOrderServiceServer
 	svc *service.Service
 	log *zap.Logger
 }
 
-// NewServer constructs the order gRPC server adapter.
+// NewServer 创建 order gRPC 服务端适配器。
 func NewServer(svc *service.Service, log *zap.Logger) *Server {
 	if log == nil {
 		log = zap.NewNop()
@@ -28,7 +28,7 @@ func NewServer(svc *service.Service, log *zap.Logger) *Server {
 	return &Server{svc: svc, log: log}
 }
 
-// CreateOrder handles the create RPC.
+// CreateOrder 处理创建 RPC。
 func (s *Server) CreateOrder(ctx context.Context, req *orderv1.CreateOrderRequest) (*orderv1.OrderResponse, error) {
 	item, err := s.svc.Create(ctx, dto.CreateCommand{
 		Name:        req.GetName(),
@@ -40,7 +40,7 @@ func (s *Server) CreateOrder(ctx context.Context, req *orderv1.CreateOrderReques
 	return toProto(item), nil
 }
 
-// GetOrder handles lookup by id.
+// GetOrder 处理按 ID 查询。
 func (s *Server) GetOrder(ctx context.Context, req *orderv1.GetOrderRequest) (*orderv1.OrderResponse, error) {
 	item, err := s.svc.Get(ctx, req.GetId())
 	if err != nil {
@@ -49,7 +49,7 @@ func (s *Server) GetOrder(ctx context.Context, req *orderv1.GetOrderRequest) (*o
 	return toProto(item), nil
 }
 
-// ListOrders handles paginated listing.
+// ListOrders 处理分页列表查询。
 func (s *Server) ListOrders(ctx context.Context, req *orderv1.ListOrdersRequest) (*orderv1.ListOrdersResponse, error) {
 	list, err := s.svc.List(ctx, dto.ListCommand{
 		Page:     req.GetPage(),
@@ -68,7 +68,7 @@ func (s *Server) ListOrders(ctx context.Context, req *orderv1.ListOrdersRequest)
 	return resp, nil
 }
 
-// UpdateOrder handles updates by id.
+// UpdateOrder 处理按 ID 更新。
 func (s *Server) UpdateOrder(ctx context.Context, req *orderv1.UpdateOrderRequest) (*orderv1.OrderResponse, error) {
 	item, err := s.svc.Update(ctx, dto.UpdateCommand{
 		ID:          req.GetId(),
@@ -81,7 +81,7 @@ func (s *Server) UpdateOrder(ctx context.Context, req *orderv1.UpdateOrderReques
 	return toProto(item), nil
 }
 
-// DeleteOrder handles deletion by id.
+// DeleteOrder 处理按 ID 删除。
 func (s *Server) DeleteOrder(ctx context.Context, req *orderv1.DeleteOrderRequest) (*orderv1.DeleteOrderResponse, error) {
 	if err := s.svc.Delete(ctx, req.GetId()); err != nil {
 		return nil, mapOrderError(err)

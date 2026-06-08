@@ -7,7 +7,7 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/middleware"
 )
 
-// registerUserRoutes registers /api/v1/users endpoints in one business-specific file.
+// registerUserRoutes 在独立业务文件中注册 /api/v1/users 接口。
 func registerUserRoutes(v1 *gin.RouterGroup, userHandler *handler.UserHandler, jwtCfg middleware.JWTConfig) {
 	users := v1.Group("/users")
 	users.POST("/register", userHandler.Register)

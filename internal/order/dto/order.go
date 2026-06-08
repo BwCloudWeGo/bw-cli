@@ -7,7 +7,7 @@ import (
 )
 
 // OrderDTO 是 order 用例层返回给 handler 的数据结构。
-// 它不包含 gRPC、HTTP 或 Gorm tag，避免协议和数据库细节进入 service 层。
+// 它不包含 gRPC、HTTP 或 Gorm 标签，避免协议和数据库细节进入服务层。
 type OrderDTO struct {
 	ID          string
 	Name        string

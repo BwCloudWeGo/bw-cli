@@ -28,7 +28,7 @@ type collectionOperator interface {
 
 // Collection 是面向业务仓储层的 MongoDB 集合操作类。
 //
-// T 是集合文档结构体类型，通常定义在具体业务的 repo 包中，并通过 bson tag
+// T 是集合文档结构体类型，通常定义在具体业务的 repo 包中，并通过 bson 标签
 // 声明 MongoDB 字段名称。业务代码应优先依赖这个类提供的通用 CRUD 方法，
 // 避免在 handler 或 service 中散落调用官方 driver，从而保持分层清晰。
 type Collection[T any] struct {

@@ -12,13 +12,13 @@ import (
 	dbmodel "github.com/BwCloudWeGo/bw-cli/internal/note/model"
 )
 
-// GormRepository persists note aggregates with Gorm.
+// GormRepository 使用 Gorm 持久化 note 聚合。
 type GormRepository struct {
 	db  *gorm.DB
 	log *zap.Logger
 }
 
-// NewGormRepository constructs a note repository with optional structured logging.
+// NewGormRepository 创建 note 仓储，并支持可选结构化日志。
 func NewGormRepository(db *gorm.DB, loggers ...*zap.Logger) *GormRepository {
 	log := zap.NewNop()
 	if len(loggers) > 0 && loggers[0] != nil {
@@ -27,12 +27,12 @@ func NewGormRepository(db *gorm.DB, loggers ...*zap.Logger) *GormRepository {
 	return &GormRepository{db: db, log: log}
 }
 
-// AutoMigrate creates or updates the notes table schema.
+// AutoMigrate 创建或更新 notes 表结构。
 func AutoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(&dbmodel.NoteModel{})
 }
 
-// Save inserts or updates a note aggregate.
+// Save 新增或更新 note 聚合。
 func (r *GormRepository) Save(ctx context.Context, note *entity.Note) error {
 	start := time.Now()
 	tx := r.db.WithContext(ctx).Save(toNoteModel(note))
@@ -40,7 +40,7 @@ func (r *GormRepository) Save(ctx context.Context, note *entity.Note) error {
 	return tx.Error
 }
 
-// FindByID loads a note aggregate by id.
+// FindByID 根据 ID 加载 note 聚合。
 func (r *GormRepository) FindByID(ctx context.Context, id string) (*entity.Note, error) {
 	start := time.Now()
 	var record dbmodel.NoteModel

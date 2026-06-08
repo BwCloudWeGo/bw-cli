@@ -6,7 +6,7 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/internal/gateway/handler"
 )
 
-// registerOrderRoutes registers /api/v1/orders endpoints in one business-specific file.
+// registerOrderRoutes 在独立业务文件中注册 /api/v1/orders 接口。
 func registerOrderRoutes(v1 *gin.RouterGroup, orderHandler *handler.OrderHandler) {
 	routes := v1.Group("/orders")
 	routes.POST("", orderHandler.Create)

@@ -11,19 +11,19 @@ import (
 	"go.uber.org/zap"
 )
 
-// Server adapts user gRPC requests to user service use cases.
+// Server 将 user gRPC 请求适配到 user 服务用例。
 type Server struct {
 	userv1.UnimplementedUserServiceServer
 	svc *service.Service
 	log *zap.Logger
 }
 
-// NewServer constructs the user gRPC server adapter.
+// NewServer 创建 user gRPC 服务端适配器。
 func NewServer(svc *service.Service, log *zap.Logger) *Server {
 	return &Server{svc: svc, log: log}
 }
 
-// Register handles the user registration RPC.
+// Register 处理用户注册 RPC。
 func (s *Server) Register(ctx context.Context, req *userv1.RegisterRequest) (*userv1.UserResponse, error) {
 	user, err := s.svc.Register(ctx, dto.RegisterCommand{
 		Account:     req.GetAccount(),
@@ -37,7 +37,7 @@ func (s *Server) Register(ctx context.Context, req *userv1.RegisterRequest) (*us
 	return toProto(user), nil
 }
 
-// Login handles the user login RPC.
+// Login 处理用户登录 RPC。
 func (s *Server) Login(ctx context.Context, req *userv1.LoginRequest) (*userv1.UserResponse, error) {
 	user, err := s.svc.Login(ctx, dto.LoginCommand{
 		Account:  req.GetAccount(),
@@ -50,7 +50,7 @@ func (s *Server) Login(ctx context.Context, req *userv1.LoginRequest) (*userv1.U
 	return toProto(user), nil
 }
 
-// GetUser handles user profile lookup by id.
+// GetUser 处理按 ID 查询用户资料。
 func (s *Server) GetUser(ctx context.Context, req *userv1.GetUserRequest) (*userv1.UserResponse, error) {
 	user, err := s.svc.GetUser(ctx, req.GetId())
 	if err != nil {

@@ -10,7 +10,7 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/v2/vo"
 )
 
-// Config controls optional Nacos configuration-center integration.
+// Config 控制可选的 Nacos 配置中心集成。
 type Config struct {
 	Enabled     bool   `mapstructure:"enabled" yaml:"enabled"`
 	ServerAddr  string `mapstructure:"server_addr" yaml:"server_addr"`
@@ -28,7 +28,7 @@ type Config struct {
 	Watch       bool   `mapstructure:"watch" yaml:"watch"`
 }
 
-// DefaultConfig returns local-development defaults that keep Nacos disabled.
+// DefaultConfig 返回保持 Nacos 关闭的本地开发默认配置。
 func DefaultConfig() Config {
 	return Config{
 		Enabled:    false,
@@ -43,7 +43,7 @@ func DefaultConfig() Config {
 	}
 }
 
-// WithDefaults fills empty optional fields without forcing Nacos on.
+// WithDefaults 填充可选空字段，但不会强制开启 Nacos。
 func WithDefaults(cfg Config) Config {
 	defaults := DefaultConfig()
 	if cfg.ServerAddr == "" {
@@ -73,7 +73,7 @@ func WithDefaults(cfg Config) Config {
 	return cfg
 }
 
-// LoadConfig fetches one YAML config document from Nacos.
+// LoadConfig 从 Nacos 拉取一份 YAML 配置文档。
 func LoadConfig(cfg Config) (string, error) {
 	cfg = WithDefaults(cfg)
 	if !cfg.Enabled {
@@ -96,7 +96,7 @@ func LoadConfig(cfg Config) (string, error) {
 	})
 }
 
-// NewConfigClient creates an official Nacos config client from framework config.
+// NewConfigClient 根据框架配置创建官方 Nacos 配置客户端。
 func NewConfigClient(cfg Config) (config_client.IConfigClient, error) {
 	cfg = WithDefaults(cfg)
 	return clients.NewConfigClient(

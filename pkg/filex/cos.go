@@ -15,7 +15,7 @@ type cosBackend struct {
 	cfg    TencentCOSConfig
 }
 
-// newTencentCOSBackend validates Tencent Cloud COS configuration and builds the bucket URL.
+// newTencentCOSBackend 校验腾讯云 COS 配置并构建 bucket URL。
 func newTencentCOSBackend(cfg Config) (backend, error) {
 	cosCfg := cfg.COS
 	if cosCfg.SecretID == "" {
@@ -55,7 +55,7 @@ func (b *cosBackend) Bucket() string {
 	return b.cfg.Bucket
 }
 
-// Put uploads the object to Tencent Cloud COS with content type and optional metadata.
+// Put 将对象上传到腾讯云 COS，并携带内容类型和可选元数据。
 func (b *cosBackend) Put(ctx context.Context, req preparedUpload) (string, error) {
 	meta := http.Header{}
 	for key, value := range req.Metadata {

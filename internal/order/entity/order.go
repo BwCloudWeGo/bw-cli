@@ -13,8 +13,8 @@ var (
 	ErrInvalidOrder  = errors.New("invalid order")
 )
 
-// Order is the aggregate root for the order business service.
-// Replace Name and Description with real business fields when the domain is clear.
+// Order 是 order 业务服务的聚合根。
+// 业务明确后，请将 Name 和 Description 替换为真实业务字段。
 type Order struct {
 	ID          string
 	Name        string
@@ -23,7 +23,7 @@ type Order struct {
 	UpdatedAt   time.Time
 }
 
-// NewOrder validates input and creates an aggregate with framework-managed identity fields.
+// NewOrder 校验输入，并创建带框架管理身份字段的聚合。
 func NewOrder(name string, description string) (*Order, error) {
 	name = strings.TrimSpace(name)
 	description = strings.TrimSpace(description)
@@ -40,7 +40,7 @@ func NewOrder(name string, description string) (*Order, error) {
 	}, nil
 }
 
-// Update changes mutable fields while keeping validation inside the domain entity.
+// Update 修改可变字段，并把校验保留在业务实体内部。
 func (item *Order) Update(name string, description string) error {
 	name = strings.TrimSpace(name)
 	description = strings.TrimSpace(description)

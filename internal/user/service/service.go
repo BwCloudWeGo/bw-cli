@@ -9,24 +9,24 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/internal/user/entity"
 )
 
-// PasswordHasher hides password hashing implementation details from business use cases.
+// PasswordHasher 对业务用例隐藏密码哈希实现细节。
 type PasswordHasher interface {
 	Hash(password string) (string, error)
 	Verify(hash string, password string) bool
 }
 
-// Service orchestrates user use cases.
+// Service 编排 user 用例。
 type Service struct {
 	repo   entity.Repository
 	hasher PasswordHasher
 }
 
-// NewService constructs the user use-case service.
+// NewService 创建 user 用例服务。
 func NewService(repo entity.Repository, hasher PasswordHasher) *Service {
 	return &Service{repo: repo, hasher: hasher}
 }
 
-// Register creates a new user after checking account uniqueness.
+// Register 在检查账号唯一性后创建新用户。
 func (s *Service) Register(ctx context.Context, cmd dto.RegisterCommand) (*dto.UserDTO, error) {
 	if strings.TrimSpace(cmd.Password) == "" {
 		return nil, entity.ErrInvalidUser
@@ -52,7 +52,7 @@ func (s *Service) Register(ctx context.Context, cmd dto.RegisterCommand) (*dto.U
 	return dto.FromUser(user), nil
 }
 
-// Login verifies credentials and returns the matching user.
+// Login 校验凭证并返回匹配用户。
 func (s *Service) Login(ctx context.Context, cmd dto.LoginCommand) (*dto.UserDTO, error) {
 	user, err := s.repo.FindByAccount(ctx, entity.NormalizeAccount(cmd.Account))
 	if err != nil {
@@ -67,7 +67,7 @@ func (s *Service) Login(ctx context.Context, cmd dto.LoginCommand) (*dto.UserDTO
 	return dto.FromUser(user), nil
 }
 
-// GetUser returns one user by id.
+// GetUser 根据 ID 返回一个用户。
 func (s *Service) GetUser(ctx context.Context, id string) (*dto.UserDTO, error) {
 	user, err := s.repo.FindByID(ctx, id)
 	if err != nil {

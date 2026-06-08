@@ -1,5 +1,5 @@
-// Package alipayx wraps github.com/smartwalle/alipay/v3 with framework-friendly
-// configuration and narrow payment, notification and refund helpers.
+// alipayx 包用适配框架的配置和窄接口封装 github.com/smartwalle/alipay/v3，
+// 提供支付、通知和退款辅助能力。
 package alipayx
 
 import (
@@ -13,15 +13,15 @@ import (
 )
 
 const (
-	// ProductCodePagePay is the product code used by Alipay PC website payment.
+	// ProductCodePagePay 是支付宝电脑网站支付使用的产品码。
 	ProductCodePagePay = "FAST_INSTANT_TRADE_PAY"
-	// ProductCodeWapPay is the product code used by Alipay mobile website payment.
+	// ProductCodeWapPay 是支付宝手机网站支付使用的产品码。
 	ProductCodeWapPay = "QUICK_WAP_WAY"
-	// ProductCodeAppPay is the product code used by Alipay app payment.
+	// ProductCodeAppPay 是支付宝 App 支付使用的产品码。
 	ProductCodeAppPay = "QUICK_MSECURITY_PAY"
 )
 
-// Config contains Alipay application credentials and callback defaults.
+// Config 包含支付宝应用凭证和默认回调配置。
 type Config struct {
 	AppID                   string `mapstructure:"app_id" yaml:"app_id"`
 	PrivateKey              string `mapstructure:"private_key" yaml:"private_key"`
@@ -35,18 +35,18 @@ type Config struct {
 	AlipayCertPublicKeyPath string `mapstructure:"alipay_cert_public_key_path" yaml:"alipay_cert_public_key_path"`
 }
 
-// DefaultConfig returns local-development Alipay defaults.
+// DefaultConfig 返回本地开发可用的支付宝默认配置。
 func DefaultConfig() Config {
 	return Config{}
 }
 
-// Client provides the framework's narrow Alipay payment surface.
+// Client 提供框架侧收敛后的支付宝支付接口。
 type Client struct {
 	cfg Config
 	raw *alipay.Client
 }
 
-// PayRequest describes one Alipay payment order.
+// PayRequest 描述一笔支付宝支付订单。
 type PayRequest struct {
 	OutTradeNo     string
 	Subject        string
@@ -58,7 +58,7 @@ type PayRequest struct {
 	TimeoutExpress string
 }
 
-// RefundRequest describes one Alipay refund request.
+// RefundRequest 描述一笔支付宝退款请求。
 type RefundRequest struct {
 	OutTradeNo   string
 	TradeNo      string
@@ -67,7 +67,7 @@ type RefundRequest struct {
 	OutRequestNo string
 }
 
-// NewClient creates a configured smartwalle Alipay client.
+// NewClient 创建已配置的 smartwalle 支付宝客户端。
 func NewClient(cfg Config) (*Client, error) {
 	cfg = normalizeConfig(cfg)
 	if cfg.AppID == "" {
@@ -112,7 +112,7 @@ func NewClient(cfg Config) (*Client, error) {
 	return &Client{cfg: cfg, raw: raw}, nil
 }
 
-// Raw returns the underlying smartwalle client for uncommon Alipay APIs.
+// Raw 返回底层 smartwalle 客户端，用于少见的支付宝 API。
 func (c *Client) Raw() *alipay.Client {
 	if c == nil {
 		return nil
@@ -120,7 +120,7 @@ func (c *Client) Raw() *alipay.Client {
 	return c.raw
 }
 
-// PagePay builds the PC website payment redirect URL.
+// PagePay 构建电脑网站支付跳转 URL。
 func (c *Client) PagePay(req PayRequest) (*url.URL, error) {
 	if err := c.validateClient(); err != nil {
 		return nil, err
@@ -132,7 +132,7 @@ func (c *Client) PagePay(req PayRequest) (*url.URL, error) {
 	return c.raw.TradePagePay(param)
 }
 
-// PagePayURL builds the PC website payment redirect URL as a string.
+// PagePayURL 以字符串形式构建电脑网站支付跳转 URL。
 func (c *Client) PagePayURL(req PayRequest) (string, error) {
 	payURL, err := c.PagePay(req)
 	if err != nil {
@@ -141,7 +141,7 @@ func (c *Client) PagePayURL(req PayRequest) (string, error) {
 	return payURL.String(), nil
 }
 
-// WapPay builds the mobile website payment redirect URL.
+// WapPay 构建手机网站支付跳转 URL。
 func (c *Client) WapPay(req PayRequest) (*url.URL, error) {
 	if err := c.validateClient(); err != nil {
 		return nil, err
@@ -153,7 +153,7 @@ func (c *Client) WapPay(req PayRequest) (*url.URL, error) {
 	return c.raw.TradeWapPay(param)
 }
 
-// WapPayURL builds the mobile website payment redirect URL as a string.
+// WapPayURL 以字符串形式构建手机网站支付跳转 URL。
 func (c *Client) WapPayURL(req PayRequest) (string, error) {
 	payURL, err := c.WapPay(req)
 	if err != nil {
@@ -162,7 +162,7 @@ func (c *Client) WapPayURL(req PayRequest) (string, error) {
 	return payURL.String(), nil
 }
 
-// AppPay builds the order string that mobile clients pass to the Alipay SDK.
+// AppPay 构建移动端传给支付宝 SDK 的订单字符串。
 func (c *Client) AppPay(req PayRequest) (string, error) {
 	if err := c.validateClient(); err != nil {
 		return "", err
@@ -174,7 +174,7 @@ func (c *Client) AppPay(req PayRequest) (string, error) {
 	return c.raw.TradeAppPay(param)
 }
 
-// DecodeNotification verifies an async notification and converts it into a typed payload.
+// DecodeNotification 验证异步通知，并转换为强类型载荷。
 func (c *Client) DecodeNotification(ctx context.Context, values url.Values) (*alipay.Notification, error) {
 	if c == nil || c.raw == nil {
 		return nil, errors.New("alipay client is nil")
@@ -182,7 +182,7 @@ func (c *Client) DecodeNotification(ctx context.Context, values url.Values) (*al
 	return c.raw.DecodeNotification(ctx, values)
 }
 
-// VerifyReturn verifies signed query/form values from a synchronous return_url redirect.
+// VerifyReturn 验证同步 return_url 跳转携带的签名 query/form 参数。
 func (c *Client) VerifyReturn(ctx context.Context, values url.Values) error {
 	if c == nil || c.raw == nil {
 		return errors.New("alipay client is nil")
@@ -190,7 +190,7 @@ func (c *Client) VerifyReturn(ctx context.Context, values url.Values) error {
 	return c.raw.VerifySign(ctx, values)
 }
 
-// Refund submits a synchronous refund request to Alipay.
+// Refund 向支付宝提交同步退款请求。
 func (c *Client) Refund(ctx context.Context, req RefundRequest) (*alipay.TradeRefundRsp, error) {
 	if err := c.validateClient(); err != nil {
 		return nil, err
@@ -208,7 +208,7 @@ func (c *Client) Refund(ctx context.Context, req RefundRequest) (*alipay.TradeRe
 	return c.raw.TradeRefund(ctx, param)
 }
 
-// RefundOK submits a refund request and returns an error when Alipay rejects it.
+// RefundOK 提交退款请求，并在支付宝拒绝时返回错误。
 func (c *Client) RefundOK(ctx context.Context, req RefundRequest) error {
 	rsp, err := c.Refund(ctx, req)
 	if err != nil {

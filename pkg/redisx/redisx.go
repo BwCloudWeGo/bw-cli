@@ -12,7 +12,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// Config controls Redis client connection and pool settings.
+// Config 控制 Redis 客户端连接和连接池设置。
 type Config struct {
 	Addr         string        `mapstructure:"addr" yaml:"addr"`
 	Username     string        `mapstructure:"username" yaml:"username"`
@@ -25,13 +25,13 @@ type Config struct {
 	Lock         LockConfig    `mapstructure:"lock" yaml:"lock"`
 }
 
-// LockConfig controls Redis distributed lock behavior.
+// LockConfig 控制 Redis 分布式锁行为。
 type LockConfig struct {
 	KeyPrefix  string        `mapstructure:"key_prefix" yaml:"key_prefix"`
 	DefaultTTL time.Duration `mapstructure:"default_ttl" yaml:"default_ttl"`
 }
 
-// DefaultConfig returns local-development Redis defaults.
+// DefaultConfig 返回本地开发可用的 Redis 默认配置。
 func DefaultConfig() Config {
 	return Config{
 		Addr:         "127.0.0.1:6379",
@@ -47,7 +47,7 @@ func DefaultConfig() Config {
 	}
 }
 
-// Normalize applies defaults while preserving caller-provided fields.
+// Normalize 在保留调用方配置的同时补齐默认值。
 func (cfg Config) Normalize() Config {
 	defaults := DefaultConfig()
 	if cfg.Addr == "" {
@@ -74,7 +74,7 @@ func (cfg Config) Normalize() Config {
 	return cfg
 }
 
-// NewClient creates a go-redis client from configuration.
+// NewClient 根据配置创建 go-redis 客户端。
 func NewClient(cfg Config) *redis.Client {
 	cfg = cfg.Normalize()
 	return redis.NewClient(&redis.Options{
@@ -89,15 +89,15 @@ func NewClient(cfg Config) *redis.Client {
 	})
 }
 
-// Ping checks that the Redis client can reach the configured server.
+// Ping 检查 Redis 客户端是否能连接到配置的服务端。
 func Ping(ctx context.Context, client *redis.Client) error {
 	return client.Ping(ctx).Err()
 }
 
 var (
-	// ErrLockNotAcquired indicates that another owner already holds the lock.
+	// ErrLockNotAcquired 表示锁已被其他持有者占用。
 	ErrLockNotAcquired = errors.New("redis lock not acquired")
-	// ErrLockNotHeld indicates that this lock token no longer owns the key.
+	// ErrLockNotHeld 表示当前锁 token 已不再持有该 key。
 	ErrLockNotHeld = errors.New("redis lock not held")
 )
 
@@ -116,13 +116,13 @@ return 0
 `
 )
 
-// Locker creates and manages Redis distributed locks.
+// Locker 创建并管理 Redis 分布式锁。
 type Locker struct {
 	client *redis.Client
 	cfg    LockConfig
 }
 
-// NewLocker creates a distributed lock manager.
+// NewLocker 创建分布式锁管理器。
 func NewLocker(client *redis.Client, cfg LockConfig) *Locker {
 	defaults := DefaultConfig().Lock
 	if cfg.KeyPrefix == "" {
@@ -134,7 +134,7 @@ func NewLocker(client *redis.Client, cfg LockConfig) *Locker {
 	return &Locker{client: client, cfg: cfg}
 }
 
-// Acquire obtains a lock or returns ErrLockNotAcquired when it is already held.
+// Acquire 获取锁；若锁已被持有则返回 ErrLockNotAcquired。
 func (l *Locker) Acquire(ctx context.Context, key string, ttl time.Duration) (*Lock, error) {
 	lock, acquired, err := l.TryAcquire(ctx, key, ttl)
 	if err != nil {
@@ -146,7 +146,7 @@ func (l *Locker) Acquire(ctx context.Context, key string, ttl time.Duration) (*L
 	return lock, nil
 }
 
-// TryAcquire obtains a lock and reports whether acquisition succeeded.
+// TryAcquire 尝试获取锁，并返回是否成功。
 func (l *Locker) TryAcquire(ctx context.Context, key string, ttl time.Duration) (*Lock, bool, error) {
 	if l == nil || l.client == nil {
 		return nil, false, errors.New("redis locker client is nil")
@@ -185,14 +185,14 @@ func (l *Locker) fullKey(key string) string {
 	return prefix + ":" + key
 }
 
-// Lock is an acquired Redis distributed lock.
+// Lock 表示已获取的 Redis 分布式锁。
 type Lock struct {
 	client *redis.Client
 	key    string
 	token  string
 }
 
-// Key returns the Redis key used by the lock.
+// Key 返回锁使用的 Redis 键。
 func (l *Lock) Key() string {
 	if l == nil {
 		return ""
@@ -200,7 +200,7 @@ func (l *Lock) Key() string {
 	return l.key
 }
 
-// Token returns this owner token. It is useful for diagnostics and tests.
+// Token 返回当前持有者 token，便于诊断和测试。
 func (l *Lock) Token() string {
 	if l == nil {
 		return ""
@@ -208,7 +208,7 @@ func (l *Lock) Token() string {
 	return l.token
 }
 
-// Release deletes the lock only if the token still owns it.
+// Release 仅在 token 仍持有锁时删除该锁。
 func (l *Lock) Release(ctx context.Context) error {
 	if l == nil || l.client == nil {
 		return ErrLockNotHeld
@@ -223,7 +223,7 @@ func (l *Lock) Release(ctx context.Context) error {
 	return nil
 }
 
-// Refresh extends the lock lease only if the token still owns it.
+// Refresh 仅在 token 仍持有锁时延长租约。
 func (l *Lock) Refresh(ctx context.Context, ttl time.Duration) error {
 	if l == nil || l.client == nil {
 		return ErrLockNotHeld

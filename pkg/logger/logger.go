@@ -11,7 +11,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-// FileConfig controls Lumberjack file rotation.
+// FileConfig 控制 Lumberjack 文件轮转。
 type FileConfig struct {
 	Enabled    bool   `mapstructure:"enabled" yaml:"enabled"`
 	Filename   string `mapstructure:"filename" yaml:"filename"`
@@ -21,7 +21,7 @@ type FileConfig struct {
 	Compress   bool   `mapstructure:"compress" yaml:"compress"`
 }
 
-// Config controls zap logger construction and default service dimensions.
+// Config 控制 zap 日志器构建和默认服务维度。
 type Config struct {
 	Service     string     `mapstructure:"service" yaml:"service"`
 	Environment string     `mapstructure:"environment" yaml:"environment"`
@@ -30,7 +30,7 @@ type Config struct {
 	File        FileConfig `mapstructure:"file" yaml:"file"`
 }
 
-// DefaultConfig returns production-friendly logging defaults for one service.
+// DefaultConfig 返回适合单个服务的生产友好日志默认值。
 func DefaultConfig(service string) Config {
 	return Config{
 		Service:     service,
@@ -48,7 +48,7 @@ func DefaultConfig(service string) Config {
 	}
 }
 
-// WithDailyFileName rewrites the log filename to logs/<service>-YYYY-MM-DD.log.
+// WithDailyFileName 将日志文件名改写为 logs/<service>-YYYY-MM-DD.log。
 func WithDailyFileName(cfg Config, now time.Time) Config {
 	service := cfg.Service
 	if service == "" {
@@ -62,7 +62,7 @@ func WithDailyFileName(cfg Config, now time.Time) Config {
 	return cfg
 }
 
-// New creates a zap logger with configured encoding, rotation and service fields.
+// New 创建带指定编码、轮转和服务字段的 zap 日志器。
 func New(cfg Config) (*zap.Logger, error) {
 	level := zapcore.InfoLevel
 	if err := level.Set(cfg.Level); err != nil {

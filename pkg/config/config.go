@@ -26,7 +26,7 @@ import (
 
 var remoteConfigLoader = nacosx.LoadConfig
 
-// Source identifies where the process loaded its application config from.
+// Source 标识进程从哪里加载应用配置。
 type Source string
 
 const (
@@ -34,13 +34,13 @@ const (
 	SourceNacos Source = "nacos"
 )
 
-// AppConfig contains project and service identity values shared by all processes.
+// AppConfig 包含所有进程共享的项目和服务身份配置。
 type AppConfig struct {
 	Name string `mapstructure:"name" yaml:"name"`
 	Env  string `mapstructure:"env" yaml:"env"`
 }
 
-// HTTPConfig controls the Gin gateway listener and server timeouts.
+// HTTPConfig 控制 Gin 网关监听地址和服务超时。
 type HTTPConfig struct {
 	Host                string `mapstructure:"host" yaml:"host"`
 	Port                int    `mapstructure:"port" yaml:"port"`
@@ -48,25 +48,25 @@ type HTTPConfig struct {
 	WriteTimeoutSeconds int    `mapstructure:"write_timeout_seconds" yaml:"write_timeout_seconds"`
 }
 
-// GRPCConfig controls gRPC server ports and gateway client targets.
+// GRPCConfig 控制 gRPC 服务端口和 gateway 客户端目标地址。
 type GRPCConfig struct {
 	Host string `mapstructure:"host" yaml:"host"`
 }
 
-// ServiceConfig describes one process-level service instance.
+// ServiceConfig 描述一个进程级服务实例。
 type ServiceConfig struct {
 	Name   string `mapstructure:"name" yaml:"name"`
 	Port   int    `mapstructure:"port" yaml:"port"`
 	Target string `mapstructure:"target" yaml:"target"`
 }
 
-// DatabaseConfig selects the active database driver used by demo services.
+// DatabaseConfig 选择示例服务使用的数据库驱动。
 type DatabaseConfig struct {
 	Driver string `mapstructure:"driver" yaml:"driver"`
 	DSN    string `mapstructure:"dsn" yaml:"dsn"`
 }
 
-// MySQLConfig contains the MySQL DSN and sql.DB connection pool settings.
+// MySQLConfig 包含 MySQL DSN 和 sql.DB 连接池设置。
 type MySQLConfig struct {
 	DSN                    string `mapstructure:"dsn" yaml:"dsn"`
 	MaxIdleConns           int    `mapstructure:"max_idle_conns" yaml:"max_idle_conns"`
@@ -74,12 +74,12 @@ type MySQLConfig struct {
 	ConnMaxLifetimeSeconds int    `mapstructure:"conn_max_lifetime_seconds" yaml:"conn_max_lifetime_seconds"`
 }
 
-// ConnMaxLifetime converts the YAML seconds value to a duration used by sql.DB.
+// ConnMaxLifetime 将 YAML 中的秒数转换为 sql.DB 使用的 duration。
 func (cfg MySQLConfig) ConnMaxLifetime() time.Duration {
 	return time.Duration(cfg.ConnMaxLifetimeSeconds) * time.Second
 }
 
-// PostgreSQLConfig contains the PostgreSQL DSN and sql.DB connection pool settings.
+// PostgreSQLConfig 包含 PostgreSQL DSN 和 sql.DB 连接池设置。
 type PostgreSQLConfig struct {
 	DSN                    string `mapstructure:"dsn" yaml:"dsn"`
 	MaxIdleConns           int    `mapstructure:"max_idle_conns" yaml:"max_idle_conns"`
@@ -87,12 +87,12 @@ type PostgreSQLConfig struct {
 	ConnMaxLifetimeSeconds int    `mapstructure:"conn_max_lifetime_seconds" yaml:"conn_max_lifetime_seconds"`
 }
 
-// ConnMaxLifetime converts the YAML seconds value to a duration used by sql.DB.
+// ConnMaxLifetime 将 YAML 中的秒数转换为 sql.DB 使用的 duration。
 func (cfg PostgreSQLConfig) ConnMaxLifetime() time.Duration {
 	return time.Duration(cfg.ConnMaxLifetimeSeconds) * time.Second
 }
 
-// MongoDBConfig contains MongoDB client, database and pool settings loaded from YAML.
+// MongoDBConfig 包含从 YAML 加载的 MongoDB 客户端、数据库和连接池设置。
 type MongoDBConfig struct {
 	URI                           string `mapstructure:"uri" yaml:"uri"`
 	Username                      string `mapstructure:"username" yaml:"username"`
@@ -105,17 +105,17 @@ type MongoDBConfig struct {
 	ServerSelectionTimeoutSeconds int    `mapstructure:"server_selection_timeout_seconds" yaml:"server_selection_timeout_seconds"`
 }
 
-// ConnectTimeout converts the YAML seconds value to a MongoDB connect timeout.
+// ConnectTimeout 将 YAML 中的秒数转换为 MongoDB 连接超时。
 func (cfg MongoDBConfig) ConnectTimeout() time.Duration {
 	return time.Duration(cfg.ConnectTimeoutSeconds) * time.Second
 }
 
-// ServerSelectionTimeout converts the YAML seconds value to a MongoDB server selection timeout.
+// ServerSelectionTimeout 将 YAML 中的秒数转换为 MongoDB 服务选择超时。
 func (cfg MongoDBConfig) ServerSelectionTimeout() time.Duration {
 	return time.Duration(cfg.ServerSelectionTimeoutSeconds) * time.Second
 }
 
-// MongoxConfig converts YAML configuration into the shared MongoDB client config.
+// MongoxConfig 将 YAML 配置转换为公共 MongoDB 客户端配置。
 func (cfg MongoDBConfig) MongoxConfig() mongox.Config {
 	return mongox.Config{
 		URI:                    cfg.URI,
@@ -130,13 +130,13 @@ func (cfg MongoDBConfig) MongoxConfig() mongox.Config {
 	}
 }
 
-// MiddlewareConfig groups HTTP middleware configuration loaded from YAML.
+// MiddlewareConfig 聚合从 YAML 加载的 HTTP 中间件配置。
 type MiddlewareConfig struct {
 	CORS middleware.CORSConfig `mapstructure:"cors" yaml:"cors"`
 	JWT  middleware.JWTConfig  `mapstructure:"jwt" yaml:"jwt"`
 }
 
-// Config is the root application configuration loaded by each process.
+// Config 是每个进程加载的应用根配置。
 type Config struct {
 	Source        Source                   `mapstructure:"-" yaml:"-"`
 	App           AppConfig                `mapstructure:"app" yaml:"app"`
@@ -157,7 +157,7 @@ type Config struct {
 	Log           logger.Config            `mapstructure:"log" yaml:"log"`
 }
 
-// Service returns a named service config with a predictable fallback.
+// Service 返回指定服务配置，并在缺省时提供可预测的兜底值。
 func (cfg *Config) Service(key string) ServiceConfig {
 	if cfg == nil {
 		return ServiceConfig{}
@@ -172,12 +172,12 @@ func (cfg *Config) Service(key string) ServiceConfig {
 	return ServiceConfig{Name: key + "-service"}
 }
 
-// ServiceName returns the configured service name for logs and observability.
+// ServiceName 返回日志和可观测性使用的服务名。
 func (cfg *Config) ServiceName(key string) string {
 	return cfg.Service(key).Name
 }
 
-// ServicePort returns the configured service port, or fallback when unset.
+// ServicePort 返回配置的服务端口，未配置时使用兜底端口。
 func (cfg *Config) ServicePort(key string, fallback int) int {
 	if port := cfg.Service(key).Port; port > 0 {
 		return port
@@ -185,7 +185,7 @@ func (cfg *Config) ServicePort(key string, fallback int) int {
 	return fallback
 }
 
-// ServiceTarget returns the configured gRPC target, or localhost:<configured port>.
+// ServiceTarget 返回配置的 gRPC 目标地址，未配置时使用本机地址和已配置端口。
 func (cfg *Config) ServiceTarget(key string) string {
 	svc := cfg.Service(key)
 	if target := strings.TrimSpace(svc.Target); target != "" {
@@ -197,12 +197,12 @@ func (cfg *Config) ServiceTarget(key string) string {
 	return ""
 }
 
-// UsingNacos reports whether this process is running with config loaded from Nacos.
+// UsingNacos 判断当前进程是否使用从 Nacos 加载的配置运行。
 func (cfg *Config) UsingNacos() bool {
 	return cfg != nil && cfg.Source == SourceNacos
 }
 
-// PrintSourceNotice writes a startup notice when runtime config comes from Nacos.
+// PrintSourceNotice 在运行时配置来自 Nacos 时输出启动提示。
 func PrintSourceNotice(cfg *Config, out io.Writer) {
 	if cfg == nil || out == nil || !cfg.UsingNacos() {
 		return
@@ -218,7 +218,7 @@ func PrintSourceNotice(cfg *Config, out io.Writer) {
 	fmt.Fprintf(out, "  data_id: %s\n\n", nacos.DataID)
 }
 
-// Load reads YAML configuration from local files or Nacos.
+// Load 从本地文件或 Nacos 读取 YAML 配置。
 func Load(path string) (*Config, error) {
 	nacosCfg, err := loadNacosConfig(path)
 	if err != nil {

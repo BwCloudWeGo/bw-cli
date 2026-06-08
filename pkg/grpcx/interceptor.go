@@ -14,10 +14,10 @@ import (
 	apperrors "github.com/BwCloudWeGo/bw-cli/pkg/errors"
 )
 
-// MetadataRequestID is the metadata key used to propagate request ids over gRPC.
+// MetadataRequestID 是通过 gRPC 透传请求 ID 的元数据键。
 const MetadataRequestID = "x-request-id"
 
-// UnaryServerInterceptor maps application errors to gRPC status errors and logs RPC dimensions.
+// UnaryServerInterceptor 将应用错误映射为 gRPC status 错误，并记录 RPC 维度日志。
 func UnaryServerInterceptor(log *zap.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		start := time.Now()
@@ -43,7 +43,7 @@ func UnaryServerInterceptor(log *zap.Logger) grpc.UnaryServerInterceptor {
 	}
 }
 
-// UnaryClientInterceptor adds the current HTTP request id to outgoing gRPC calls.
+// UnaryClientInterceptor 将当前 HTTP 请求 ID 添加到出站 gRPC 调用。
 func UnaryClientInterceptor(requestID string) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req interface{}, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		if requestID != "" {
@@ -53,7 +53,7 @@ func UnaryClientInterceptor(requestID string) grpc.UnaryClientInterceptor {
 	}
 }
 
-// RequestIDFromContext extracts the propagated request id from incoming metadata.
+// RequestIDFromContext 从入站元数据中提取透传的请求 ID。
 func RequestIDFromContext(ctx context.Context) string {
 	return firstMetadata(ctx, MetadataRequestID)
 }

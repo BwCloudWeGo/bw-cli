@@ -15,7 +15,7 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/postgresx"
 )
 
-// Open creates a Gorm database connection from the service configuration.
+// Open 根据服务配置创建 Gorm 数据库连接。
 func Open(cfg config.DatabaseConfig, mysqlCfg config.MySQLConfig, postgresCfg config.PostgreSQLConfig, log *zap.Logger) (*gorm.DB, error) {
 	switch cfg.Driver {
 	case "mysql":
@@ -49,7 +49,7 @@ func Open(cfg config.DatabaseConfig, mysqlCfg config.MySQLConfig, postgresCfg co
 	}
 }
 
-// ToMySQLConfig converts application YAML config into the reusable mysqlx config.
+// ToMySQLConfig 将应用 YAML 配置转换为可复用的 mysqlx 配置。
 func ToMySQLConfig(cfg config.MySQLConfig) mysqlx.Config {
 	return mysqlx.Config{
 		DSN:             cfg.DSN,
@@ -60,7 +60,7 @@ func ToMySQLConfig(cfg config.MySQLConfig) mysqlx.Config {
 	}
 }
 
-// ToPostgreSQLConfig converts application YAML config into the reusable postgresx config.
+// ToPostgreSQLConfig 将应用 YAML 配置转换为可复用的 postgresx 配置。
 func ToPostgreSQLConfig(cfg config.PostgreSQLConfig) postgresx.Config {
 	return postgresx.Config{
 		DSN:             cfg.DSN,
@@ -71,7 +71,7 @@ func ToPostgreSQLConfig(cfg config.PostgreSQLConfig) postgresx.Config {
 	}
 }
 
-// ensureDir creates the directory for file-based SQLite DSNs.
+// ensureDir 为基于文件的 SQLite DSN 创建目录。
 func ensureDir(dsn string) error {
 	dir := filepath.Dir(dsn)
 	if dir == "." || dir == "" {

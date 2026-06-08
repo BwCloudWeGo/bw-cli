@@ -15,14 +15,14 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/mongox"
 )
 
-// MongoRepository persists order aggregates with the shared mongox DocumentStore.
-// It implements entity.Repository and can replace GormRepository without changing service code.
+// MongoRepository 使用共享 mongox 文档存储持久化 order 聚合。
+// 它实现 entity.Repository，可在不修改 service 代码的情况下替换 GormRepository。
 type MongoRepository struct {
 	documents *mongox.DocumentStore[dbmodel.OrderDocument]
 	log       *zap.Logger
 }
 
-// NewMongoRepository constructs a MongoDB repository using the configured database.
+// NewMongoRepository 使用配置好的数据库创建 MongoDB 仓储。
 func NewMongoRepository(db *mongo.Database, loggers ...*zap.Logger) *MongoRepository {
 	log := zap.NewNop()
 	if len(loggers) > 0 && loggers[0] != nil {
@@ -34,7 +34,7 @@ func NewMongoRepository(db *mongo.Database, loggers ...*zap.Logger) *MongoReposi
 	}
 }
 
-// Save inserts or updates an order aggregate by MongoDB _id.
+// Save 按 MongoDB _id 新增或更新 order 聚合。
 func (r *MongoRepository) Save(ctx context.Context, item *entity.Order) error {
 	start := time.Now()
 	_, err := r.documents.UpsertByID(ctx, item.ID, toDocument(item))
@@ -42,7 +42,7 @@ func (r *MongoRepository) Save(ctx context.Context, item *entity.Order) error {
 	return err
 }
 
-// FindByID loads an order aggregate by MongoDB _id.
+// FindByID 按 MongoDB _id 加载 order 聚合。
 func (r *MongoRepository) FindByID(ctx context.Context, id string) (*entity.Order, error) {
 	start := time.Now()
 	document, err := r.documents.FindByID(ctx, id)
@@ -56,7 +56,7 @@ func (r *MongoRepository) FindByID(ctx context.Context, id string) (*entity.Orde
 	return toDomainFromDocument(document), nil
 }
 
-// List loads paginated order aggregates ordered by creation time.
+// List 按创建时间排序加载分页 order 聚合。
 func (r *MongoRepository) List(ctx context.Context, offset int, limit int) ([]*entity.Order, int64, error) {
 	start := time.Now()
 	filter := bson.M{}
@@ -85,7 +85,7 @@ func (r *MongoRepository) List(ctx context.Context, offset int, limit int) ([]*e
 	return items, total, nil
 }
 
-// Delete removes an order aggregate by MongoDB _id.
+// Delete 按 MongoDB _id 删除 order 聚合。
 func (r *MongoRepository) Delete(ctx context.Context, id string) error {
 	start := time.Now()
 	result, err := r.documents.DeleteByID(ctx, id)

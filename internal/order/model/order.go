@@ -2,7 +2,7 @@ package model
 
 import "time"
 
-// OrderModel is the Gorm persistence model for the orders table.
+// OrderModel 是 orders 表的 Gorm 持久化模型。
 type OrderModel struct {
 	ID          string `gorm:"primaryKey;size:64"`
 	Name        string `gorm:"size:128;not null"`
@@ -17,7 +17,7 @@ func (OrderModel) TableName() string {
 
 const orderMongoCollectionName = "orders"
 
-// OrderDocument is the MongoDB document model for the orders collection.
+// OrderDocument 是 orders 集合的 MongoDB 文档模型。
 type OrderDocument struct {
 	ID          string    `bson:"_id"`
 	Name        string    `bson:"name"`

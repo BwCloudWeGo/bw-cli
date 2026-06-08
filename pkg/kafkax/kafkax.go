@@ -16,7 +16,7 @@ import (
 	"github.com/segmentio/kafka-go/sasl/scram"
 )
 
-// Config controls Kafka reader and writer construction.
+// Config 控制 Kafka 读取器和写入器的创建。
 type Config struct {
 	Brokers      []string           `mapstructure:"brokers" yaml:"brokers"`
 	Topic        string             `mapstructure:"topic" yaml:"topic"`
@@ -28,11 +28,11 @@ type Config struct {
 	Consumer     ConsumerConfig     `mapstructure:"consumer" yaml:"consumer"`
 	SASL         SASLConfig         `mapstructure:"sasl" yaml:"sasl"`
 	TLS          TLSConfig          `mapstructure:"tls" yaml:"tls"`
-	// BatchTimeout is kept for backward compatibility. Prefer producer.batch_timeout.
+	// BatchTimeout 为兼容旧配置保留，优先使用 producer.batch_timeout。
 	BatchTimeout time.Duration `mapstructure:"batch_timeout" yaml:"batch_timeout"`
 }
 
-// ProducerConfig controls Kafka writer behavior.
+// ProducerConfig 控制 Kafka 写入器行为。
 type ProducerConfig struct {
 	MaxAttempts            int           `mapstructure:"max_attempts" yaml:"max_attempts"`
 	BatchSize              int           `mapstructure:"batch_size" yaml:"batch_size"`
@@ -45,7 +45,7 @@ type ProducerConfig struct {
 	AllowAutoTopicCreation bool          `mapstructure:"allow_auto_topic_creation" yaml:"allow_auto_topic_creation"`
 }
 
-// ConsumerConfig controls Kafka reader behavior.
+// ConsumerConfig 控制 Kafka 读取器行为。
 type ConsumerConfig struct {
 	QueueCapacity         int           `mapstructure:"queue_capacity" yaml:"queue_capacity"`
 	MinBytes              int           `mapstructure:"min_bytes" yaml:"min_bytes"`
@@ -61,7 +61,7 @@ type ConsumerConfig struct {
 	MaxAttempts           int           `mapstructure:"max_attempts" yaml:"max_attempts"`
 }
 
-// SASLConfig controls optional Kafka SASL authentication.
+// SASLConfig 控制可选的 Kafka SASL 认证。
 type SASLConfig struct {
 	Enable    bool   `mapstructure:"enable" yaml:"enable"`
 	Mechanism string `mapstructure:"mechanism" yaml:"mechanism"`
@@ -69,14 +69,14 @@ type SASLConfig struct {
 	Password  string `mapstructure:"password" yaml:"password"`
 }
 
-// TLSConfig controls optional Kafka TLS transport.
+// TLSConfig 控制可选的 Kafka TLS 传输。
 type TLSConfig struct {
 	Enable             bool   `mapstructure:"enable" yaml:"enable"`
 	InsecureSkipVerify bool   `mapstructure:"insecure_skip_verify" yaml:"insecure_skip_verify"`
 	ServerName         string `mapstructure:"server_name" yaml:"server_name"`
 }
 
-// DefaultConfig returns local-development Kafka defaults.
+// DefaultConfig 返回本地开发可用的 Kafka 默认配置。
 func DefaultConfig() Config {
 	return Config{
 		Brokers:      []string{"127.0.0.1:9092"},
@@ -113,7 +113,7 @@ func DefaultConfig() Config {
 	}
 }
 
-// Normalize applies defaults while preserving caller-provided fields.
+// Normalize 在保留调用方配置的同时补齐默认值。
 func (cfg Config) Normalize() (Config, error) {
 	defaults := DefaultConfig()
 	if len(cfg.Brokers) == 0 {
@@ -207,7 +207,7 @@ func normalizeConsumerConfig(cfg *ConsumerConfig, defaults ConsumerConfig) {
 	}
 }
 
-// NewWriter creates a Kafka writer from configured brokers and topic.
+// NewWriter 根据配置的 brokers 和 topic 创建 Kafka 写入器。
 func NewWriter(cfg Config) *kafka.Writer {
 	normalized, _ := cfg.Normalize()
 	compression, _ := parseCompression(normalized.Producer.Compression)
@@ -228,7 +228,7 @@ func NewWriter(cfg Config) *kafka.Writer {
 	}
 }
 
-// NewReader creates a Kafka reader from configured brokers, topic and group.
+// NewReader 根据配置的 brokers、topic 和 group 创建 Kafka 读取器。
 func NewReader(cfg Config) *kafka.Reader {
 	normalized, _ := cfg.Normalize()
 	return kafka.NewReader(kafka.ReaderConfig{
@@ -251,7 +251,7 @@ func NewReader(cfg Config) *kafka.Reader {
 	})
 }
 
-// Message is the application-facing Kafka message shape.
+// Message 是面向应用层的 Kafka 消息结构。
 type Message struct {
 	Topic   string
 	Key     string
@@ -260,19 +260,19 @@ type Message struct {
 	Time    time.Time
 }
 
-// Writer is the minimal producer dependency used by Producer.
+// Writer 是 Producer 依赖的最小生产者接口。
 type Writer interface {
 	WriteMessages(ctx context.Context, messages ...kafka.Message) error
 	Close() error
 }
 
-// Producer wraps Kafka writing with a stable application API.
+// Producer 用稳定的应用层 API 封装 Kafka 写入。
 type Producer struct {
 	writer         Writer
 	writerHasTopic bool
 }
 
-// NewProducer creates a high-level Kafka producer.
+// NewProducer 创建高层 Kafka 生产者。
 func NewProducer(cfg Config) (*Producer, error) {
 	normalized, err := cfg.Normalize()
 	if err != nil {
@@ -284,12 +284,12 @@ func NewProducer(cfg Config) (*Producer, error) {
 	}, nil
 }
 
-// NewProducerWithWriter creates a producer from an existing writer.
+// NewProducerWithWriter 基于已有 writer 创建 producer。
 func NewProducerWithWriter(writer Writer) *Producer {
 	return &Producer{writer: writer}
 }
 
-// Publish sends one business-facing message to Kafka.
+// Publish 向 Kafka 发送一条业务消息。
 func (p *Producer) Publish(ctx context.Context, message Message) error {
 	if p == nil || p.writer == nil {
 		return errors.New("kafka producer writer is nil")
@@ -297,7 +297,7 @@ func (p *Producer) Publish(ctx context.Context, message Message) error {
 	return p.writer.WriteMessages(ctx, toKafkaMessage(message, p.writerHasTopic))
 }
 
-// PublishRaw sends native kafka-go messages.
+// PublishRaw 发送原生 kafka-go 消息。
 func (p *Producer) PublishRaw(ctx context.Context, messages ...kafka.Message) error {
 	if p == nil || p.writer == nil {
 		return errors.New("kafka producer writer is nil")
@@ -305,7 +305,7 @@ func (p *Producer) PublishRaw(ctx context.Context, messages ...kafka.Message) er
 	return p.writer.WriteMessages(ctx, messages...)
 }
 
-// Close releases producer resources.
+// Close 释放 producer 资源。
 func (p *Producer) Close() error {
 	if p == nil || p.writer == nil {
 		return nil
@@ -313,22 +313,22 @@ func (p *Producer) Close() error {
 	return p.writer.Close()
 }
 
-// Reader is the minimal consumer dependency used by Consumer.
+// Reader 是 Consumer 依赖的最小消费者接口。
 type Reader interface {
 	FetchMessage(ctx context.Context) (kafka.Message, error)
 	CommitMessages(ctx context.Context, messages ...kafka.Message) error
 	Close() error
 }
 
-// Handler processes one consumed Kafka message.
+// Handler 处理一条消费到的 Kafka 消息。
 type Handler func(ctx context.Context, message kafka.Message) error
 
-// Consumer wraps Kafka reading with explicit handler and commit semantics.
+// Consumer 封装 Kafka 读取，并显式处理 handler 和提交语义。
 type Consumer struct {
 	reader Reader
 }
 
-// NewConsumer creates a high-level Kafka consumer.
+// NewConsumer 创建高层 Kafka 消费者。
 func NewConsumer(cfg Config) (*Consumer, error) {
 	if _, err := cfg.Normalize(); err != nil {
 		return nil, err
@@ -336,12 +336,12 @@ func NewConsumer(cfg Config) (*Consumer, error) {
 	return NewConsumerWithReader(NewReader(cfg)), nil
 }
 
-// NewConsumerWithReader creates a consumer from an existing reader.
+// NewConsumerWithReader 基于已有 reader 创建 consumer。
 func NewConsumerWithReader(reader Reader) *Consumer {
 	return &Consumer{reader: reader}
 }
 
-// Consume fetches one message, handles it, and commits only on success.
+// Consume 拉取一条消息，处理成功后才提交。
 func (c *Consumer) Consume(ctx context.Context, handler Handler) error {
 	if c == nil || c.reader == nil {
 		return errors.New("kafka consumer reader is nil")
@@ -359,7 +359,7 @@ func (c *Consumer) Consume(ctx context.Context, handler Handler) error {
 	return c.reader.CommitMessages(ctx, message)
 }
 
-// Run consumes messages until the context is canceled or an error occurs.
+// Run 持续消费消息，直到 context 取消或发生错误。
 func (c *Consumer) Run(ctx context.Context, handler Handler) error {
 	for {
 		if err := ctx.Err(); err != nil {
@@ -371,7 +371,7 @@ func (c *Consumer) Run(ctx context.Context, handler Handler) error {
 	}
 }
 
-// Close releases consumer resources.
+// Close 释放 consumer 资源。
 func (c *Consumer) Close() error {
 	if c == nil || c.reader == nil {
 		return nil

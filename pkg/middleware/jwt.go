@@ -12,14 +12,14 @@ import (
 
 const claimsContextKey = "jwt_claims"
 
-// JWTConfig controls token signing and validation.
+// JWTConfig 控制 token 签名和校验。
 type JWTConfig struct {
 	Secret        string `mapstructure:"secret" yaml:"secret"`
 	Issuer        string `mapstructure:"issuer" yaml:"issuer"`
 	ExpireSeconds int64  `mapstructure:"expire_seconds" yaml:"expire_seconds"`
 }
 
-// JWTClaims is the business payload stored in signed tokens.
+// JWTClaims 是签名 token 中保存的业务载荷。
 type JWTClaims struct {
 	UserID string `json:"user_id"`
 	Role   string `json:"role"`
@@ -30,12 +30,12 @@ type registeredJWTClaims struct {
 	jwt.RegisteredClaims
 }
 
-// JWT signs tokens and validates bearer authentication for Gin routes.
+// JWT 负责签发 token，并校验 Gin 路由中的 Bearer 认证。
 type JWT struct {
 	cfg JWTConfig
 }
 
-// DefaultJWTConfig returns non-secret JWT defaults; Secret must come from config.
+// DefaultJWTConfig 返回不含密钥的 JWT 默认配置；Secret 必须来自配置文件。
 func DefaultJWTConfig() JWTConfig {
 	return JWTConfig{
 		Issuer:        "xiaolanshu",
@@ -43,7 +43,7 @@ func DefaultJWTConfig() JWTConfig {
 	}
 }
 
-// NewJWT builds a JWT middleware instance with defaults applied.
+// NewJWT 创建已应用默认值的 JWT 中间件实例。
 func NewJWT(cfg JWTConfig) *JWT {
 	defaults := DefaultJWTConfig()
 	if cfg.Issuer == "" {
@@ -55,7 +55,7 @@ func NewJWT(cfg JWTConfig) *JWT {
 	return &JWT{cfg: cfg}
 }
 
-// GenerateToken signs a JWT for the provided claims using the instance config.
+// GenerateToken 使用当前实例配置为给定 claims 签发 JWT。
 func (j *JWT) GenerateToken(claims JWTClaims) (string, error) {
 	if strings.TrimSpace(j.cfg.Secret) == "" {
 		return "", errors.New("jwt secret is required")
@@ -73,7 +73,7 @@ func (j *JWT) GenerateToken(claims JWTClaims) (string, error) {
 	return token.SignedString([]byte(j.cfg.Secret))
 }
 
-// Auth validates Authorization: Bearer tokens and stores claims in Gin context.
+// Auth 校验授权请求头中的 Bearer 令牌，并把声明写入 Gin 上下文。
 func (j *JWT) Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if strings.TrimSpace(j.cfg.Secret) == "" {
@@ -103,17 +103,17 @@ func (j *JWT) Auth() gin.HandlerFunc {
 	}
 }
 
-// GenerateToken signs a JWT for the provided claims using the configured secret.
+// GenerateToken 使用配置的密钥为给定 claims 签发 JWT。
 func GenerateToken(cfg JWTConfig, claims JWTClaims) (string, error) {
 	return NewJWT(cfg).GenerateToken(claims)
 }
 
-// JWTAuth validates Authorization: Bearer tokens and stores claims in Gin context.
+// JWTAuth 校验授权请求头中的 Bearer 令牌，并把声明写入 Gin 上下文。
 func JWTAuth(cfg JWTConfig) gin.HandlerFunc {
 	return NewJWT(cfg).Auth()
 }
 
-// ClaimsFromContext returns JWT claims parsed by JWTAuth.
+// ClaimsFromContext 返回 JWTAuth 解析出的 JWT claims。
 func ClaimsFromContext(c *gin.Context) JWTClaims {
 	value, ok := c.Get(claimsContextKey)
 	if !ok {

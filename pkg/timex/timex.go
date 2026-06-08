@@ -11,12 +11,12 @@ const (
 	daysPerYear           = 365
 )
 
-// Age returns the full age in years for a birthday using the current time.
+// Age 使用当前时间计算生日对应的完整周岁。
 func Age(birthday time.Time) int {
 	return AgeAt(birthday, time.Now())
 }
 
-// AgeAt returns the full age in years for a birthday at the given time.
+// AgeAt 使用指定时间计算生日对应的完整周岁。
 func AgeAt(birthday time.Time, now time.Time) int {
 	birthday = birthday.In(now.Location())
 	if birthday.After(now) {
@@ -32,17 +32,17 @@ func AgeAt(birthday time.Time, now time.Time) int {
 	return age
 }
 
-// RelativeTime returns a Chinese relative time string using the current time.
+// RelativeTime 使用当前时间返回中文相对时间。
 func RelativeTime(value time.Time) string {
 	return RelativeTimeAt(value, time.Now())
 }
 
-// RelativeTimeAt returns a Chinese relative time string using the given base time.
+// RelativeTimeAt 使用指定基准时间返回中文相对时间。
 func RelativeTimeAt(value time.Time, now time.Time) string {
 	return RelativeTimeInLocation(value, now, now.Location())
 }
 
-// RelativeTimeInLocation returns a Chinese relative time string in the specified location.
+// RelativeTimeInLocation 在指定时区中返回中文相对时间。
 func RelativeTimeInLocation(value time.Time, now time.Time, loc *time.Location) string {
 	if loc == nil {
 		loc = time.Local
@@ -73,7 +73,7 @@ func RelativeTimeInLocation(value time.Time, now time.Time, loc *time.Location) 
 	}
 }
 
-// FormatDateTime formats time with the concrete layout used by RelativeTime after one year.
+// FormatDateTime 使用 RelativeTime 超过一年后的固定格式输出时间。
 func FormatDateTime(value time.Time) string {
 	return value.Format(defaultDateTimeLayout)
 }

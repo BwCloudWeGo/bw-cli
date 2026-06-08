@@ -13,7 +13,7 @@ type minioBackend struct {
 	cfg    MinIOConfig
 }
 
-// newMinIOBackend validates MinIO/S3 configuration and creates the SDK client.
+// newMinIOBackend 校验 MinIO/S3 配置并创建 SDK 客户端。
 func newMinIOBackend(cfg Config) (backend, error) {
 	minioCfg := cfg.MinIO
 	if minioCfg.Endpoint == "" {
@@ -47,7 +47,7 @@ func (b *minioBackend) Bucket() string {
 	return b.cfg.Bucket
 }
 
-// Put uploads the object to the configured MinIO bucket.
+// Put 将对象上传到配置的 MinIO bucket。
 func (b *minioBackend) Put(ctx context.Context, req preparedUpload) (string, error) {
 	info, err := b.client.PutObject(ctx, b.cfg.Bucket, req.Key, req.Reader, req.Size, minio.PutObjectOptions{
 		ContentType:  req.Content,

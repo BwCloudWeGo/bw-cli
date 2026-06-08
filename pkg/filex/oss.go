@@ -13,7 +13,7 @@ type ossBackend struct {
 	cfg    OSSConfig
 }
 
-// newOSSBackend validates Alibaba Cloud OSS configuration and resolves the target bucket.
+// newOSSBackend 校验阿里云 OSS 配置并解析目标 bucket。
 func newOSSBackend(cfg Config) (backend, error) {
 	ossCfg := cfg.OSS
 	if ossCfg.Endpoint == "" {
@@ -47,7 +47,7 @@ func (b *ossBackend) Bucket() string {
 	return b.cfg.Bucket
 }
 
-// Put uploads the object to Alibaba Cloud OSS with content type and optional metadata.
+// Put 将对象上传到阿里云 OSS，并携带内容类型和可选元数据。
 func (b *ossBackend) Put(ctx context.Context, req preparedUpload) (string, error) {
 	select {
 	case <-ctx.Done():

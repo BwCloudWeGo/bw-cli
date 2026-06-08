@@ -1,4 +1,4 @@
-// Package router owns Gin engine construction and route registration.
+// router 包负责 Gin 引擎构建和路由注册。
 package router
 
 import (
@@ -12,7 +12,7 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/middleware"
 )
 
-// New builds the gateway Gin engine with configured middleware and versioned API routes.
+// New 使用配置好的中间件和版本化 API 路由构建网关 Gin 引擎。
 func New(clients *client.Clients, log *zap.Logger, middlewareCfg config.MiddlewareConfig) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()

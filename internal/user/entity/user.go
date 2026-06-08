@@ -13,7 +13,7 @@ var (
 	ErrInvalidUser          = errors.New("invalid user")
 )
 
-// User is the user aggregate used by the user service.
+// User 是 user 服务使用的用户聚合。
 type User struct {
 	ID           string
 	Account      string
@@ -25,7 +25,7 @@ type User struct {
 	UpdatedAt    time.Time
 }
 
-// NewUser validates input and creates a user aggregate with a normalized account.
+// NewUser 校验输入，并创建带规范化账号的用户聚合。
 func NewUser(account string, displayName string, passwordHash string) (*User, error) {
 	account = NormalizeAccount(account)
 	displayName = strings.TrimSpace(displayName)
@@ -43,7 +43,7 @@ func NewUser(account string, displayName string, passwordHash string) (*User, er
 	}, nil
 }
 
-// NormalizeAccount trims and lowercases account names for unique lookup.
+// NormalizeAccount 去除账号首尾空白并转小写，用于唯一查询。
 func NormalizeAccount(account string) string {
 	return strings.TrimSpace(strings.ToLower(account))
 }

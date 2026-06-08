@@ -14,17 +14,17 @@ import (
 )
 
 const (
-	// ProviderMinIO stores files in MinIO or another S3-compatible endpoint.
+	// ProviderMinIO 将文件存储到 MinIO 或其他 S3 兼容端点。
 	ProviderMinIO = "minio"
-	// ProviderOSS stores files in Alibaba Cloud OSS.
+	// ProviderOSS 将文件存储到阿里云 OSS。
 	ProviderOSS = "oss"
-	// ProviderQiniu stores files in Qiniu Kodo.
+	// ProviderQiniu 将文件存储到七牛 Kodo。
 	ProviderQiniu = "qiniu"
-	// ProviderCOS stores files in Tencent Cloud COS.
+	// ProviderCOS 将文件存储到腾讯云 COS。
 	ProviderCOS = "cos"
 )
 
-// Config controls validation, object naming and the selected storage provider.
+// Config 控制校验、对象命名和选中的存储提供商。
 type Config struct {
 	Provider            string           `mapstructure:"provider" yaml:"provider"`
 	MaxSizeMB           int64            `mapstructure:"max_size_mb" yaml:"max_size_mb"`
@@ -38,7 +38,7 @@ type Config struct {
 	COS                 TencentCOSConfig `mapstructure:"cos" yaml:"cos"`
 }
 
-// MinIOConfig contains MinIO/S3-compatible upload settings.
+// MinIOConfig 包含 MinIO/S3 兼容上传配置。
 type MinIOConfig struct {
 	Endpoint        string `mapstructure:"endpoint" yaml:"endpoint"`
 	AccessKeyID     string `mapstructure:"access_key_id" yaml:"access_key_id"`
@@ -48,7 +48,7 @@ type MinIOConfig struct {
 	UseSSL          bool   `mapstructure:"use_ssl" yaml:"use_ssl"`
 }
 
-// OSSConfig contains Alibaba Cloud OSS upload settings.
+// OSSConfig 包含阿里云 OSS 上传配置。
 type OSSConfig struct {
 	Endpoint        string `mapstructure:"endpoint" yaml:"endpoint"`
 	AccessKeyID     string `mapstructure:"access_key_id" yaml:"access_key_id"`
@@ -56,7 +56,7 @@ type OSSConfig struct {
 	Bucket          string `mapstructure:"bucket" yaml:"bucket"`
 }
 
-// QiniuConfig contains Qiniu Kodo upload settings.
+// QiniuConfig 包含七牛 Kodo 上传配置。
 type QiniuConfig struct {
 	AccessKey     string `mapstructure:"access_key" yaml:"access_key"`
 	SecretKey     string `mapstructure:"secret_key" yaml:"secret_key"`
@@ -66,7 +66,7 @@ type QiniuConfig struct {
 	UseCdnDomains bool   `mapstructure:"use_cdn_domains" yaml:"use_cdn_domains"`
 }
 
-// TencentCOSConfig contains Tencent Cloud COS upload settings.
+// TencentCOSConfig 包含腾讯云 COS 上传配置。
 type TencentCOSConfig struct {
 	SecretID  string `mapstructure:"secret_id" yaml:"secret_id"`
 	SecretKey string `mapstructure:"secret_key" yaml:"secret_key"`
@@ -75,7 +75,7 @@ type TencentCOSConfig struct {
 	BucketURL string `mapstructure:"bucket_url" yaml:"bucket_url"`
 }
 
-// UploadRequest describes one upload operation.
+// UploadRequest 描述一次上传操作。
 type UploadRequest struct {
 	Reader      io.Reader
 	Filename    string
@@ -85,7 +85,7 @@ type UploadRequest struct {
 	Metadata    map[string]string
 }
 
-// UploadResult is returned after a provider successfully stores the file.
+// UploadResult 是存储提供商成功保存文件后的返回结果。
 type UploadResult struct {
 	Provider    string `json:"provider"`
 	Bucket      string `json:"bucket"`
@@ -96,7 +96,7 @@ type UploadResult struct {
 	ContentType string `json:"content_type"`
 }
 
-// Uploader is the unified file upload interface used by application services.
+// Uploader 是应用服务使用的统一文件上传接口。
 type Uploader interface {
 	Upload(ctx context.Context, req UploadRequest) (UploadResult, error)
 }
@@ -123,7 +123,7 @@ type uploader struct {
 	backend backend
 }
 
-// DefaultConfig returns conservative upload defaults for common business files.
+// DefaultConfig 返回适合常见业务文件的保守上传默认值。
 func DefaultConfig() Config {
 	return Config{
 		Provider:            ProviderMinIO,
@@ -134,7 +134,7 @@ func DefaultConfig() Config {
 	}
 }
 
-// DefaultAllowedExtensions returns common document, image, video and audio file extensions.
+// DefaultAllowedExtensions 返回常见文档、图片、视频和音频文件扩展名。
 func DefaultAllowedExtensions() []string {
 	return []string{
 		".doc", ".docx", ".pdf",
@@ -144,7 +144,7 @@ func DefaultAllowedExtensions() []string {
 	}
 }
 
-// DefaultAllowedContentTypes returns common document, image, video and audio MIME types.
+// DefaultAllowedContentTypes 返回常见文档、图片、视频和音频 MIME 类型。
 func DefaultAllowedContentTypes() []string {
 	return []string{
 		"application/msword",
@@ -156,7 +156,7 @@ func DefaultAllowedContentTypes() []string {
 	}
 }
 
-// NewUploader creates an uploader for the provider selected by Config.Provider.
+// NewUploader 为 Config.Provider 选中的提供商创建上传器。
 func NewUploader(cfg Config) (Uploader, error) {
 	cfg = normalizeConfig(cfg)
 	backend, err := newBackend(cfg)
@@ -166,7 +166,7 @@ func NewUploader(cfg Config) (Uploader, error) {
 	return &uploader{cfg: cfg, backend: backend}, nil
 }
 
-// Upload validates a file, creates an object key when needed, and stores it with the selected provider.
+// Upload 校验文件，必要时创建对象 key，并使用选中的提供商存储文件。
 func (u *uploader) Upload(ctx context.Context, req UploadRequest) (UploadResult, error) {
 	if req.Reader == nil {
 		return UploadResult{}, errors.New("file reader is required")
@@ -208,7 +208,7 @@ func (u *uploader) Upload(ctx context.Context, req UploadRequest) (UploadResult,
 	}, nil
 }
 
-// ValidateUpload checks file name, size, extension and content type against Config.
+// ValidateUpload 根据 Config 检查文件名、大小、扩展名和内容类型。
 func ValidateUpload(cfg Config, req UploadRequest) error {
 	cfg = normalizeConfig(cfg)
 	if strings.TrimSpace(req.Filename) == "" {
@@ -240,7 +240,7 @@ func ValidateUpload(cfg Config, req UploadRequest) error {
 	return nil
 }
 
-// DetectContentType infers a MIME type from a file extension.
+// DetectContentType 根据文件扩展名推断 MIME 类型。
 func DetectContentType(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
 	switch ext {
@@ -256,7 +256,7 @@ func DetectContentType(filename string) string {
 	return normalizeContentType(mime.TypeByExtension(ext))
 }
 
-// NewObjectKey creates a date-partitioned object key and preserves the file extension.
+// NewObjectKey 创建按日期分区的对象 key，并保留文件扩展名。
 func NewObjectKey(prefix string, filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
 	key := time.Now().UTC().Format("2006/01/02") + "/" + uuid.NewString() + ext
@@ -267,7 +267,7 @@ func NewObjectKey(prefix string, filename string) string {
 	return prefix + "/" + key
 }
 
-// normalizeConfig merges caller configuration with framework defaults.
+// normalizeConfig 合并调用方配置和框架默认值。
 func normalizeConfig(cfg Config) Config {
 	defaults := DefaultConfig()
 	if cfg.Provider == "" {
@@ -291,7 +291,7 @@ func normalizeConfig(cfg Config) Config {
 	return cfg
 }
 
-// maxSizeBytes converts the human-readable MB limit into provider SDK byte limits.
+// maxSizeBytes 将人类可读的 MB 限制转换为提供商 SDK 使用的字节限制。
 func maxSizeBytes(cfg Config) int64 {
 	if cfg.MaxSizeMB <= 0 {
 		cfg.MaxSizeMB = DefaultConfig().MaxSizeMB
@@ -299,7 +299,7 @@ func maxSizeBytes(cfg Config) int64 {
 	return cfg.MaxSizeMB * 1024 * 1024
 }
 
-// normalizeExtensions makes extension matching case-insensitive and dot-prefixed.
+// normalizeExtensions 让扩展名匹配忽略大小写并统一带点前缀。
 func normalizeExtensions(values []string) []string {
 	out := make([]string, 0, len(values))
 	for _, value := range values {
@@ -315,7 +315,7 @@ func normalizeExtensions(values []string) []string {
 	return out
 }
 
-// normalizeContentTypes prepares MIME types for exact and wildcard matching.
+// normalizeContentTypes 准备精确匹配和通配匹配所需的 MIME 类型。
 func normalizeContentTypes(values []string) []string {
 	out := make([]string, 0, len(values))
 	for _, value := range values {
@@ -327,7 +327,7 @@ func normalizeContentTypes(values []string) []string {
 	return out
 }
 
-// normalizeContentType strips optional parameters such as charset from MIME values.
+// normalizeContentType 去除 MIME 值中的 charset 等可选参数。
 func normalizeContentType(value string) string {
 	value = strings.TrimSpace(strings.ToLower(value))
 	if value == "" {
@@ -343,7 +343,7 @@ func normalizeContentType(value string) string {
 	return value
 }
 
-// containsFold performs case-insensitive membership checks for extensions.
+// containsFold 对扩展名执行忽略大小写的成员检查。
 func containsFold(values []string, target string) bool {
 	for _, value := range values {
 		if strings.EqualFold(value, target) {
@@ -353,7 +353,7 @@ func containsFold(values []string, target string) bool {
 	return false
 }
 
-// contentTypeAllowed supports exact MIME matches and wildcard entries such as image/*.
+// contentTypeAllowed 支持精确 MIME 匹配和 image/* 这类通配项。
 func contentTypeAllowed(allowed []string, contentType string) bool {
 	contentType = normalizeContentType(contentType)
 	for _, item := range allowed {
@@ -368,7 +368,7 @@ func contentTypeAllowed(allowed []string, contentType string) bool {
 	return false
 }
 
-// publicURL builds the externally accessible URL when a CDN or public bucket domain is configured.
+// publicURL 在配置 CDN 或公开 bucket 域名时构建外部可访问 URL。
 func publicURL(baseURL string, key string) string {
 	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	if baseURL == "" {
@@ -377,7 +377,7 @@ func publicURL(baseURL string, key string) string {
 	return baseURL + "/" + strings.TrimLeft(key, "/")
 }
 
-// newBackend selects the concrete object storage provider from configuration.
+// newBackend 根据配置选择具体对象存储提供商。
 func newBackend(cfg Config) (backend, error) {
 	switch cfg.Provider {
 	case ProviderMinIO, "s3":

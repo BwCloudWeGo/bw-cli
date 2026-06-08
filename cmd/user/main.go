@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-	// Load service identity, database and logging settings.
+	// 加载服务身份、数据库和日志配置。
 	if err := config.InitGlobal("configs/config.yaml"); err != nil {
 		panic(err)
 	}
@@ -37,7 +37,7 @@ func main() {
 	defer log.Sync()
 	config.PrintSourceNotice(cfg, os.Stdout)
 
-	// Database.Open chooses SQLite, MySQL or PostgreSQL using the configured driver.
+	// Database.Open 会根据配置的驱动选择 SQLite、MySQL 或 PostgreSQL。
 	db, err := database.Open(cfg.Database, cfg.MySQL, cfg.PostgreSQL, log)
 	if err != nil {
 		log.Fatal("open database failed", zap.Error(err))

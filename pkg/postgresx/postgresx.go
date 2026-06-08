@@ -9,7 +9,7 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 )
 
-// Config controls PostgreSQL connection creation and sql.DB pool settings.
+// Config 控制 PostgreSQL 连接创建和 sql.DB 连接池设置。
 type Config struct {
 	DSN             string              `mapstructure:"dsn" yaml:"dsn"`
 	MaxIdleConns    int                 `mapstructure:"max_idle_conns" yaml:"max_idle_conns"`
@@ -18,7 +18,7 @@ type Config struct {
 	LogLevel        gormlogger.LogLevel `mapstructure:"log_level" yaml:"log_level"`
 }
 
-// DefaultConfig returns safe pool defaults without a DSN.
+// DefaultConfig 返回不包含 DSN 的安全连接池默认值。
 func DefaultConfig() Config {
 	return Config{
 		MaxIdleConns:    10,
@@ -28,7 +28,7 @@ func DefaultConfig() Config {
 	}
 }
 
-// Open creates a Gorm PostgreSQL connection using only caller-provided DSN values.
+// Open 只使用调用方提供的 DSN 创建 Gorm PostgreSQL 连接。
 func Open(cfg Config) (*gorm.DB, error) {
 	if cfg.DSN == "" {
 		return nil, errors.New("postgres dsn is required")

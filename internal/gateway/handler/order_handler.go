@@ -10,13 +10,13 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/httpx"
 )
 
-// OrderHandler adapts order HTTP endpoints to the generated gRPC client.
+// OrderHandler 将 order HTTP 接口适配到生成的 gRPC client。
 type OrderHandler struct {
 	client orderv1.OrderServiceClient
 	log    *zap.Logger
 }
 
-// NewOrderHandler wires the order gRPC client into HTTP handler methods.
+// NewOrderHandler 将 order gRPC client 注入 HTTP handler 方法。
 func NewOrderHandler(client orderv1.OrderServiceClient, log *zap.Logger) *OrderHandler {
 	if log == nil {
 		log = zap.NewNop()
@@ -27,7 +27,7 @@ func NewOrderHandler(client orderv1.OrderServiceClient, log *zap.Logger) *OrderH
 	}
 }
 
-// Create proxies POST /api/v1/orders to CreateOrder.
+// Create 将 POST /api/v1/orders 代理到 CreateOrder。
 func (h *OrderHandler) Create(c *gin.Context) {
 	var req request.CreateOrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -46,7 +46,7 @@ func (h *OrderHandler) Create(c *gin.Context) {
 	httpx.Created(c, resp)
 }
 
-// Get proxies GET /api/v1/orders/:id to GetOrder.
+// Get 将 GET /api/v1/orders/:id 代理到 GetOrder。
 func (h *OrderHandler) Get(c *gin.Context) {
 	resp, err := h.client.GetOrder(outgoingContext(c), &orderv1.GetOrderRequest{Id: c.Param("id")})
 	if err != nil {
@@ -56,7 +56,7 @@ func (h *OrderHandler) Get(c *gin.Context) {
 	httpx.OK(c, resp)
 }
 
-// List proxies GET /api/v1/orders to ListOrders.
+// List 将 GET /api/v1/orders 代理到 ListOrders。
 func (h *OrderHandler) List(c *gin.Context) {
 	var req request.ListOrderRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
@@ -74,7 +74,7 @@ func (h *OrderHandler) List(c *gin.Context) {
 	httpx.OK(c, resp)
 }
 
-// Update proxies PUT /api/v1/orders/:id to UpdateOrder.
+// Update 将 PUT /api/v1/orders/:id 代理到 UpdateOrder。
 func (h *OrderHandler) Update(c *gin.Context) {
 	var req request.UpdateOrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -94,7 +94,7 @@ func (h *OrderHandler) Update(c *gin.Context) {
 	httpx.OK(c, resp)
 }
 
-// Delete proxies DELETE /api/v1/orders/:id to DeleteOrder.
+// Delete 将 DELETE /api/v1/orders/:id 代理到 DeleteOrder。
 func (h *OrderHandler) Delete(c *gin.Context) {
 	resp, err := h.client.DeleteOrder(outgoingContext(c), &orderv1.DeleteOrderRequest{Id: c.Param("id")})
 	if err != nil {

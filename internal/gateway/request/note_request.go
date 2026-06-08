@@ -1,13 +1,13 @@
 package request
 
-// CreateNoteRequest is the JSON payload used by POST /api/v1/notes.
+// CreateNoteRequest 是 POST /api/v1/notes 使用的 JSON 载荷。
 type CreateNoteRequest struct {
 	AuthorID string `json:"author_id" binding:"required"`
 	Title    string `json:"title" binding:"required"`
 	Content  string `json:"content" binding:"required"`
 }
 
-// PublishNoteRequest is the JSON payload used by POST /api/v1/notes/publishNote.
+// PublishNoteRequest 是 POST /api/v1/notes/publishNote 使用的 JSON 载荷。
 // 字段与 notes 表列名保持一致。
 type PublishNoteRequest struct {
 	AuthorID string `json:"author_id" binding:"required"`

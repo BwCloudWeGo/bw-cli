@@ -14,13 +14,13 @@ import (
 	dbmodel "github.com/BwCloudWeGo/bw-cli/internal/user/model"
 )
 
-// GormRepository persists user aggregates with Gorm.
+// GormRepository 使用 Gorm 持久化 user 聚合。
 type GormRepository struct {
 	db  *gorm.DB
 	log *zap.Logger
 }
 
-// NewGormRepository constructs a user repository with optional structured logging.
+// NewGormRepository 创建 user 仓储，并支持可选结构化日志。
 func NewGormRepository(db *gorm.DB, loggers ...*zap.Logger) *GormRepository {
 	log := zap.NewNop()
 	if len(loggers) > 0 && loggers[0] != nil {
@@ -29,12 +29,12 @@ func NewGormRepository(db *gorm.DB, loggers ...*zap.Logger) *GormRepository {
 	return &GormRepository{db: db, log: log}
 }
 
-// AutoMigrate creates or updates the users table schema.
+// AutoMigrate 创建或更新 users 表结构。
 func AutoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(&dbmodel.UserModel{})
 }
 
-// Save inserts or updates a user aggregate.
+// Save 新增或更新 user 聚合。
 func (r *GormRepository) Save(ctx context.Context, user *entity.User) error {
 	start := time.Now()
 	record := toUserModel(user)
@@ -50,7 +50,7 @@ func (r *GormRepository) Save(ctx context.Context, user *entity.User) error {
 	return err
 }
 
-// FindByID loads a user aggregate by id.
+// FindByID 根据 ID 加载 user 聚合。
 func (r *GormRepository) FindByID(ctx context.Context, id string) (*entity.User, error) {
 	start := time.Now()
 	var record dbmodel.UserModel
@@ -67,7 +67,7 @@ func (r *GormRepository) FindByID(ctx context.Context, id string) (*entity.User,
 	return toUserDomain(&record), nil
 }
 
-// FindByAccount loads a user aggregate by normalized account.
+// FindByAccount 根据规范化账号加载 user 聚合。
 func (r *GormRepository) FindByAccount(ctx context.Context, account string) (*entity.User, error) {
 	start := time.Now()
 	var record dbmodel.UserModel

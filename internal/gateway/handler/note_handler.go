@@ -10,18 +10,18 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/httpx"
 )
 
-// NoteHandler adapts note HTTP endpoints to the internal note gRPC client.
+// NoteHandler 将 note HTTP 接口适配到内部 note gRPC client。
 type NoteHandler struct {
 	client notev1.NoteServiceClient
 	log    *zap.Logger
 }
 
-// NewNoteHandler wires the note gRPC client into HTTP handler methods.
+// NewNoteHandler 将 note gRPC client 注入 HTTP handler 方法。
 func NewNoteHandler(client notev1.NoteServiceClient, log *zap.Logger) *NoteHandler {
 	return &NoteHandler{client: client, log: log}
 }
 
-// Create handles note creation requests.
+// Create 处理创建笔记请求。
 func (h *NoteHandler) Create(c *gin.Context) {
 	var req request.CreateNoteRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -41,7 +41,7 @@ func (h *NoteHandler) Create(c *gin.Context) {
 	httpx.Created(c, resp)
 }
 
-// Get proxies note lookup by id.
+// Get 代理按 ID 查询笔记。
 func (h *NoteHandler) Get(c *gin.Context) {
 	resp, err := h.client.GetNote(outgoingContext(c), &notev1.GetNoteRequest{Id: c.Param("id")})
 	if err != nil {
@@ -51,7 +51,7 @@ func (h *NoteHandler) Get(c *gin.Context) {
 	httpx.OK(c, resp)
 }
 
-// PublishNote handles note publish requests submitted via JSON body.
+// PublishNote 处理通过 JSON body 提交的笔记发布请求。
 func (h *NoteHandler) PublishNote(c *gin.Context) {
 	var req request.PublishNoteRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

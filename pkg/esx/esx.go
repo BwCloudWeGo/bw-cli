@@ -13,7 +13,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
-// Config controls Elasticsearch client connection settings.
+// Config 控制 Elasticsearch 客户端连接设置。
 type Config struct {
 	Addresses []string `mapstructure:"addresses" yaml:"addresses"`
 	Username  string   `mapstructure:"username" yaml:"username"`
@@ -22,14 +22,14 @@ type Config struct {
 	APIKey    string   `mapstructure:"api_key" yaml:"api_key"`
 }
 
-// DefaultConfig returns local-development Elasticsearch defaults.
+// DefaultConfig 返回本地开发可用的 Elasticsearch 默认配置。
 func DefaultConfig() Config {
 	return Config{
 		Addresses: []string{"http://127.0.0.1:9200"},
 	}
 }
 
-// NewClient creates an Elasticsearch v7 client from configuration.
+// NewClient 根据配置创建 Elasticsearch v7 客户端。
 func NewClient(cfg Config) (*elasticsearch.Client, error) {
 	if len(cfg.Addresses) == 0 && cfg.CloudID == "" {
 		cfg.Addresses = DefaultConfig().Addresses
@@ -43,7 +43,7 @@ func NewClient(cfg Config) (*elasticsearch.Client, error) {
 	})
 }
 
-// SearchExecutor is the small subset of the official client needed for searches.
+// SearchExecutor 是搜索场景需要的官方客户端最小接口子集。
 type SearchExecutor interface {
 	Search(ctx context.Context, index []string, body io.Reader) (*esapi.Response, error)
 }
@@ -52,7 +52,7 @@ type clientSearchExecutor struct {
 	client *elasticsearch.Client
 }
 
-// Search executes one raw search request through the official client.
+// Search 通过官方客户端执行一次原始搜索请求。
 func (e clientSearchExecutor) Search(ctx context.Context, index []string, body io.Reader) (*esapi.Response, error) {
 	return e.client.Search(
 		e.client.Search.WithContext(ctx),
@@ -61,31 +61,31 @@ func (e clientSearchExecutor) Search(ctx context.Context, index []string, body i
 	)
 }
 
-// Searcher wraps common Elasticsearch search patterns without hiding the raw DSL.
+// Searcher 封装常见 Elasticsearch 搜索模式，但不隐藏原始 DSL。
 type Searcher struct {
 	executor SearchExecutor
 }
 
-// NewSearcher creates a reusable search helper.
+// NewSearcher 创建可复用的搜索辅助对象。
 func NewSearcher(executor SearchExecutor) *Searcher {
 	return &Searcher{executor: executor}
 }
 
-// NewSearcherFromClient creates a search helper from the official v7 client.
+// NewSearcherFromClient 基于官方 v7 客户端创建搜索辅助对象。
 func NewSearcherFromClient(client *elasticsearch.Client) *Searcher {
 	return NewSearcher(clientSearchExecutor{client: client})
 }
 
-// Filter represents one Elasticsearch filter clause.
+// Filter 表示一个 Elasticsearch 过滤子句。
 type Filter map[string]any
 
-// Sort represents one Elasticsearch sort clause.
+// Sort 表示一个 Elasticsearch 排序子句。
 type Sort map[string]any
 
-// Aggregation represents one named aggregation definition.
+// Aggregation 表示一个具名聚合定义。
 type Aggregation map[string]any
 
-// HighlightConfig controls Elasticsearch highlight rendering.
+// HighlightConfig 控制 Elasticsearch 高亮渲染。
 type HighlightConfig struct {
 	Fields            []string
 	PreTags           []string
@@ -94,7 +94,7 @@ type HighlightConfig struct {
 	NumberOfFragments int
 }
 
-// FuzzySearchRequest describes a multi-field fuzzy search.
+// FuzzySearchRequest 描述多字段模糊搜索请求。
 type FuzzySearchRequest struct {
 	Index     string
 	Keyword   string
@@ -106,20 +106,20 @@ type FuzzySearchRequest struct {
 	Highlight HighlightConfig
 }
 
-// AggregationRequest describes an aggregation-only query.
+// AggregationRequest 描述只执行聚合的查询。
 type AggregationRequest struct {
 	Index        string
 	Filters      []Filter
 	Aggregations map[string]Aggregation
 }
 
-// SearchRequest allows callers to pass raw Elasticsearch DSL through the wrapper.
+// SearchRequest 允许调用方通过封装传入原始 Elasticsearch DSL。
 type SearchRequest struct {
 	Index string
 	Body  map[string]any
 }
 
-// SearchResult is the normalized response returned by Searcher.
+// SearchResult 是 Searcher 返回的规范化响应。
 type SearchResult struct {
 	Total        int64
 	Hits         []Hit
@@ -127,7 +127,7 @@ type SearchResult struct {
 	Raw          json.RawMessage
 }
 
-// Hit is one Elasticsearch hit with source and highlight snippets.
+// Hit 表示一条 Elasticsearch 命中结果，包含 source 和高亮片段。
 type Hit struct {
 	ID        string
 	Index     string
@@ -136,17 +136,17 @@ type Hit struct {
 	Highlight map[string][]string
 }
 
-// TermFilter creates a term filter clause.
+// TermFilter 创建 term 过滤子句。
 func TermFilter(field string, value any) Filter {
 	return Filter{"term": map[string]any{field: value}}
 }
 
-// RangeFilter creates a range filter clause.
+// RangeFilter 创建 range 过滤子句。
 func RangeFilter(field string, constraints map[string]any) Filter {
 	return Filter{"range": map[string]any{field: constraints}}
 }
 
-// SortField creates one field sort clause.
+// SortField 创建一个字段排序子句。
 func SortField(field string, order string) Sort {
 	if strings.TrimSpace(order) == "" {
 		order = "asc"
@@ -154,7 +154,7 @@ func SortField(field string, order string) Sort {
 	return Sort{field: map[string]any{"order": strings.ToLower(strings.TrimSpace(order))}}
 }
 
-// TermsAggregation creates a terms aggregation.
+// TermsAggregation 创建 terms 聚合。
 func TermsAggregation(field string, size int) Aggregation {
 	body := map[string]any{"field": field}
 	if size > 0 {
@@ -163,17 +163,17 @@ func TermsAggregation(field string, size int) Aggregation {
 	return Aggregation{"terms": body}
 }
 
-// DateHistogramAggregation creates a calendar interval date histogram aggregation.
+// DateHistogramAggregation 创建日历间隔日期直方图聚合。
 func DateHistogramAggregation(field string, interval string) Aggregation {
 	return Aggregation{"date_histogram": map[string]any{"field": field, "calendar_interval": interval}}
 }
 
-// RangeAggregation creates a numeric/date range aggregation.
+// RangeAggregation 创建数值或日期范围聚合。
 func RangeAggregation(field string, ranges []map[string]any) Aggregation {
 	return Aggregation{"range": map[string]any{"field": field, "ranges": ranges}}
 }
 
-// BuildSearchBody builds the Elasticsearch JSON body for a fuzzy search request.
+// BuildSearchBody 为模糊搜索请求构建 Elasticsearch JSON body。
 func BuildSearchBody(req FuzzySearchRequest) (io.Reader, error) {
 	if strings.TrimSpace(req.Keyword) == "" {
 		return nil, fmt.Errorf("es keyword is required")
@@ -205,7 +205,7 @@ func BuildSearchBody(req FuzzySearchRequest) (io.Reader, error) {
 	return encodeBody(body)
 }
 
-// BuildAggregationBody builds the Elasticsearch JSON body for aggregation queries.
+// BuildAggregationBody 为聚合查询构建 Elasticsearch JSON body。
 func BuildAggregationBody(req AggregationRequest) (io.Reader, error) {
 	if len(req.Aggregations) == 0 {
 		return nil, fmt.Errorf("es aggregations are required")
@@ -220,7 +220,7 @@ func BuildAggregationBody(req AggregationRequest) (io.Reader, error) {
 	return encodeBody(body)
 }
 
-// FuzzySearch executes a fuzzy search and parses hits, highlights and aggregations.
+// FuzzySearch 执行模糊搜索，并解析命中、高亮和聚合结果。
 func (s *Searcher) FuzzySearch(ctx context.Context, req FuzzySearchRequest) (*SearchResult, error) {
 	body, err := BuildSearchBody(req)
 	if err != nil {
@@ -229,7 +229,7 @@ func (s *Searcher) FuzzySearch(ctx context.Context, req FuzzySearchRequest) (*Se
 	return s.doSearch(ctx, req.Index, body)
 }
 
-// Aggregate executes an aggregation query and parses aggregation buckets.
+// Aggregate 执行聚合查询并解析聚合桶。
 func (s *Searcher) Aggregate(ctx context.Context, req AggregationRequest) (*SearchResult, error) {
 	body, err := BuildAggregationBody(req)
 	if err != nil {
@@ -238,7 +238,7 @@ func (s *Searcher) Aggregate(ctx context.Context, req AggregationRequest) (*Sear
 	return s.doSearch(ctx, req.Index, body)
 }
 
-// Search executes a raw Elasticsearch query body and parses the normalized response.
+// Search 执行原始 Elasticsearch 查询 body，并解析规范化响应。
 func (s *Searcher) Search(ctx context.Context, req SearchRequest) (*SearchResult, error) {
 	if len(req.Body) == 0 {
 		return nil, fmt.Errorf("es search body is required")

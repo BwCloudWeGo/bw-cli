@@ -1,4 +1,4 @@
-// Command protogen generates Go protobuf files with platform-neutral path handling.
+// protogen 命令使用平台无关的路径处理生成 Go protobuf 文件。
 package main
 
 import (

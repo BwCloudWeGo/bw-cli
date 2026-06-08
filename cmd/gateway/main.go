@@ -20,7 +20,7 @@ import (
 )
 
 func main() {
-	// Load runtime settings before constructing dependencies.
+	// 构建依赖前先加载运行时配置。
 	if err := config.InitGlobal("configs/config.yaml"); err != nil {
 		panic(err)
 	}

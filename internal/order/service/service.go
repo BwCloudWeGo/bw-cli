@@ -9,13 +9,13 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/internal/order/entity"
 )
 
-// Service orchestrates order use cases.
+// Service 编排 order 用例。
 type Service struct {
 	repo entity.Repository
 	log  *zap.Logger
 }
 
-// NewService constructs the order use-case service.
+// NewService 创建 order 用例服务。
 func NewService(repo entity.Repository, log *zap.Logger) *Service {
 	if log == nil {
 		log = zap.NewNop()
@@ -23,7 +23,7 @@ func NewService(repo entity.Repository, log *zap.Logger) *Service {
 	return &Service{repo: repo, log: log}
 }
 
-// Create creates a order record.
+// Create 创建 order 记录。
 func (s *Service) Create(ctx context.Context, cmd dto.CreateCommand) (*dto.OrderDTO, error) {
 	item, err := entity.NewOrder(cmd.Name, cmd.Description)
 	if err != nil {
@@ -36,7 +36,7 @@ func (s *Service) Create(ctx context.Context, cmd dto.CreateCommand) (*dto.Order
 	return dto.FromOrder(item), nil
 }
 
-// Get returns one order record by id.
+// Get 根据 ID 返回一条 order 记录。
 func (s *Service) Get(ctx context.Context, id string) (*dto.OrderDTO, error) {
 	item, err := s.repo.FindByID(ctx, id)
 	if err != nil {
@@ -45,7 +45,7 @@ func (s *Service) Get(ctx context.Context, id string) (*dto.OrderDTO, error) {
 	return dto.FromOrder(item), nil
 }
 
-// List returns paginated order records.
+// List 返回分页 order 记录。
 func (s *Service) List(ctx context.Context, cmd dto.ListCommand) (*dto.ListOrderDTO, error) {
 	offset, limit := normalizePagination(cmd.Page, cmd.PageSize)
 	items, total, err := s.repo.List(ctx, offset, limit)
@@ -59,7 +59,7 @@ func (s *Service) List(ctx context.Context, cmd dto.ListCommand) (*dto.ListOrder
 	return output, nil
 }
 
-// Update changes one order record by id.
+// Update 根据 ID 修改一条 order 记录。
 func (s *Service) Update(ctx context.Context, cmd dto.UpdateCommand) (*dto.OrderDTO, error) {
 	item, err := s.repo.FindByID(ctx, cmd.ID)
 	if err != nil {
@@ -75,7 +75,7 @@ func (s *Service) Update(ctx context.Context, cmd dto.UpdateCommand) (*dto.Order
 	return dto.FromOrder(item), nil
 }
 
-// Delete removes one order record by id.
+// Delete 根据 ID 删除一条 order 记录。
 func (s *Service) Delete(ctx context.Context, id string) error {
 	if err := s.repo.Delete(ctx, id); err != nil {
 		return err

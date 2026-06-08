@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Kind identifies the stable class of an application error.
+// Kind 标识应用错误的稳定类别。
 type Kind string
 
 const (
@@ -21,7 +21,7 @@ const (
 	KindInternal        Kind = "INTERNAL"
 )
 
-// AppError is the cross-layer business error used by HTTP and gRPC adapters.
+// AppError 是 HTTP 和 gRPC 适配器共用的跨层业务错误。
 type AppError struct {
 	Kind    Kind   `json:"kind"`
 	Code    string `json:"code"`
@@ -46,42 +46,42 @@ func (e *AppError) Unwrap() error {
 	return e.Cause
 }
 
-// New creates an application error without a wrapped cause.
+// New 创建不包装底层原因的应用错误。
 func New(kind Kind, code string, message string) *AppError {
 	return &AppError{Kind: kind, Code: code, Message: message}
 }
 
-// Wrap creates an application error while preserving the lower-level cause.
+// Wrap 创建应用错误并保留底层原因。
 func Wrap(kind Kind, code string, message string, cause error) *AppError {
 	return &AppError{Kind: kind, Code: code, Message: message, Cause: cause}
 }
 
-// InvalidArgument reports invalid client input.
+// InvalidArgument 表示客户端输入无效。
 func InvalidArgument(code string, message string) *AppError {
 	return New(KindInvalidArgument, code, message)
 }
 
-// Unauthorized reports missing or invalid authentication.
+// Unauthorized 表示认证缺失或无效。
 func Unauthorized(code string, message string) *AppError {
 	return New(KindUnauthorized, code, message)
 }
 
-// NotFound reports a missing resource.
+// NotFound 表示资源不存在。
 func NotFound(code string, message string) *AppError {
 	return New(KindNotFound, code, message)
 }
 
-// Conflict reports a state conflict such as duplicate unique data.
+// Conflict 表示状态冲突，例如唯一数据重复。
 func Conflict(code string, message string) *AppError {
 	return New(KindConflict, code, message)
 }
 
-// Internal reports an unexpected server-side failure.
+// Internal 表示非预期的服务端失败。
 func Internal(code string, message string) *AppError {
 	return New(KindInternal, code, message)
 }
 
-// As extracts an AppError from an error chain.
+// As 从错误链中提取 AppError。
 func As(err error) (*AppError, bool) {
 	var appErr *AppError
 	if stderrors.As(err, &appErr) {
@@ -90,7 +90,7 @@ func As(err error) (*AppError, bool) {
 	return nil, false
 }
 
-// HTTPStatus maps an application error to an HTTP status code.
+// HTTPStatus 将应用错误映射为 HTTP 状态码。
 func HTTPStatus(err error) int {
 	appErr, ok := As(err)
 	if !ok {
@@ -110,7 +110,7 @@ func HTTPStatus(err error) int {
 	}
 }
 
-// GRPCCode maps an application error to a gRPC status code.
+// GRPCCode 将应用错误映射为 gRPC 状态码。
 func GRPCCode(err error) codes.Code {
 	appErr, ok := As(err)
 	if !ok {
@@ -130,7 +130,7 @@ func GRPCCode(err error) codes.Code {
 	}
 }
 
-// ToGRPC converts an application error to a gRPC status error.
+// ToGRPC 将应用错误转换为 gRPC status 错误。
 func ToGRPC(err error) error {
 	if err == nil {
 		return nil
@@ -142,7 +142,7 @@ func ToGRPC(err error) error {
 	return status.Error(GRPCCode(appErr), appErr.Code+"|"+appErr.Message)
 }
 
-// FromGRPC converts a gRPC status error back to an application error.
+// FromGRPC 将 gRPC status 错误还原为应用错误。
 func FromGRPC(err error) *AppError {
 	if err == nil {
 		return nil

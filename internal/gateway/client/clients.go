@@ -13,7 +13,7 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/config"
 )
 
-// Clients groups all gRPC clients used by the HTTP gateway.
+// Clients 聚合 HTTP gateway 使用的所有 gRPC client。
 type Clients struct {
 	User   userv1.UserServiceClient
 	Note   notev1.NoteServiceClient
@@ -23,7 +23,7 @@ type Clients struct {
 	conns []*grpc.ClientConn
 }
 
-// New dials configured gRPC targets and builds typed service clients.
+// New 连接配置的 gRPC 目标地址并创建强类型服务 client。
 func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 	userTarget := cfg.ServiceTarget("user")
 	noteTarget := cfg.ServiceTarget("note")
@@ -58,7 +58,7 @@ func New(cfg *config.Config, log *zap.Logger) (*Clients, error) {
 	}, nil
 }
 
-// Close releases all gateway gRPC client connections.
+// Close 释放 gateway 的所有 gRPC client 连接。
 func (c *Clients) Close() {
 	for _, conn := range c.conns {
 		_ = conn.Close()

@@ -10,10 +10,10 @@ import (
 	"strings"
 )
 
-// SHA256Hasher stores salted SHA-256 hashes in the form salt:hash.
+// SHA256Hasher 以 salt:hash 形式保存加盐 SHA-256 哈希。
 type SHA256Hasher struct{}
 
-// NewSHA256Hasher constructs the demo password hasher.
+// NewSHA256Hasher 创建演示用密码哈希器。
 func NewSHA256Hasher() SHA256Hasher {
 	return SHA256Hasher{}
 }

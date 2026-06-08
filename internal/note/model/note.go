@@ -2,7 +2,7 @@ package model
 
 import "time"
 
-// NoteModel is the Gorm persistence model for the notes table.
+// NoteModel 是 notes 表的 Gorm 持久化模型。
 type NoteModel struct {
 	ID          string     `gorm:"column:id;primaryKey;size:64"`
 	AuthorID    string     `gorm:"column:author_id;index;size:64;not null"`
@@ -23,7 +23,7 @@ func (NoteModel) TableName() string {
 
 const noteCollectionName = "notes"
 
-// NoteDocument is the MongoDB document model for the notes collection.
+// NoteDocument 是 notes 集合的 MongoDB 文档模型。
 type NoteDocument struct {
 	ID          string     `bson:"_id"`
 	AuthorID    string     `bson:"author_id"`

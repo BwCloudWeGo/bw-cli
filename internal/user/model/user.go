@@ -2,7 +2,7 @@ package model
 
 import "time"
 
-// UserModel is the Gorm persistence model for the xls_user table.
+// UserModel 是 xls_user 表的 Gorm 持久化模型。
 type UserModel struct {
 	ID           int64  `gorm:"primaryKey;column:id;autoIncrement"`
 	Account      string `gorm:"uniqueIndex;column:account;size:64;not null"`
