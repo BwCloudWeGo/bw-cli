@@ -495,14 +495,14 @@
     "semantic_hash": "2a914ed9fe0ba35900b24be57a987ea8"
   },
   "pkg/scaffold/scaffold.go": {
-    "mtime": 1780906390.5460787,
-    "ast_hash": "4702fb4489bf618a47b7fdeaff20465a",
+    "mtime": 1780911094.2061238,
+    "ast_hash": "782993da62a2eaa84541208fb07c948a",
     "semantic_hash": ""
   },
   "pkg/scaffold/service.go": {
-    "mtime": 1780892015.2935214,
-    "ast_hash": "088f948f403de04e56a3f3435e3ea0c4",
-    "semantic_hash": "088f948f403de04e56a3f3435e3ea0c4"
+    "mtime": 1780910309.0794075,
+    "ast_hash": "5697643fb9fcda8089a86d983d114e8e",
+    "semantic_hash": ""
   },
   "pkg/scaffold/service_test.go": {
     "mtime": 1779175392.6089404,
@@ -580,8 +580,8 @@
     "semantic_hash": "62c05a2bf20bf036a0b2633478663e64"
   },
   "README.md": {
-    "mtime": 1780906390.5464923,
-    "ast_hash": "de43a7d23d02eba5bb6ac2a1c9194692",
+    "mtime": 1780911094.2048252,
+    "ast_hash": "8ff1475f8437718c2715098a5e2e5f5a",
     "semantic_hash": ""
   },
   "configs/config.yaml": {
@@ -640,8 +640,8 @@
     "semantic_hash": "e5ed30ca28636fafef24aab7037d5e50"
   },
   "docs/usage.md": {
-    "mtime": 1780906390.547443,
-    "ast_hash": "c34c325de94da84f436adbf9e9dc7cab",
+    "mtime": 1780911094.2056446,
+    "ast_hash": "fbadfda7f58070fc80a70688c4b2fb0a",
     "semantic_hash": ""
   },
   "CLAUDE.md": {

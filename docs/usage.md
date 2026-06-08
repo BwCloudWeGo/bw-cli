@@ -907,17 +907,7 @@ bw-cli service comment --port 9103 --tidy
 bw-cli service comment --table comments --tidy
 ```
 
-当前 `--table` 面向默认 CRUD 模板，启动时会跳过 `AutoMigrate`，避免修改既有表结构。它会先连接 `configs/config.yaml` 中配置的数据库并校验表结构，要求表中包含：
-
-```text
-id
-name
-description
-created_at
-updated_at
-```
-
-其中 `id` 必须是主键。MySQL 或 PostgreSQL 需要指定 schema 时，增加 `--schema <schema_name>`。
+当前 `--table` 会先连接 `configs/config.yaml` 中配置的数据库并读取指定表的真实字段，再按这些字段生成服务结构。它不再要求表中包含默认示例字段，例如 `description`；生成后的服务会跳过 `AutoMigrate`，避免修改既有表结构。MySQL 或 PostgreSQL 需要指定 schema 时，增加 `--schema <schema_name>`。
 
 生成后命令会自动追加 `configs/config.yaml`：
 

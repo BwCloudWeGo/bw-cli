@@ -953,7 +953,7 @@ bw-cli service comment --port 9103 --tidy
 bw-cli service comment --table comments --tidy
 `+"```"+`
 
-当前 `+"`--table`"+` 会校验表存在，并要求字段包含 `+"`id`"+`、`+"`name`"+`、`+"`description`"+`、`+"`created_at`"+`、`+"`updated_at`"+`，其中 `+"`id`"+` 必须是主键。生成后的服务会跳过 `+"`AutoMigrate`"+`，避免修改既有表结构。MySQL 或 PostgreSQL 需要指定 schema 时，可以传 `+"`--schema`"+`。
+当前 `+"`--table`"+` 会连接 `+"`configs/config.yaml`"+` 中配置的数据库并读取指定表的真实字段，再按这些字段生成服务结构。它不再要求表中包含默认示例字段，例如 `+"`description`"+`；生成后的服务会跳过 `+"`AutoMigrate`"+`，避免修改既有表结构。MySQL 或 PostgreSQL 需要指定 schema 时，可以传 `+"`--schema`"+`。
 
 生成后的服务会自动追加 `+"`configs/config.yaml`"+`：
 

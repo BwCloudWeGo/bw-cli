@@ -1072,7 +1072,7 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "v1_getorderrequest_protoreflect",
-      "community": 57,
+      "community": 52,
       "norm_label": ".protoreflect()"
     },
     {
@@ -1142,7 +1142,7 @@
       "source_location": "L141",
       "_origin": "ast",
       "id": "v1_listordersrequest_protoreflect",
-      "community": 51,
+      "community": 52,
       "norm_label": ".protoreflect()"
     },
     {
@@ -1152,7 +1152,7 @@
       "source_location": "L154",
       "_origin": "ast",
       "id": "v1_listordersrequest_descriptor",
-      "community": 56,
+      "community": 51,
       "norm_label": ".descriptor()"
     },
     {
@@ -1222,7 +1222,7 @@
       "source_location": "L194",
       "_origin": "ast",
       "id": "v1_updateorderrequest_protoreflect",
-      "community": 46,
+      "community": 52,
       "norm_label": ".protoreflect()"
     },
     {
@@ -1232,7 +1232,7 @@
       "source_location": "L207",
       "_origin": "ast",
       "id": "v1_updateorderrequest_descriptor",
-      "community": 56,
+      "community": 46,
       "norm_label": ".descriptor()"
     },
     {
@@ -1492,7 +1492,7 @@
       "source_location": "L373",
       "_origin": "ast",
       "id": "v1_listordersresponse_protoreflect",
-      "community": 52,
+      "community": 45,
       "norm_label": ".protoreflect()"
     },
     {
@@ -1502,7 +1502,7 @@
       "source_location": "L386",
       "_origin": "ast",
       "id": "v1_listordersresponse_descriptor",
-      "community": 45,
+      "community": 56,
       "norm_label": ".descriptor()"
     },
     {
@@ -1582,7 +1582,7 @@
       "source_location": "L437",
       "_origin": "ast",
       "id": "v1_deleteorderresponse_descriptor",
-      "community": 53,
+      "community": 56,
       "norm_label": ".descriptor()"
     },
     {
@@ -8932,7 +8932,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "filex_cos",
-      "community": 44,
+      "community": 117,
       "norm_label": "cos.go"
     },
     {
@@ -8972,7 +8972,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "filex_cos_newtencentcosbackend",
-      "community": 44,
+      "community": 117,
       "norm_label": "newtencentcosbackend()"
     },
     {
@@ -8982,7 +8982,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "pkg_filex_cos_go_config",
-      "community": 44,
+      "community": 117,
       "norm_label": "config"
     },
     {
@@ -8992,7 +8992,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "pkg_filex_cos_go_backend",
-      "community": 44,
+      "community": 117,
       "norm_label": "backend"
     },
     {
@@ -9182,7 +9182,7 @@
       "source_location": "L100",
       "_origin": "ast",
       "id": "filex_uploader",
-      "community": 33,
+      "community": 117,
       "norm_label": "uploader"
     },
     {
@@ -9192,7 +9192,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "filex_backend",
-      "community": 33,
+      "community": 117,
       "norm_label": "backend"
     },
     {
@@ -9212,7 +9212,7 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "filex_filex_defaultconfig",
-      "community": 22,
+      "community": 33,
       "norm_label": "defaultconfig()"
     },
     {
@@ -9222,7 +9222,7 @@
       "source_location": "L138",
       "_origin": "ast",
       "id": "filex_filex_defaultallowedextensions",
-      "community": 22,
+      "community": 33,
       "norm_label": "defaultallowedextensions()"
     },
     {
@@ -9232,7 +9232,7 @@
       "source_location": "L148",
       "_origin": "ast",
       "id": "filex_filex_defaultallowedcontenttypes",
-      "community": 22,
+      "community": 33,
       "norm_label": "defaultallowedcontenttypes()"
     },
     {
@@ -9242,7 +9242,7 @@
       "source_location": "L160",
       "_origin": "ast",
       "id": "filex_filex_newuploader",
-      "community": 33,
+      "community": 117,
       "norm_label": "newuploader()"
     },
     {
@@ -9302,7 +9302,7 @@
       "source_location": "L271",
       "_origin": "ast",
       "id": "filex_filex_normalizeconfig",
-      "community": 22,
+      "community": 33,
       "norm_label": "normalizeconfig()"
     },
     {
@@ -9312,7 +9312,7 @@
       "source_location": "L295",
       "_origin": "ast",
       "id": "filex_filex_maxsizebytes",
-      "community": 22,
+      "community": 33,
       "norm_label": "maxsizebytes()"
     },
     {
@@ -9322,7 +9322,7 @@
       "source_location": "L303",
       "_origin": "ast",
       "id": "filex_filex_normalizeextensions",
-      "community": 22,
+      "community": 33,
       "norm_label": "normalizeextensions()"
     },
     {
@@ -9382,7 +9382,7 @@
       "source_location": "L381",
       "_origin": "ast",
       "id": "filex_filex_newbackend",
-      "community": 33,
+      "community": 117,
       "norm_label": "newbackend()"
     },
     {
@@ -13199,7 +13199,7 @@
       "label": "splitServiceName()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L398",
+      "source_location": "L387",
       "_origin": "ast",
       "id": "scaffold_service_splitservicename",
       "community": 0,
@@ -13209,7 +13209,7 @@
       "label": "toPascal()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L420",
+      "source_location": "L409",
       "_origin": "ast",
       "id": "scaffold_service_topascal",
       "community": 0,
@@ -13219,7 +13219,7 @@
       "label": "lowerFirst()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L435",
+      "source_location": "L424",
       "_origin": "ast",
       "id": "scaffold_service_lowerfirst",
       "community": 0,
@@ -13229,7 +13229,7 @@
       "label": "ensureServiceDoesNotExist()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L444",
+      "source_location": "L433",
       "_origin": "ast",
       "id": "scaffold_service_ensureservicedoesnotexist",
       "community": 0,
@@ -13239,7 +13239,7 @@
       "label": "writeServiceFiles()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L458",
+      "source_location": "L447",
       "_origin": "ast",
       "id": "scaffold_service_writeservicefiles",
       "community": 0,
@@ -13249,7 +13249,7 @@
       "label": "writeGatewayServiceFiles()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L482",
+      "source_location": "L471",
       "_origin": "ast",
       "id": "scaffold_service_writegatewayservicefiles",
       "community": 0,
@@ -13259,7 +13259,7 @@
       "label": "ensureGatewayCommonFile()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L511",
+      "source_location": "L500",
       "_origin": "ast",
       "id": "scaffold_service_ensuregatewaycommonfile",
       "community": 0,
@@ -13269,7 +13269,7 @@
       "label": "ensureGatewayClientsFile()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L531",
+      "source_location": "L520",
       "_origin": "ast",
       "id": "scaffold_service_ensuregatewayclientsfile",
       "community": 0,
@@ -13279,7 +13279,7 @@
       "label": "gatewayClientConnNames()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L578",
+      "source_location": "L567",
       "_origin": "ast",
       "id": "scaffold_service_gatewayclientconnnames",
       "community": 0,
@@ -13289,7 +13289,7 @@
       "label": "closeConnLines()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L587",
+      "source_location": "L576",
       "_origin": "ast",
       "id": "scaffold_service_closeconnlines",
       "community": 0,
@@ -13299,7 +13299,7 @@
       "label": "ensureImport()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L595",
+      "source_location": "L584",
       "_origin": "ast",
       "id": "scaffold_service_ensureimport",
       "community": 0,
@@ -13309,7 +13309,7 @@
       "label": "removeImport()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L605",
+      "source_location": "L594",
       "_origin": "ast",
       "id": "scaffold_service_removeimport",
       "community": 0,
@@ -13319,7 +13319,7 @@
       "label": "writeNewFile()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L617",
+      "source_location": "L606",
       "_origin": "ast",
       "id": "scaffold_service_writenewfile",
       "community": 0,
@@ -13329,7 +13329,7 @@
       "label": "renderServiceTemplate()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L627",
+      "source_location": "L616",
       "_origin": "ast",
       "id": "scaffold_service_renderservicetemplate",
       "community": 0,
@@ -13339,7 +13339,7 @@
       "label": "addServiceMakeTarget()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L636",
+      "source_location": "L625",
       "_origin": "ast",
       "id": "scaffold_service_addservicemaketarget",
       "community": 0,
@@ -13349,7 +13349,7 @@
       "label": "nextServicePort()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L662",
+      "source_location": "L651",
       "_origin": "ast",
       "id": "scaffold_service_nextserviceport",
       "community": 0,
@@ -13359,7 +13359,7 @@
       "label": "addServiceConfig()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L685",
+      "source_location": "L674",
       "_origin": "ast",
       "id": "scaffold_service_addserviceconfig",
       "community": 0,
@@ -13369,7 +13369,7 @@
       "label": "removeServicePaths()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L729",
+      "source_location": "L718",
       "_origin": "ast",
       "id": "scaffold_service_removeservicepaths",
       "community": 0,
@@ -13379,7 +13379,7 @@
       "label": "removeServiceMakeTarget()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L751",
+      "source_location": "L740",
       "_origin": "ast",
       "id": "scaffold_service_removeservicemaketarget",
       "community": 0,
@@ -13389,7 +13389,7 @@
       "label": "removeMakePhonyTarget()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L782",
+      "source_location": "L771",
       "_origin": "ast",
       "id": "scaffold_service_removemakephonytarget",
       "community": 0,
@@ -13399,7 +13399,7 @@
       "label": "removeServiceConfig()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L794",
+      "source_location": "L783",
       "_origin": "ast",
       "id": "scaffold_service_removeserviceconfig",
       "community": 0,
@@ -13409,7 +13409,7 @@
       "label": "removeGatewayRegistration()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L848",
+      "source_location": "L837",
       "_origin": "ast",
       "id": "scaffold_service_removegatewayregistration",
       "community": 0,
@@ -13419,7 +13419,7 @@
       "label": "removeGatewayV1Registration()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L855",
+      "source_location": "L844",
       "_origin": "ast",
       "id": "scaffold_service_removegatewayv1registration",
       "community": 0,
@@ -13429,7 +13429,7 @@
       "label": "hasGatewayRouteRegistration()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L872",
+      "source_location": "L861",
       "_origin": "ast",
       "id": "scaffold_service_hasgatewayrouteregistration",
       "community": 0,
@@ -13439,7 +13439,7 @@
       "label": "ensureUnusedGatewayV1Line()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L876",
+      "source_location": "L865",
       "_origin": "ast",
       "id": "scaffold_service_ensureunusedgatewayv1line",
       "community": 0,
@@ -13449,7 +13449,7 @@
       "label": "removeGatewayClient()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L887",
+      "source_location": "L876",
       "_origin": "ast",
       "id": "scaffold_service_removegatewayclient",
       "community": 0,
@@ -13459,7 +13459,7 @@
       "label": "removeGatewayClientDialBlock()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L913",
+      "source_location": "L902",
       "_origin": "ast",
       "id": "scaffold_service_removegatewayclientdialblock",
       "community": 0,
@@ -13469,7 +13469,7 @@
       "label": "removeGatewayConnFromList()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L933",
+      "source_location": "L922",
       "_origin": "ast",
       "id": "scaffold_service_removegatewayconnfromlist",
       "community": 0,
@@ -13479,7 +13479,7 @@
       "label": "removeGatewayConnCloseLines()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L950",
+      "source_location": "L939",
       "_origin": "ast",
       "id": "scaffold_service_removegatewayconncloselines",
       "community": 0,
@@ -13489,7 +13489,7 @@
       "label": "nacosEnabled()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L954",
+      "source_location": "L943",
       "_origin": "ast",
       "id": "scaffold_service_nacosenabled",
       "community": 0,
@@ -13499,7 +13499,7 @@
       "label": "gofmtService()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L972",
+      "source_location": "L961",
       "_origin": "ast",
       "id": "scaffold_service_gofmtservice",
       "community": 0,
@@ -13509,7 +13509,7 @@
       "label": "gofmtAfterDelete()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L1001",
+      "source_location": "L990",
       "_origin": "ast",
       "id": "scaffold_service_gofmtafterdelete",
       "community": 0,
@@ -13519,7 +13519,7 @@
       "label": "patchGatewayRouter()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L1019",
+      "source_location": "L1008",
       "_origin": "ast",
       "id": "scaffold_service_patchgatewayrouter",
       "community": 0,
@@ -13529,7 +13529,7 @@
       "label": "patchGatewayMain()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L1073",
+      "source_location": "L1062",
       "_origin": "ast",
       "id": "scaffold_service_patchgatewaymain",
       "community": 0,
@@ -13539,7 +13539,7 @@
       "label": "runProjectCommand()",
       "file_type": "code",
       "source_file": "pkg/scaffold/service.go",
-      "source_location": "L1097",
+      "source_location": "L1086",
       "_origin": "ast",
       "id": "scaffold_service_runprojectcommand",
       "community": 0,
@@ -17519,7 +17519,7 @@
       "label": "10.1 \u751f\u6210\u540e\u5df2\u7ecf\u5177\u5907\u4ec0\u4e48",
       "file_type": "document",
       "source_file": "docs/usage.md",
-      "source_location": "L963",
+      "source_location": "L953",
       "_origin": "ast",
       "id": "docs_usage_10_1_\u751f\u6210\u540e\u5df2\u7ecf\u5177\u5907\u4ec0\u4e48",
       "community": 91,
@@ -17529,7 +17529,7 @@
       "label": "10.2 \u6bcf\u4e00\u5c42\u600e\u4e48\u5199\uff0c\u4e3a\u4ec0\u4e48\u8fd9\u4e48\u5199",
       "file_type": "document",
       "source_file": "docs/usage.md",
-      "source_location": "L1013",
+      "source_location": "L1003",
       "_origin": "ast",
       "id": "docs_usage_10_2_\u6bcf\u4e00\u5c42\u600e\u4e48\u5199_\u4e3a\u4ec0\u4e48\u8fd9\u4e48\u5199",
       "community": 91,
@@ -17539,7 +17539,7 @@
       "label": "10.3 entity \u5c42\uff1a\u5199\u4e1a\u52a1\u6838\u5fc3",
       "file_type": "document",
       "source_file": "docs/usage.md",
-      "source_location": "L1031",
+      "source_location": "L1021",
       "_origin": "ast",
       "id": "docs_usage_10_3_entity_\u5c42_\u5199\u4e1a\u52a1\u6838\u5fc3",
       "community": 91,
@@ -17549,7 +17549,7 @@
       "label": "10.4 model \u5c42\uff1a\u5199\u6570\u636e\u5e93\u7ed3\u6784",
       "file_type": "document",
       "source_file": "docs/usage.md",
-      "source_location": "L1048",
+      "source_location": "L1038",
       "_origin": "ast",
       "id": "docs_usage_10_4_model_\u5c42_\u5199\u6570\u636e\u5e93\u7ed3\u6784",
       "community": 91,
@@ -17559,7 +17559,7 @@
       "label": "10.5 service \u5c42\uff1a\u5199\u4e1a\u52a1\u6d41\u7a0b",
       "file_type": "document",
       "source_file": "docs/usage.md",
-      "source_location": "L1066",
+      "source_location": "L1056",
       "_origin": "ast",
       "id": "docs_usage_10_5_service_\u5c42_\u5199\u4e1a\u52a1\u6d41\u7a0b",
       "community": 91,
@@ -17569,7 +17569,7 @@
       "label": "10.6 repo \u5c42\uff1a\u6570\u636e\u5e93\u5728\u54ea\u91cc\u64cd\u4f5c\uff0c\u5982\u4f55\u64cd\u4f5c",
       "file_type": "document",
       "source_file": "docs/usage.md",
-      "source_location": "L1093",
+      "source_location": "L1083",
       "_origin": "ast",
       "id": "docs_usage_10_6_repo_\u5c42_\u6570\u636e\u5e93\u5728\u54ea\u91cc\u64cd\u4f5c_\u5982\u4f55\u64cd\u4f5c",
       "community": 91,
@@ -17579,7 +17579,7 @@
       "label": "10.7 handler \u5c42\uff1a\u534f\u8bae\u8f6c\u6362",
       "file_type": "document",
       "source_file": "docs/usage.md",
-      "source_location": "L1121",
+      "source_location": "L1111",
       "_origin": "ast",
       "id": "docs_usage_10_7_handler_\u5c42_\u534f\u8bae\u8f6c\u6362",
       "community": 91,
@@ -17589,7 +17589,7 @@
       "label": "10.7 gateway \u5c42\uff1aHTTP \u8c03\u7528\u5df2\u7ecf\u63a5\u597d",
       "file_type": "document",
       "source_file": "docs/usage.md",
-      "source_location": "L1133",
+      "source_location": "L1123",
       "_origin": "ast",
       "id": "docs_usage_10_7_gateway_\u5c42_http_\u8c03\u7528\u5df2\u7ecf\u63a5\u597d",
       "community": 91,
@@ -17599,7 +17599,7 @@
       "label": "11. \u53d1\u5e03\u516c\u5171\u5305\u7ed9\u5176\u4ed6\u9879\u76ee\u4f7f\u7528",
       "file_type": "document",
       "source_file": "docs/usage.md",
-      "source_location": "L1176",
+      "source_location": "L1166",
       "_origin": "ast",
       "id": "docs_usage_11_\u53d1\u5e03\u516c\u5171\u5305\u7ed9\u5176\u4ed6\u9879\u76ee\u4f7f\u7528",
       "community": 90,
@@ -17609,7 +17609,7 @@
       "label": "12. \u5e38\u89c1\u95ee\u9898",
       "file_type": "document",
       "source_file": "docs/usage.md",
-      "source_location": "L1230",
+      "source_location": "L1220",
       "_origin": "ast",
       "id": "docs_usage_12_\u5e38\u89c1\u95ee\u9898",
       "community": 97,
@@ -17619,7 +17619,7 @@
       "label": "12.1 bw-cli: command not found",
       "file_type": "document",
       "source_file": "docs/usage.md",
-      "source_location": "L1232",
+      "source_location": "L1222",
       "_origin": "ast",
       "id": "docs_usage_12_1_bw_cli_command_not_found",
       "community": 97,
@@ -17629,7 +17629,7 @@
       "label": "12.2 go install \u8fdc\u7a0b\u5b89\u88c5\u5931\u8d25",
       "file_type": "document",
       "source_file": "docs/usage.md",
-      "source_location": "L1248",
+      "source_location": "L1238",
       "_origin": "ast",
       "id": "docs_usage_12_2_go_install_\u8fdc\u7a0b\u5b89\u88c5\u5931\u8d25",
       "community": 97,
@@ -17639,7 +17639,7 @@
       "label": "12.3 \u751f\u6210\u9879\u76ee\u540e protobuf panic",
       "file_type": "document",
       "source_file": "docs/usage.md",
-      "source_location": "L1262",
+      "source_location": "L1252",
       "_origin": "ast",
       "id": "docs_usage_12_3_\u751f\u6210\u9879\u76ee\u540e_protobuf_panic",
       "community": 97,
@@ -17649,7 +17649,7 @@
       "label": "12.4 \u6f14\u793a\u9879\u76ee gateway \u8c03\u7528 user/note \u5931\u8d25",
       "file_type": "document",
       "source_file": "docs/usage.md",
-      "source_location": "L1273",
+      "source_location": "L1263",
       "_origin": "ast",
       "id": "docs_usage_12_4_\u6f14\u793a\u9879\u76ee_gateway_\u8c03\u7528_user_note_\u5931\u8d25",
       "community": 97,
@@ -17659,7 +17659,7 @@
       "label": "12.5 JWT \u8fd4\u56de invalid token",
       "file_type": "document",
       "source_file": "docs/usage.md",
-      "source_location": "L1295",
+      "source_location": "L1285",
       "_origin": "ast",
       "id": "docs_usage_12_5_jwt_\u8fd4\u56de_invalid_token",
       "community": 97,
@@ -45690,9 +45690,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill",
-      "target": "graphify_skill_graphify",
-      "confidence_score": 1.0
+      "target": "graphify_skill_graphify"
     },
     {
       "relation": "conceptually_related_to",
@@ -45710,9 +45710,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L595",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_graphify",
-      "target": "graphify_skill_for_graphify_add_and_watch",
-      "confidence_score": 1.0
+      "target": "graphify_skill_for_graphify_add_and_watch"
     },
     {
       "relation": "contains",
@@ -45720,9 +45720,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L583",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_graphify",
-      "target": "graphify_skill_for_graphify_query",
-      "confidence_score": 1.0
+      "target": "graphify_skill_for_graphify_query"
     },
     {
       "relation": "contains",
@@ -45730,9 +45730,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L601",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_graphify",
-      "target": "graphify_skill_for_the_commit_hook_and_native_claude_md_integration",
-      "confidence_score": 1.0
+      "target": "graphify_skill_for_the_commit_hook_and_native_claude_md_integration"
     },
     {
       "relation": "contains",
@@ -45740,9 +45740,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L577",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_graphify",
-      "target": "graphify_skill_for_update_and_cluster_only",
-      "confidence_score": 1.0
+      "target": "graphify_skill_for_update_and_cluster_only"
     },
     {
       "relation": "contains",
@@ -45750,9 +45750,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L607",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_graphify",
-      "target": "graphify_skill_honesty_rules",
-      "confidence_score": 1.0
+      "target": "graphify_skill_honesty_rules"
     },
     {
       "relation": "contains",
@@ -45760,9 +45760,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L559",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_graphify",
-      "target": "graphify_skill_interpreter_guard_for_subcommands",
-      "confidence_score": 1.0
+      "target": "graphify_skill_interpreter_guard_for_subcommands"
     },
     {
       "relation": "conceptually_related_to",
@@ -45800,9 +45800,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_graphify",
-      "target": "graphify_skill_usage",
-      "confidence_score": 1.0
+      "target": "graphify_skill_usage"
     },
     {
       "relation": "contains",
@@ -45810,9 +45810,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L44",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_graphify",
-      "target": "graphify_skill_what_graphify_is_for",
-      "confidence_score": 1.0
+      "target": "graphify_skill_what_graphify_is_for"
     },
     {
       "relation": "contains",
@@ -45820,9 +45820,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L48",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_graphify",
-      "target": "graphify_skill_what_you_must_do_when_invoked",
-      "confidence_score": 1.0
+      "target": "graphify_skill_what_you_must_do_when_invoked"
     },
     {
       "relation": "references",
@@ -45910,9 +45910,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L60",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_what_you_must_do_when_invoked",
-      "target": "graphify_skill_step_0_github_repos_and_multi_path_merge_only_if_a_url_or_several_paths",
-      "confidence_score": 1.0
+      "target": "graphify_skill_step_0_github_repos_and_multi_path_merge_only_if_a_url_or_several_paths"
     },
     {
       "relation": "contains",
@@ -45920,9 +45920,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L64",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_what_you_must_do_when_invoked",
-      "target": "graphify_skill_step_1_ensure_graphify_is_installed",
-      "confidence_score": 1.0
+      "target": "graphify_skill_step_1_ensure_graphify_is_installed"
     },
     {
       "relation": "contains",
@@ -45930,9 +45930,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L143",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_what_you_must_do_when_invoked",
-      "target": "graphify_skill_step_2_5_video_and_audio_only_if_video_files_detected",
-      "confidence_score": 1.0
+      "target": "graphify_skill_step_2_5_video_and_audio_only_if_video_files_detected"
     },
     {
       "relation": "contains",
@@ -45940,9 +45940,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L106",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_what_you_must_do_when_invoked",
-      "target": "graphify_skill_step_2_detect_files",
-      "confidence_score": 1.0
+      "target": "graphify_skill_step_2_detect_files"
     },
     {
       "relation": "contains",
@@ -45950,9 +45950,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L147",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_what_you_must_do_when_invoked",
-      "target": "graphify_skill_step_3_extract_entities_and_relationships",
-      "confidence_score": 1.0
+      "target": "graphify_skill_step_3_extract_entities_and_relationships"
     },
     {
       "relation": "contains",
@@ -45960,9 +45960,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L366",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_what_you_must_do_when_invoked",
-      "target": "graphify_skill_step_4_build_graph_cluster_analyze_generate_outputs",
-      "confidence_score": 1.0
+      "target": "graphify_skill_step_4_build_graph_cluster_analyze_generate_outputs"
     },
     {
       "relation": "contains",
@@ -45970,9 +45970,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L418",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_what_you_must_do_when_invoked",
-      "target": "graphify_skill_step_5_label_communities",
-      "confidence_score": 1.0
+      "target": "graphify_skill_step_5_label_communities"
     },
     {
       "relation": "contains",
@@ -45980,9 +45980,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L458",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_what_you_must_do_when_invoked",
-      "target": "graphify_skill_step_6_generate_obsidian_vault_opt_in_html",
-      "confidence_score": 1.0
+      "target": "graphify_skill_step_6_generate_obsidian_vault_opt_in_html"
     },
     {
       "relation": "contains",
@@ -45990,9 +45990,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L484",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_what_you_must_do_when_invoked",
-      "target": "graphify_skill_step_9_save_manifest_update_cost_tracker_clean_up_and_report",
-      "confidence_score": 1.0
+      "target": "graphify_skill_step_9_save_manifest_update_cost_tracker_clean_up_and_report"
     },
     {
       "relation": "contains",
@@ -46000,9 +46000,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L478",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_what_you_must_do_when_invoked",
-      "target": "graphify_skill_steps_6b_8_wiki_neo4j_svg_graphml_mcp_benchmark_only_on_their_flags",
-      "confidence_score": 1.0
+      "target": "graphify_skill_steps_6b_8_wiki_neo4j_svg_graphml_mcp_benchmark_only_on_their_flags"
     },
     {
       "relation": "contains",
@@ -46010,9 +46010,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L164",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_step_3_extract_entities_and_relationships",
-      "target": "graphify_skill_part_a_structural_extraction_for_code_files",
-      "confidence_score": 1.0
+      "target": "graphify_skill_part_a_structural_extraction_for_code_files"
     },
     {
       "relation": "contains",
@@ -46020,9 +46020,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L190",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_step_3_extract_entities_and_relationships",
-      "target": "graphify_skill_part_b_semantic_extraction_parallel_subagents",
-      "confidence_score": 1.0
+      "target": "graphify_skill_part_b_semantic_extraction_parallel_subagents"
     },
     {
       "relation": "contains",
@@ -46030,9 +46030,9 @@
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L332",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "graphify_skill_step_3_extract_entities_and_relationships",
-      "target": "graphify_skill_part_c_merge_ast_semantic_into_final_extraction",
-      "confidence_score": 1.0
+      "target": "graphify_skill_part_c_merge_ast_semantic_into_final_extraction"
     },
     {
       "relation": "contains",
@@ -46040,9 +46040,9 @@
       "source_file": ".codex/skills/graphify/references/add-watch.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_add_watch",
-      "target": "references_add_watch_graphify_reference_add_a_url_and_watch_a_folder",
-      "confidence_score": 1.0
+      "target": "references_add_watch_graphify_reference_add_a_url_and_watch_a_folder"
     },
     {
       "relation": "contains",
@@ -46050,9 +46050,9 @@
       "source_file": ".codex/skills/graphify/references/add-watch.md",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_add_watch_graphify_reference_add_a_url_and_watch_a_folder",
-      "target": "references_add_watch_for_graphify_add",
-      "confidence_score": 1.0
+      "target": "references_add_watch_for_graphify_add"
     },
     {
       "relation": "contains",
@@ -46060,9 +46060,9 @@
       "source_file": ".codex/skills/graphify/references/add-watch.md",
       "source_location": "L39",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_add_watch_graphify_reference_add_a_url_and_watch_a_folder",
-      "target": "references_add_watch_for_watch",
-      "confidence_score": 1.0
+      "target": "references_add_watch_for_watch"
     },
     {
       "relation": "contains",
@@ -46070,9 +46070,9 @@
       "source_file": ".codex/skills/graphify/references/exports.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_exports",
-      "target": "references_exports_graphify_reference_extra_exports_and_benchmark",
-      "confidence_score": 1.0
+      "target": "references_exports_graphify_reference_extra_exports_and_benchmark"
     },
     {
       "relation": "contains",
@@ -46080,9 +46080,9 @@
       "source_file": ".codex/skills/graphify/references/exports.md",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_exports_graphify_reference_extra_exports_and_benchmark",
-      "target": "references_exports_step_6b_wiki_only_if_wiki_flag",
-      "confidence_score": 1.0
+      "target": "references_exports_step_6b_wiki_only_if_wiki_flag"
     },
     {
       "relation": "contains",
@@ -46090,9 +46090,9 @@
       "source_file": ".codex/skills/graphify/references/exports.md",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_exports_graphify_reference_extra_exports_and_benchmark",
-      "target": "references_exports_step_7_neo4j_export_only_if_neo4j_or_neo4j_push_flag",
-      "confidence_score": 1.0
+      "target": "references_exports_step_7_neo4j_export_only_if_neo4j_or_neo4j_push_flag"
     },
     {
       "relation": "contains",
@@ -46100,9 +46100,9 @@
       "source_file": ".codex/skills/graphify/references/exports.md",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_exports_graphify_reference_extra_exports_and_benchmark",
-      "target": "references_exports_step_7b_svg_export_only_if_svg_flag",
-      "confidence_score": 1.0
+      "target": "references_exports_step_7b_svg_export_only_if_svg_flag"
     },
     {
       "relation": "contains",
@@ -46110,9 +46110,9 @@
       "source_file": ".codex/skills/graphify/references/exports.md",
       "source_location": "L37",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_exports_graphify_reference_extra_exports_and_benchmark",
-      "target": "references_exports_step_7c_graphml_export_only_if_graphml_flag",
-      "confidence_score": 1.0
+      "target": "references_exports_step_7c_graphml_export_only_if_graphml_flag"
     },
     {
       "relation": "contains",
@@ -46120,9 +46120,9 @@
       "source_file": ".codex/skills/graphify/references/exports.md",
       "source_location": "L43",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_exports_graphify_reference_extra_exports_and_benchmark",
-      "target": "references_exports_step_7d_mcp_server_only_if_mcp_flag",
-      "confidence_score": 1.0
+      "target": "references_exports_step_7d_mcp_server_only_if_mcp_flag"
     },
     {
       "relation": "contains",
@@ -46130,9 +46130,9 @@
       "source_file": ".codex/skills/graphify/references/exports.md",
       "source_location": "L63",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_exports_graphify_reference_extra_exports_and_benchmark",
-      "target": "references_exports_step_8_token_reduction_benchmark_only_if_total_words_5000",
-      "confidence_score": 1.0
+      "target": "references_exports_step_8_token_reduction_benchmark_only_if_total_words_5000"
     },
     {
       "relation": "contains",
@@ -46140,9 +46140,9 @@
       "source_file": ".codex/skills/graphify/references/extraction-spec.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_extraction_spec",
-      "target": "references_extraction_spec_graphify_reference_extraction_subagent_prompt_compact",
-      "confidence_score": 1.0
+      "target": "references_extraction_spec_graphify_reference_extraction_subagent_prompt_compact"
     },
     {
       "relation": "contains",
@@ -46150,9 +46150,9 @@
       "source_file": ".codex/skills/graphify/references/github-and-merge.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_github_and_merge",
-      "target": "references_github_and_merge_graphify_reference_github_clone_and_cross_repo_merge",
-      "confidence_score": 1.0
+      "target": "references_github_and_merge_graphify_reference_github_clone_and_cross_repo_merge"
     },
     {
       "relation": "contains",
@@ -46160,9 +46160,9 @@
       "source_file": ".codex/skills/graphify/references/github-and-merge.md",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_github_and_merge_graphify_reference_github_clone_and_cross_repo_merge",
-      "target": "references_github_and_merge_step_0_clone_github_repo_s_only_if_a_github_url_was_given",
-      "confidence_score": 1.0
+      "target": "references_github_and_merge_step_0_clone_github_repo_s_only_if_a_github_url_was_given"
     },
     {
       "relation": "contains",
@@ -46170,9 +46170,9 @@
       "source_file": ".codex/skills/graphify/references/hooks.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_hooks",
-      "target": "references_hooks_graphify_reference_commit_hook_and_native_claude_md_integration",
-      "confidence_score": 1.0
+      "target": "references_hooks_graphify_reference_commit_hook_and_native_claude_md_integration"
     },
     {
       "relation": "contains",
@@ -46180,9 +46180,9 @@
       "source_file": ".codex/skills/graphify/references/hooks.md",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_hooks_graphify_reference_commit_hook_and_native_claude_md_integration",
-      "target": "references_hooks_for_git_commit_hook",
-      "confidence_score": 1.0
+      "target": "references_hooks_for_git_commit_hook"
     },
     {
       "relation": "contains",
@@ -46190,9 +46190,9 @@
       "source_file": ".codex/skills/graphify/references/hooks.md",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_hooks_graphify_reference_commit_hook_and_native_claude_md_integration",
-      "target": "references_hooks_for_native_claude_md_integration",
-      "confidence_score": 1.0
+      "target": "references_hooks_for_native_claude_md_integration"
     },
     {
       "relation": "contains",
@@ -46200,9 +46200,9 @@
       "source_file": ".codex/skills/graphify/references/query.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_query",
-      "target": "references_query_graphify_reference_query_path_explain",
-      "confidence_score": 1.0
+      "target": "references_query_graphify_reference_query_path_explain"
     },
     {
       "relation": "contains",
@@ -46210,9 +46210,9 @@
       "source_file": ".codex/skills/graphify/references/query.md",
       "source_location": "L198",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_query_graphify_reference_query_path_explain",
-      "target": "references_query_for_graphify_explain",
-      "confidence_score": 1.0
+      "target": "references_query_for_graphify_explain"
     },
     {
       "relation": "contains",
@@ -46220,9 +46220,9 @@
       "source_file": ".codex/skills/graphify/references/query.md",
       "source_location": "L136",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_query_graphify_reference_query_path_explain",
-      "target": "references_query_for_graphify_path",
-      "confidence_score": 1.0
+      "target": "references_query_for_graphify_path"
     },
     {
       "relation": "contains",
@@ -46230,9 +46230,9 @@
       "source_file": ".codex/skills/graphify/references/transcribe.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_transcribe",
-      "target": "references_transcribe_graphify_reference_transcribe_video_and_audio",
-      "confidence_score": 1.0
+      "target": "references_transcribe_graphify_reference_transcribe_video_and_audio"
     },
     {
       "relation": "contains",
@@ -46240,9 +46240,9 @@
       "source_file": ".codex/skills/graphify/references/transcribe.md",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_transcribe_graphify_reference_transcribe_video_and_audio",
-      "target": "references_transcribe_step_2_5_transcribe_video_audio_files_only_if_video_files_detected",
-      "confidence_score": 1.0
+      "target": "references_transcribe_step_2_5_transcribe_video_audio_files_only_if_video_files_detected"
     },
     {
       "relation": "contains",
@@ -46250,9 +46250,9 @@
       "source_file": ".codex/skills/graphify/references/update.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_update",
-      "target": "references_update_graphify_reference_incremental_update_and_cluster_only",
-      "confidence_score": 1.0
+      "target": "references_update_graphify_reference_incremental_update_and_cluster_only"
     },
     {
       "relation": "contains",
@@ -46260,9 +46260,9 @@
       "source_file": ".codex/skills/graphify/references/update.md",
       "source_location": "L171",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_update_graphify_reference_incremental_update_and_cluster_only",
-      "target": "references_update_for_cluster_only",
-      "confidence_score": 1.0
+      "target": "references_update_for_cluster_only"
     },
     {
       "relation": "contains",
@@ -46270,9 +46270,9 @@
       "source_file": ".codex/skills/graphify/references/update.md",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "references_update_graphify_reference_incremental_update_and_cluster_only",
-      "target": "references_update_for_update_incremental_re_extraction",
-      "confidence_score": 1.0
+      "target": "references_update_for_update_incremental_re_extraction"
     },
     {
       "relation": "contains",
@@ -46280,9 +46280,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "agents",
-      "target": "agents_graphify",
-      "confidence_score": 1.0
+      "target": "agents_graphify"
     },
     {
       "relation": "contains",
@@ -46290,9 +46290,9 @@
       "source_file": "CLAUDE.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude",
-      "target": "claude_project_instructions",
-      "confidence_score": 1.0
+      "target": "claude_project_instructions"
     },
     {
       "relation": "contains",
@@ -46300,9 +46300,9 @@
       "source_file": "CLAUDE.md",
       "source_location": "L54",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_project_instructions",
-      "target": "claude_adding_a_service",
-      "confidence_score": 1.0
+      "target": "claude_adding_a_service"
     },
     {
       "relation": "contains",
@@ -46310,9 +46310,9 @@
       "source_file": "CLAUDE.md",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_project_instructions",
-      "target": "claude_build_and_run",
-      "confidence_score": 1.0
+      "target": "claude_build_and_run"
     },
     {
       "relation": "contains",
@@ -46320,9 +46320,9 @@
       "source_file": "CLAUDE.md",
       "source_location": "L45",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_project_instructions",
-      "target": "claude_conventions",
-      "confidence_score": 1.0
+      "target": "claude_conventions"
     },
     {
       "relation": "contains",
@@ -46330,9 +46330,9 @@
       "source_file": "CLAUDE.md",
       "source_location": "L69",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_project_instructions",
-      "target": "claude_git_style",
-      "confidence_score": 1.0
+      "target": "claude_git_style"
     },
     {
       "relation": "contains",
@@ -46340,9 +46340,9 @@
       "source_file": "CLAUDE.md",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_project_instructions",
-      "target": "claude_project_structure",
-      "confidence_score": 1.0
+      "target": "claude_project_structure"
     },
     {
       "relation": "contains",
@@ -46350,9 +46350,9 @@
       "source_file": "CLAUDE.md",
       "source_location": "L35",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_project_instructions",
-      "target": "claude_service_layering",
-      "confidence_score": 1.0
+      "target": "claude_service_layering"
     },
     {
       "relation": "contains",
@@ -46360,9 +46360,9 @@
       "source_file": "CLAUDE.md",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_project_instructions",
-      "target": "claude_tech_stack",
-      "confidence_score": 1.0
+      "target": "claude_tech_stack"
     },
     {
       "relation": "contains",
@@ -46370,9 +46370,9 @@
       "source_file": "CLAUDE.md",
       "source_location": "L62",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_project_instructions",
-      "target": "claude_testing_notes",
-      "confidence_score": 1.0
+      "target": "claude_testing_notes"
     },
     {
       "relation": "contains",
@@ -46380,9 +46380,9 @@
       "source_file": "README.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme",
-      "target": "readme_bw_cli_go_\u5fae\u670d\u52a1\u811a\u624b\u67b6",
-      "confidence_score": 1.0
+      "target": "readme_bw_cli_go_\u5fae\u670d\u52a1\u811a\u624b\u67b6"
     },
     {
       "relation": "contains",
@@ -46390,9 +46390,9 @@
       "source_file": "README.md",
       "source_location": "L734",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_bw_cli_go_\u5fae\u670d\u52a1\u811a\u624b\u67b6",
-      "target": "readme_10_\u516c\u5171\u7ec4\u4ef6",
-      "confidence_score": 1.0
+      "target": "readme_10_\u516c\u5171\u7ec4\u4ef6"
     },
     {
       "relation": "contains",
@@ -46400,9 +46400,9 @@
       "source_file": "README.md",
       "source_location": "L770",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_bw_cli_go_\u5fae\u670d\u52a1\u811a\u624b\u67b6",
-      "target": "readme_11_\u5e38\u89c1\u95ee\u9898",
-      "confidence_score": 1.0
+      "target": "readme_11_\u5e38\u89c1\u95ee\u9898"
     },
     {
       "relation": "contains",
@@ -46410,9 +46410,9 @@
       "source_file": "README.md",
       "source_location": "L817",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_bw_cli_go_\u5fae\u670d\u52a1\u811a\u624b\u67b6",
-      "target": "readme_12_\u66f4\u591a\u6587\u6863",
-      "confidence_score": 1.0
+      "target": "readme_12_\u66f4\u591a\u6587\u6863"
     },
     {
       "relation": "contains",
@@ -46420,9 +46420,9 @@
       "source_file": "README.md",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_bw_cli_go_\u5fae\u670d\u52a1\u811a\u624b\u67b6",
-      "target": "readme_1_\u4f60\u53ef\u4ee5\u7528\u5b83\u505a\u4ec0\u4e48",
-      "confidence_score": 1.0
+      "target": "readme_1_\u4f60\u53ef\u4ee5\u7528\u5b83\u505a\u4ec0\u4e48"
     },
     {
       "relation": "contains",
@@ -46430,9 +46430,9 @@
       "source_file": "README.md",
       "source_location": "L19",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_bw_cli_go_\u5fae\u670d\u52a1\u811a\u624b\u67b6",
-      "target": "readme_2_\u73af\u5883\u8981\u6c42",
-      "confidence_score": 1.0
+      "target": "readme_2_\u73af\u5883\u8981\u6c42"
     },
     {
       "relation": "contains",
@@ -46440,9 +46440,9 @@
       "source_file": "README.md",
       "source_location": "L57",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_bw_cli_go_\u5fae\u670d\u52a1\u811a\u624b\u67b6",
-      "target": "readme_3_\u65b9\u5f0f\u4e00_\u62c9\u53d6\u811a\u624b\u67b6\u540e\u76f4\u63a5\u672c\u5730\u8fd0\u884c",
-      "confidence_score": 1.0
+      "target": "readme_3_\u65b9\u5f0f\u4e00_\u62c9\u53d6\u811a\u624b\u67b6\u540e\u76f4\u63a5\u672c\u5730\u8fd0\u884c"
     },
     {
       "relation": "contains",
@@ -46450,9 +46450,9 @@
       "source_file": "README.md",
       "source_location": "L171",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_bw_cli_go_\u5fae\u670d\u52a1\u811a\u624b\u67b6",
-      "target": "readme_4_\u65b9\u5f0f\u4e8c_\u5b89\u88c5_bw_cli_\u5e76\u751f\u6210\u65b0\u9879\u76ee",
-      "confidence_score": 1.0
+      "target": "readme_4_\u65b9\u5f0f\u4e8c_\u5b89\u88c5_bw_cli_\u5e76\u751f\u6210\u65b0\u9879\u76ee"
     },
     {
       "relation": "contains",
@@ -46460,9 +46460,9 @@
       "source_file": "README.md",
       "source_location": "L301",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_bw_cli_go_\u5fae\u670d\u52a1\u811a\u624b\u67b6",
-      "target": "readme_5_\u751f\u6210\u65b0\u7684\u4e1a\u52a1\u670d\u52a1",
-      "confidence_score": 1.0
+      "target": "readme_5_\u751f\u6210\u65b0\u7684\u4e1a\u52a1\u670d\u52a1"
     },
     {
       "relation": "contains",
@@ -46470,9 +46470,9 @@
       "source_file": "README.md",
       "source_location": "L414",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_bw_cli_go_\u5fae\u670d\u52a1\u811a\u624b\u67b6",
-      "target": "readme_6_\u9879\u76ee\u76ee\u5f55\u8bf4\u660e",
-      "confidence_score": 1.0
+      "target": "readme_6_\u9879\u76ee\u76ee\u5f55\u8bf4\u660e"
     },
     {
       "relation": "contains",
@@ -46480,9 +46480,9 @@
       "source_file": "README.md",
       "source_location": "L566",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_bw_cli_go_\u5fae\u670d\u52a1\u811a\u624b\u67b6",
-      "target": "readme_7_\u5e38\u7528_make_\u547d\u4ee4",
-      "confidence_score": 1.0
+      "target": "readme_7_\u5e38\u7528_make_\u547d\u4ee4"
     },
     {
       "relation": "contains",
@@ -46490,9 +46490,9 @@
       "source_file": "README.md",
       "source_location": "L582",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_bw_cli_go_\u5fae\u670d\u52a1\u811a\u624b\u67b6",
-      "target": "readme_8_\u914d\u7f6e\u8bf4\u660e",
-      "confidence_score": 1.0
+      "target": "readme_8_\u914d\u7f6e\u8bf4\u660e"
     },
     {
       "relation": "contains",
@@ -46500,9 +46500,9 @@
       "source_file": "README.md",
       "source_location": "L715",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_bw_cli_go_\u5fae\u670d\u52a1\u811a\u624b\u67b6",
-      "target": "readme_9_\u65e5\u5fd7\u8bf4\u660e",
-      "confidence_score": 1.0
+      "target": "readme_9_\u65e5\u5fd7\u8bf4\u660e"
     },
     {
       "relation": "contains",
@@ -46510,9 +46510,9 @@
       "source_file": "README.md",
       "source_location": "L61",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_3_\u65b9\u5f0f\u4e00_\u62c9\u53d6\u811a\u624b\u67b6\u540e\u76f4\u63a5\u672c\u5730\u8fd0\u884c",
-      "target": "readme_3_1_\u514b\u9686\u4ed3\u5e93",
-      "confidence_score": 1.0
+      "target": "readme_3_1_\u514b\u9686\u4ed3\u5e93"
     },
     {
       "relation": "contains",
@@ -46520,9 +46520,9 @@
       "source_file": "README.md",
       "source_location": "L68",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_3_\u65b9\u5f0f\u4e00_\u62c9\u53d6\u811a\u624b\u67b6\u540e\u76f4\u63a5\u672c\u5730\u8fd0\u884c",
-      "target": "readme_3_2_\u5b89\u88c5_proto_\u63d2\u4ef6",
-      "confidence_score": 1.0
+      "target": "readme_3_2_\u5b89\u88c5_proto_\u63d2\u4ef6"
     },
     {
       "relation": "contains",
@@ -46530,9 +46530,9 @@
       "source_file": "README.md",
       "source_location": "L81",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_3_\u65b9\u5f0f\u4e00_\u62c9\u53d6\u811a\u624b\u67b6\u540e\u76f4\u63a5\u672c\u5730\u8fd0\u884c",
-      "target": "readme_3_3_\u751f\u6210_proto_\u4ee3\u7801",
-      "confidence_score": 1.0
+      "target": "readme_3_3_\u751f\u6210_proto_\u4ee3\u7801"
     },
     {
       "relation": "contains",
@@ -46540,9 +46540,9 @@
       "source_file": "README.md",
       "source_location": "L89",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_3_\u65b9\u5f0f\u4e00_\u62c9\u53d6\u811a\u624b\u67b6\u540e\u76f4\u63a5\u672c\u5730\u8fd0\u884c",
-      "target": "readme_3_4_\u6574\u7406\u4f9d\u8d56",
-      "confidence_score": 1.0
+      "target": "readme_3_4_\u6574\u7406\u4f9d\u8d56"
     },
     {
       "relation": "contains",
@@ -46550,9 +46550,9 @@
       "source_file": "README.md",
       "source_location": "L95",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_3_\u65b9\u5f0f\u4e00_\u62c9\u53d6\u811a\u624b\u67b6\u540e\u76f4\u63a5\u672c\u5730\u8fd0\u884c",
-      "target": "readme_3_5_\u8fd0\u884c\u6d4b\u8bd5",
-      "confidence_score": 1.0
+      "target": "readme_3_5_\u8fd0\u884c\u6d4b\u8bd5"
     },
     {
       "relation": "contains",
@@ -46560,9 +46560,9 @@
       "source_file": "README.md",
       "source_location": "L103",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_3_\u65b9\u5f0f\u4e00_\u62c9\u53d6\u811a\u624b\u67b6\u540e\u76f4\u63a5\u672c\u5730\u8fd0\u884c",
-      "target": "readme_3_6_\u542f\u52a8_demo_\u670d\u52a1",
-      "confidence_score": 1.0
+      "target": "readme_3_6_\u542f\u52a8_demo_\u670d\u52a1"
     },
     {
       "relation": "contains",
@@ -46570,9 +46570,9 @@
       "source_file": "README.md",
       "source_location": "L133",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_3_\u65b9\u5f0f\u4e00_\u62c9\u53d6\u811a\u624b\u67b6\u540e\u76f4\u63a5\u672c\u5730\u8fd0\u884c",
-      "target": "readme_3_7_\u9a8c\u8bc1\u670d\u52a1",
-      "confidence_score": 1.0
+      "target": "readme_3_7_\u9a8c\u8bc1\u670d\u52a1"
     },
     {
       "relation": "contains",
@@ -46580,9 +46580,9 @@
       "source_file": "README.md",
       "source_location": "L175",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_4_\u65b9\u5f0f\u4e8c_\u5b89\u88c5_bw_cli_\u5e76\u751f\u6210\u65b0\u9879\u76ee",
-      "target": "readme_4_1_\u901a\u8fc7\u8fdc\u7a0b\u4ed3\u5e93\u5b89\u88c5",
-      "confidence_score": 1.0
+      "target": "readme_4_1_\u901a\u8fc7\u8fdc\u7a0b\u4ed3\u5e93\u5b89\u88c5"
     },
     {
       "relation": "contains",
@@ -46590,9 +46590,9 @@
       "source_file": "README.md",
       "source_location": "L187",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_4_\u65b9\u5f0f\u4e8c_\u5b89\u88c5_bw_cli_\u5e76\u751f\u6210\u65b0\u9879\u76ee",
-      "target": "readme_4_2_\u751f\u6210\u5e72\u51c0\u4e1a\u52a1\u9879\u76ee",
-      "confidence_score": 1.0
+      "target": "readme_4_2_\u751f\u6210\u5e72\u51c0\u4e1a\u52a1\u9879\u76ee"
     },
     {
       "relation": "contains",
@@ -46600,9 +46600,9 @@
       "source_file": "README.md",
       "source_location": "L240",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_4_\u65b9\u5f0f\u4e8c_\u5b89\u88c5_bw_cli_\u5e76\u751f\u6210\u65b0\u9879\u76ee",
-      "target": "readme_4_3_\u751f\u6210\u6f14\u793a\u9879\u76ee",
-      "confidence_score": 1.0
+      "target": "readme_4_3_\u751f\u6210\u6f14\u793a\u9879\u76ee"
     },
     {
       "relation": "contains",
@@ -46610,9 +46610,9 @@
       "source_file": "README.md",
       "source_location": "L252",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_4_\u65b9\u5f0f\u4e8c_\u5b89\u88c5_bw_cli_\u5e76\u751f\u6210\u65b0\u9879\u76ee",
-      "target": "readme_4_4_\u4ece\u672c\u5730\u811a\u624b\u67b6\u6e90\u7801\u751f\u6210\u9879\u76ee",
-      "confidence_score": 1.0
+      "target": "readme_4_4_\u4ece\u672c\u5730\u811a\u624b\u67b6\u6e90\u7801\u751f\u6210\u9879\u76ee"
     },
     {
       "relation": "contains",
@@ -46620,9 +46620,9 @@
       "source_file": "README.md",
       "source_location": "L278",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_4_\u65b9\u5f0f\u4e8c_\u5b89\u88c5_bw_cli_\u5e76\u751f\u6210\u65b0\u9879\u76ee",
-      "target": "readme_4_5_bw_cli_\u751f\u6210\u65f6\u505a\u4e86\u4ec0\u4e48",
-      "confidence_score": 1.0
+      "target": "readme_4_5_bw_cli_\u751f\u6210\u65f6\u505a\u4e86\u4ec0\u4e48"
     },
     {
       "relation": "contains",
@@ -46630,9 +46630,9 @@
       "source_file": "README.md",
       "source_location": "L477",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_6_\u9879\u76ee\u76ee\u5f55\u8bf4\u660e",
-      "target": "readme_6_1_c4_\u67b6\u6784\u56fe\u8bf4\u660e",
-      "confidence_score": 1.0
+      "target": "readme_6_1_c4_\u67b6\u6784\u56fe\u8bf4\u660e"
     },
     {
       "relation": "contains",
@@ -46640,9 +46640,9 @@
       "source_file": "README.md",
       "source_location": "L481",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_6_1_c4_\u67b6\u6784\u56fe\u8bf4\u660e",
-      "target": "readme_level_1_\u7cfb\u7edf\u4e0a\u4e0b\u6587",
-      "confidence_score": 1.0
+      "target": "readme_level_1_\u7cfb\u7edf\u4e0a\u4e0b\u6587"
     },
     {
       "relation": "contains",
@@ -46650,9 +46650,9 @@
       "source_file": "README.md",
       "source_location": "L501",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_6_1_c4_\u67b6\u6784\u56fe\u8bf4\u660e",
-      "target": "readme_level_2_\u751f\u6210\u9879\u76ee\u5bb9\u5668\u89c6\u56fe",
-      "confidence_score": 1.0
+      "target": "readme_level_2_\u751f\u6210\u9879\u76ee\u5bb9\u5668\u89c6\u56fe"
     },
     {
       "relation": "contains",
@@ -46660,9 +46660,9 @@
       "source_file": "README.md",
       "source_location": "L530",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_6_1_c4_\u67b6\u6784\u56fe\u8bf4\u660e",
-      "target": "readme_level_3_\u4e1a\u52a1\u670d\u52a1\u7ec4\u4ef6\u89c6\u56fe",
-      "confidence_score": 1.0
+      "target": "readme_level_3_\u4e1a\u52a1\u670d\u52a1\u7ec4\u4ef6\u89c6\u56fe"
     },
     {
       "relation": "contains",
@@ -46670,9 +46670,9 @@
       "source_file": "README.md",
       "source_location": "L590",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_8_\u914d\u7f6e\u8bf4\u660e",
-      "target": "readme_7_1_\u9ed8\u8ba4\u6570\u636e\u5e93",
-      "confidence_score": 1.0
+      "target": "readme_7_1_\u9ed8\u8ba4\u6570\u636e\u5e93"
     },
     {
       "relation": "contains",
@@ -46680,9 +46680,9 @@
       "source_file": "README.md",
       "source_location": "L606",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_8_\u914d\u7f6e\u8bf4\u660e",
-      "target": "readme_7_2_\u5207\u6362_sqlite",
-      "confidence_score": 1.0
+      "target": "readme_7_2_\u5207\u6362_sqlite"
     },
     {
       "relation": "contains",
@@ -46690,9 +46690,9 @@
       "source_file": "README.md",
       "source_location": "L616",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_8_\u914d\u7f6e\u8bf4\u660e",
-      "target": "readme_7_3_\u5207\u6362_postgresql",
-      "confidence_score": 1.0
+      "target": "readme_7_3_\u5207\u6362_postgresql"
     },
     {
       "relation": "contains",
@@ -46700,9 +46700,9 @@
       "source_file": "README.md",
       "source_location": "L639",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_8_\u914d\u7f6e\u8bf4\u660e",
-      "target": "readme_7_4_mongodb",
-      "confidence_score": 1.0
+      "target": "readme_7_4_mongodb"
     },
     {
       "relation": "contains",
@@ -46710,9 +46710,9 @@
       "source_file": "README.md",
       "source_location": "L679",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_8_\u914d\u7f6e\u8bf4\u660e",
-      "target": "readme_7_5_\u6587\u4ef6\u4e0a\u4f20",
-      "confidence_score": 1.0
+      "target": "readme_7_5_\u6587\u4ef6\u4e0a\u4f20"
     },
     {
       "relation": "contains",
@@ -46720,9 +46720,9 @@
       "source_file": "README.md",
       "source_location": "L772",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_11_\u5e38\u89c1\u95ee\u9898",
-      "target": "readme_11_1_bw_cli_command_not_found",
-      "confidence_score": 1.0
+      "target": "readme_11_1_bw_cli_command_not_found"
     },
     {
       "relation": "contains",
@@ -46730,9 +46730,9 @@
       "source_file": "README.md",
       "source_location": "L780",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_11_\u5e38\u89c1\u95ee\u9898",
-      "target": "readme_11_2_protoc_gen_go_program_not_found",
-      "confidence_score": 1.0
+      "target": "readme_11_2_protoc_gen_go_program_not_found"
     },
     {
       "relation": "contains",
@@ -46740,9 +46740,9 @@
       "source_file": "README.md",
       "source_location": "L794",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_11_\u5e38\u89c1\u95ee\u9898",
-      "target": "readme_11_3_\u751f\u6210\u9879\u76ee\u540e\u8fd8\u6709\u65e7_module_\u8def\u5f84",
-      "confidence_score": 1.0
+      "target": "readme_11_3_\u751f\u6210\u9879\u76ee\u540e\u8fd8\u6709\u65e7_module_\u8def\u5f84"
     },
     {
       "relation": "contains",
@@ -46750,9 +46750,9 @@
       "source_file": "README.md",
       "source_location": "L804",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_11_\u5e38\u89c1\u95ee\u9898",
-      "target": "readme_11_4_\u7aef\u53e3\u88ab\u5360\u7528",
-      "confidence_score": 1.0
+      "target": "readme_11_4_\u7aef\u53e3\u88ab\u5360\u7528"
     },
     {
       "relation": "contains",
@@ -46760,9 +46760,9 @@
       "source_file": "docs/alipay.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_alipay",
-      "target": "docs_alipay_\u652f\u4ed8\u5b9d\u652f\u4ed8\u8c03\u7528\u793a\u4f8b",
-      "confidence_score": 1.0
+      "target": "docs_alipay_\u652f\u4ed8\u5b9d\u652f\u4ed8\u8c03\u7528\u793a\u4f8b"
     },
     {
       "relation": "contains",
@@ -46770,9 +46770,9 @@
       "source_file": "docs/alipay.md",
       "source_location": "L60",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_alipay_\u652f\u4ed8\u5b9d\u652f\u4ed8\u8c03\u7528\u793a\u4f8b",
-      "target": "docs_alipay_\u521b\u5efa\u652f\u4ed8",
-      "confidence_score": 1.0
+      "target": "docs_alipay_\u521b\u5efa\u652f\u4ed8"
     },
     {
       "relation": "contains",
@@ -46780,9 +46780,9 @@
       "source_file": "docs/alipay.md",
       "source_location": "L36",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_alipay_\u652f\u4ed8\u5b9d\u652f\u4ed8\u8c03\u7528\u793a\u4f8b",
-      "target": "docs_alipay_\u521d\u59cb\u5316",
-      "confidence_score": 1.0
+      "target": "docs_alipay_\u521d\u59cb\u5316"
     },
     {
       "relation": "contains",
@@ -46790,9 +46790,9 @@
       "source_file": "docs/alipay.md",
       "source_location": "L133",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_alipay_\u652f\u4ed8\u5b9d\u652f\u4ed8\u8c03\u7528\u793a\u4f8b",
-      "target": "docs_alipay_\u540c\u6b65\u56de\u8c03\u9a8c\u7b7e",
-      "confidence_score": 1.0
+      "target": "docs_alipay_\u540c\u6b65\u56de\u8c03\u9a8c\u7b7e"
     },
     {
       "relation": "contains",
@@ -46800,9 +46800,9 @@
       "source_file": "docs/alipay.md",
       "source_location": "L157",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_alipay_\u652f\u4ed8\u5b9d\u652f\u4ed8\u8c03\u7528\u793a\u4f8b",
-      "target": "docs_alipay_\u5f02\u6b65\u901a\u77e5\u56de\u8c03",
-      "confidence_score": 1.0
+      "target": "docs_alipay_\u5f02\u6b65\u901a\u77e5\u56de\u8c03"
     },
     {
       "relation": "contains",
@@ -46810,9 +46810,9 @@
       "source_file": "docs/alipay.md",
       "source_location": "L199",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_alipay_\u652f\u4ed8\u5b9d\u652f\u4ed8\u8c03\u7528\u793a\u4f8b",
-      "target": "docs_alipay_\u9000\u6b3e",
-      "confidence_score": 1.0
+      "target": "docs_alipay_\u9000\u6b3e"
     },
     {
       "relation": "contains",
@@ -46820,9 +46820,9 @@
       "source_file": "docs/alipay.md",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_alipay_\u652f\u4ed8\u5b9d\u652f\u4ed8\u8c03\u7528\u793a\u4f8b",
-      "target": "docs_alipay_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_alipay_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -46830,9 +46830,9 @@
       "source_file": "docs/architecture.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_architecture",
-      "target": "docs_architecture_\u67b6\u6784\u8bf4\u660e",
-      "confidence_score": 1.0
+      "target": "docs_architecture_\u67b6\u6784\u8bf4\u660e"
     },
     {
       "relation": "contains",
@@ -46840,9 +46840,9 @@
       "source_file": "docs/architecture.md",
       "source_location": "L104",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_architecture_\u67b6\u6784\u8bf4\u660e",
-      "target": "docs_architecture_gateway_\u5206\u5c42",
-      "confidence_score": 1.0
+      "target": "docs_architecture_gateway_\u5206\u5c42"
     },
     {
       "relation": "contains",
@@ -46850,9 +46850,9 @@
       "source_file": "docs/architecture.md",
       "source_location": "L182",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_architecture_\u67b6\u6784\u8bf4\u660e",
-      "target": "docs_architecture_\u4e2d\u95f4\u4ef6",
-      "confidence_score": 1.0
+      "target": "docs_architecture_\u4e2d\u95f4\u4ef6"
     },
     {
       "relation": "contains",
@@ -46860,9 +46860,9 @@
       "source_file": "docs/architecture.md",
       "source_location": "L138",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_architecture_\u67b6\u6784\u8bf4\u660e",
-      "target": "docs_architecture_\u516c\u5171\u5305",
-      "confidence_score": 1.0
+      "target": "docs_architecture_\u516c\u5171\u5305"
     },
     {
       "relation": "contains",
@@ -46870,9 +46870,9 @@
       "source_file": "docs/architecture.md",
       "source_location": "L193",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_architecture_\u67b6\u6784\u8bf4\u660e",
-      "target": "docs_architecture_\u5916\u90e8\u7ec4\u4ef6\u5c01\u88c5",
-      "confidence_score": 1.0
+      "target": "docs_architecture_\u5916\u90e8\u7ec4\u4ef6\u5c01\u88c5"
     },
     {
       "relation": "contains",
@@ -46880,9 +46880,9 @@
       "source_file": "docs/architecture.md",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_architecture_\u67b6\u6784\u8bf4\u660e",
-      "target": "docs_architecture_\u603b\u4f53\u67b6\u6784",
-      "confidence_score": 1.0
+      "target": "docs_architecture_\u603b\u4f53\u67b6\u6784"
     },
     {
       "relation": "contains",
@@ -46890,9 +46890,9 @@
       "source_file": "docs/architecture.md",
       "source_location": "L237",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_architecture_\u67b6\u6784\u8bf4\u660e",
-      "target": "docs_architecture_\u6269\u5c55\u65b0\u670d\u52a1",
-      "confidence_score": 1.0
+      "target": "docs_architecture_\u6269\u5c55\u65b0\u670d\u52a1"
     },
     {
       "relation": "contains",
@@ -46900,9 +46900,9 @@
       "source_file": "docs/architecture.md",
       "source_location": "L158",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_architecture_\u67b6\u6784\u8bf4\u660e",
-      "target": "docs_architecture_\u65e5\u5fd7\u8bbe\u8ba1",
-      "confidence_score": 1.0
+      "target": "docs_architecture_\u65e5\u5fd7\u8bbe\u8ba1"
     },
     {
       "relation": "contains",
@@ -46910,9 +46910,9 @@
       "source_file": "docs/architecture.md",
       "source_location": "L40",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_architecture_\u67b6\u6784\u8bf4\u660e",
-      "target": "docs_architecture_\u670d\u52a1\u5185\u5206\u5c42",
-      "confidence_score": 1.0
+      "target": "docs_architecture_\u670d\u52a1\u5185\u5206\u5c42"
     },
     {
       "relation": "contains",
@@ -46920,9 +46920,9 @@
       "source_file": "docs/architecture.md",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_architecture_\u67b6\u6784\u8bf4\u660e",
-      "target": "docs_architecture_\u76ee\u6807",
-      "confidence_score": 1.0
+      "target": "docs_architecture_\u76ee\u6807"
     },
     {
       "relation": "contains",
@@ -46930,9 +46930,9 @@
       "source_file": "docs/architecture.md",
       "source_location": "L42",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_architecture_\u670d\u52a1\u5185\u5206\u5c42",
-      "target": "docs_architecture_entity",
-      "confidence_score": 1.0
+      "target": "docs_architecture_entity"
     },
     {
       "relation": "contains",
@@ -46940,9 +46940,9 @@
       "source_file": "docs/architecture.md",
       "source_location": "L93",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_architecture_\u670d\u52a1\u5185\u5206\u5c42",
-      "target": "docs_architecture_handler",
-      "confidence_score": 1.0
+      "target": "docs_architecture_handler"
     },
     {
       "relation": "contains",
@@ -46950,9 +46950,9 @@
       "source_file": "docs/architecture.md",
       "source_location": "L72",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_architecture_\u670d\u52a1\u5185\u5206\u5c42",
-      "target": "docs_architecture_model",
-      "confidence_score": 1.0
+      "target": "docs_architecture_model"
     },
     {
       "relation": "contains",
@@ -46960,9 +46960,9 @@
       "source_file": "docs/architecture.md",
       "source_location": "L83",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_architecture_\u670d\u52a1\u5185\u5206\u5c42",
-      "target": "docs_architecture_repo",
-      "confidence_score": 1.0
+      "target": "docs_architecture_repo"
     },
     {
       "relation": "contains",
@@ -46970,9 +46970,9 @@
       "source_file": "docs/architecture.md",
       "source_location": "L53",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_architecture_\u670d\u52a1\u5185\u5206\u5c42",
-      "target": "docs_architecture_service",
-      "confidence_score": 1.0
+      "target": "docs_architecture_service"
     },
     {
       "relation": "contains",
@@ -46980,9 +46980,9 @@
       "source_file": "docs/elasticsearch.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_elasticsearch",
-      "target": "docs_elasticsearch_elasticsearch_\u8c03\u7528\u793a\u4f8b",
-      "confidence_score": 1.0
+      "target": "docs_elasticsearch_elasticsearch_\u8c03\u7528\u793a\u4f8b"
     },
     {
       "relation": "contains",
@@ -46990,9 +46990,9 @@
       "source_file": "docs/elasticsearch.md",
       "source_location": "L148",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_elasticsearch_elasticsearch_\u8c03\u7528\u793a\u4f8b",
-      "target": "docs_elasticsearch_mysql_\u540c\u6b65\u5230_es",
-      "confidence_score": 1.0
+      "target": "docs_elasticsearch_mysql_\u540c\u6b65\u5230_es"
     },
     {
       "relation": "contains",
@@ -47000,9 +47000,9 @@
       "source_file": "docs/elasticsearch.md",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_elasticsearch_elasticsearch_\u8c03\u7528\u793a\u4f8b",
-      "target": "docs_elasticsearch_\u521d\u59cb\u5316",
-      "confidence_score": 1.0
+      "target": "docs_elasticsearch_\u521d\u59cb\u5316"
     },
     {
       "relation": "contains",
@@ -47010,9 +47010,9 @@
       "source_file": "docs/elasticsearch.md",
       "source_location": "L42",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_elasticsearch_elasticsearch_\u8c03\u7528\u793a\u4f8b",
-      "target": "docs_elasticsearch_\u6a21\u7cca\u641c\u7d22\u548c\u9ad8\u4eae",
-      "confidence_score": 1.0
+      "target": "docs_elasticsearch_\u6a21\u7cca\u641c\u7d22\u548c\u9ad8\u4eae"
     },
     {
       "relation": "contains",
@@ -47020,9 +47020,9 @@
       "source_file": "docs/elasticsearch.md",
       "source_location": "L107",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_elasticsearch_elasticsearch_\u8c03\u7528\u793a\u4f8b",
-      "target": "docs_elasticsearch_\u805a\u5408\u67e5\u8be2",
-      "confidence_score": 1.0
+      "target": "docs_elasticsearch_\u805a\u5408\u67e5\u8be2"
     },
     {
       "relation": "contains",
@@ -47030,9 +47030,9 @@
       "source_file": "docs/elasticsearch.md",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_elasticsearch_elasticsearch_\u8c03\u7528\u793a\u4f8b",
-      "target": "docs_elasticsearch_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_elasticsearch_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -47040,9 +47040,9 @@
       "source_file": "docs/elasticsearch.md",
       "source_location": "L195",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_elasticsearch_mysql_\u540c\u6b65\u5230_es",
-      "target": "docs_elasticsearch_bulk_\u5199\u5165_es",
-      "confidence_score": 1.0
+      "target": "docs_elasticsearch_bulk_\u5199\u5165_es"
     },
     {
       "relation": "contains",
@@ -47050,9 +47050,9 @@
       "source_file": "docs/elasticsearch.md",
       "source_location": "L180",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_elasticsearch_mysql_\u540c\u6b65\u5230_es",
-      "target": "docs_elasticsearch_\u589e\u91cf\u626b\u63cf",
-      "confidence_score": 1.0
+      "target": "docs_elasticsearch_\u589e\u91cf\u626b\u63cf"
     },
     {
       "relation": "contains",
@@ -47060,9 +47060,9 @@
       "source_file": "docs/elasticsearch.md",
       "source_location": "L157",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_elasticsearch_mysql_\u540c\u6b65\u5230_es",
-      "target": "docs_elasticsearch_\u6570\u636e\u7ed3\u6784",
-      "confidence_score": 1.0
+      "target": "docs_elasticsearch_\u6570\u636e\u7ed3\u6784"
     },
     {
       "relation": "contains",
@@ -47070,9 +47070,9 @@
       "source_file": "docs/elasticsearch.md",
       "source_location": "L246",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_elasticsearch_mysql_\u540c\u6b65\u5230_es",
-      "target": "docs_elasticsearch_\u6e38\u6807\u4fdd\u5b58",
-      "confidence_score": 1.0
+      "target": "docs_elasticsearch_\u6e38\u6807\u4fdd\u5b58"
     },
     {
       "relation": "contains",
@@ -47080,9 +47080,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples",
-      "target": "docs_mongo_call_examples_mongodb_\u8c03\u7528\u793a\u4f8b\u5168\u6d41\u7a0b",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_mongodb_\u8c03\u7528\u793a\u4f8b\u5168\u6d41\u7a0b"
     },
     {
       "relation": "contains",
@@ -47090,9 +47090,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L582",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_mongodb_\u8c03\u7528\u793a\u4f8b\u5168\u6d41\u7a0b",
-      "target": "docs_mongo_call_examples_10_\u5355\u5143\u6d4b\u8bd5\u600e\u4e48\u5199",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_10_\u5355\u5143\u6d4b\u8bd5\u600e\u4e48\u5199"
     },
     {
       "relation": "contains",
@@ -47100,9 +47100,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L618",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_mongodb_\u8c03\u7528\u793a\u4f8b\u5168\u6d41\u7a0b",
-      "target": "docs_mongo_call_examples_11_\u672c\u5730\u771f\u5b9e_mongodb_\u8054\u8c03",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_11_\u672c\u5730\u771f\u5b9e_mongodb_\u8054\u8c03"
     },
     {
       "relation": "contains",
@@ -47110,9 +47110,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L632",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_mongodb_\u8c03\u7528\u793a\u4f8b\u5168\u6d41\u7a0b",
-      "target": "docs_mongo_call_examples_12_\u5e38\u89c1\u9519\u8bef",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_12_\u5e38\u89c1\u9519\u8bef"
     },
     {
       "relation": "contains",
@@ -47120,9 +47120,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L697",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_mongodb_\u8c03\u7528\u793a\u4f8b\u5168\u6d41\u7a0b",
-      "target": "docs_mongo_call_examples_13_\u63a8\u8350\u843d\u5730\u6e05\u5355",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_13_\u63a8\u8350\u843d\u5730\u6e05\u5355"
     },
     {
       "relation": "contains",
@@ -47130,9 +47130,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_mongodb_\u8c03\u7528\u793a\u4f8b\u5168\u6d41\u7a0b",
-      "target": "docs_mongo_call_examples_1_\u8c03\u7528\u89c4\u5219",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_1_\u8c03\u7528\u89c4\u5219"
     },
     {
       "relation": "contains",
@@ -47140,9 +47140,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L37",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_mongodb_\u8c03\u7528\u793a\u4f8b\u5168\u6d41\u7a0b",
-      "target": "docs_mongo_call_examples_2_\u914d\u7f6e_mongodb",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_2_\u914d\u7f6e_mongodb"
     },
     {
       "relation": "contains",
@@ -47150,9 +47150,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L67",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_mongodb_\u8c03\u7528\u793a\u4f8b\u5168\u6d41\u7a0b",
-      "target": "docs_mongo_call_examples_3_\u670d\u52a1\u542f\u52a8\u65f6\u521d\u59cb\u5316_mongodb",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_3_\u670d\u52a1\u542f\u52a8\u65f6\u521d\u59cb\u5316_mongodb"
     },
     {
       "relation": "contains",
@@ -47160,9 +47160,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L117",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_mongodb_\u8c03\u7528\u793a\u4f8b\u5168\u6d41\u7a0b",
-      "target": "docs_mongo_call_examples_4_\u516c\u5171\u64cd\u4f5c\u7c7b\u600e\u4e48\u7528",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_4_\u516c\u5171\u64cd\u4f5c\u7c7b\u600e\u4e48\u7528"
     },
     {
       "relation": "contains",
@@ -47170,9 +47170,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L165",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_mongodb_\u8c03\u7528\u793a\u4f8b\u5168\u6d41\u7a0b",
-      "target": "docs_mongo_call_examples_5_\u793a\u4f8b\u4e00_note_\u670d\u52a1\u4fdd\u5b58\u7b14\u8bb0\u5230_mongodb",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_5_\u793a\u4f8b\u4e00_note_\u670d\u52a1\u4fdd\u5b58\u7b14\u8bb0\u5230_mongodb"
     },
     {
       "relation": "contains",
@@ -47180,9 +47180,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L282",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_mongodb_\u8c03\u7528\u793a\u4f8b\u5168\u6d41\u7a0b",
-      "target": "docs_mongo_call_examples_6_\u793a\u4f8b\u4e8c_order_\u670d\u52a1\u6539\u6210_mongodb_crud",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_6_\u793a\u4f8b\u4e8c_order_\u670d\u52a1\u6539\u6210_mongodb_crud"
     },
     {
       "relation": "contains",
@@ -47190,9 +47190,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L433",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_mongodb_\u8c03\u7528\u793a\u4f8b\u5168\u6d41\u7a0b",
-      "target": "docs_mongo_call_examples_7_\u793a\u4f8b\u4e09_audit_\u670d\u52a1\u5199\u64cd\u4f5c\u65e5\u5fd7",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_7_\u793a\u4f8b\u4e09_audit_\u670d\u52a1\u5199\u64cd\u4f5c\u65e5\u5fd7"
     },
     {
       "relation": "contains",
@@ -47200,9 +47200,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L509",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_mongodb_\u8c03\u7528\u793a\u4f8b\u5168\u6d41\u7a0b",
-      "target": "docs_mongo_call_examples_8_\u591a\u670d\u52a1\u8c03\u7528_mongodb_\u7684\u63a8\u8350\u65b9\u5f0f",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_8_\u591a\u670d\u52a1\u8c03\u7528_mongodb_\u7684\u63a8\u8350\u65b9\u5f0f"
     },
     {
       "relation": "contains",
@@ -47210,9 +47210,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L546",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_mongodb_\u8c03\u7528\u793a\u4f8b\u5168\u6d41\u7a0b",
-      "target": "docs_mongo_call_examples_9_\u7d22\u5f15\u5728\u54ea\u91cc\u521b\u5efa",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_9_\u7d22\u5f15\u5728\u54ea\u91cc\u521b\u5efa"
     },
     {
       "relation": "contains",
@@ -47220,9 +47220,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L178",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_5_\u793a\u4f8b\u4e00_note_\u670d\u52a1\u4fdd\u5b58\u7b14\u8bb0\u5230_mongodb",
-      "target": "docs_mongo_call_examples_5_1_entity_\u5c42\u5b9a\u4e49\u4ed3\u50a8\u63a5\u53e3",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_5_1_entity_\u5c42\u5b9a\u4e49\u4ed3\u50a8\u63a5\u53e3"
     },
     {
       "relation": "contains",
@@ -47230,9 +47230,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L212",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_5_\u793a\u4f8b\u4e00_note_\u670d\u52a1\u4fdd\u5b58\u7b14\u8bb0\u5230_mongodb",
-      "target": "docs_mongo_call_examples_5_2_model_\u5c42\u5b9a\u4e49_mongodb_\u6587\u6863",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_5_2_model_\u5c42\u5b9a\u4e49_mongodb_\u6587\u6863"
     },
     {
       "relation": "contains",
@@ -47240,9 +47240,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L241",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_5_\u793a\u4f8b\u4e00_note_\u670d\u52a1\u4fdd\u5b58\u7b14\u8bb0\u5230_mongodb",
-      "target": "docs_mongo_call_examples_5_3_repo_\u5c42\u8c03\u7528\u516c\u5171_mongo_\u7c7b\u5e76\u505a\u6620\u5c04",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_5_3_repo_\u5c42\u8c03\u7528\u516c\u5171_mongo_\u7c7b\u5e76\u505a\u6620\u5c04"
     },
     {
       "relation": "contains",
@@ -47250,9 +47250,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L265",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_5_\u793a\u4f8b\u4e00_note_\u670d\u52a1\u4fdd\u5b58\u7b14\u8bb0\u5230_mongodb",
-      "target": "docs_mongo_call_examples_5_4_\u67e5\u8be2\u65f6\u8f6c\u6362\u9519\u8bef",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_5_4_\u67e5\u8be2\u65f6\u8f6c\u6362\u9519\u8bef"
     },
     {
       "relation": "contains",
@@ -47260,9 +47260,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L286",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_6_\u793a\u4f8b\u4e8c_order_\u670d\u52a1\u6539\u6210_mongodb_crud",
-      "target": "docs_mongo_call_examples_6_1_\u4fdd\u6301_entity_\u63a5\u53e3\u4e0d\u53d8",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_6_1_\u4fdd\u6301_entity_\u63a5\u53e3\u4e0d\u53d8"
     },
     {
       "relation": "contains",
@@ -47270,9 +47270,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L299",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_6_\u793a\u4f8b\u4e8c_order_\u670d\u52a1\u6539\u6210_mongodb_crud",
-      "target": "docs_mongo_call_examples_6_2_\u65b0\u589e_mongodb_\u4ed3\u50a8",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_6_2_\u65b0\u589e_mongodb_\u4ed3\u50a8"
     },
     {
       "relation": "contains",
@@ -47280,9 +47280,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L411",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_6_\u793a\u4f8b\u4e8c_order_\u670d\u52a1\u6539\u6210_mongodb_crud",
-      "target": "docs_mongo_call_examples_6_3_\u5728_order_main_\u4e2d\u6ce8\u5165_mongodb_\u4ed3\u50a8",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_6_3_\u5728_order_main_\u4e2d\u6ce8\u5165_mongodb_\u4ed3\u50a8"
     },
     {
       "relation": "contains",
@@ -47290,9 +47290,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L437",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_7_\u793a\u4f8b\u4e09_audit_\u670d\u52a1\u5199\u64cd\u4f5c\u65e5\u5fd7",
-      "target": "docs_mongo_call_examples_7_1_\u6587\u6863\u7ed3\u6784",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_7_1_\u6587\u6863\u7ed3\u6784"
     },
     {
       "relation": "contains",
@@ -47300,9 +47300,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L457",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_7_\u793a\u4f8b\u4e09_audit_\u670d\u52a1\u5199\u64cd\u4f5c\u65e5\u5fd7",
-      "target": "docs_mongo_call_examples_7_2_\u5199\u5165\u5ba1\u8ba1\u4e8b\u4ef6",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_7_2_\u5199\u5165\u5ba1\u8ba1\u4e8b\u4ef6"
     },
     {
       "relation": "contains",
@@ -47310,9 +47310,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L485",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_7_\u793a\u4f8b\u4e09_audit_\u670d\u52a1\u5199\u64cd\u4f5c\u65e5\u5fd7",
-      "target": "docs_mongo_call_examples_7_3_\u67e5\u8be2\u67d0\u4e2a\u8d44\u6e90\u7684\u5ba1\u8ba1\u65e5\u5fd7",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_7_3_\u67e5\u8be2\u67d0\u4e2a\u8d44\u6e90\u7684\u5ba1\u8ba1\u65e5\u5fd7"
     },
     {
       "relation": "contains",
@@ -47320,9 +47320,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L511",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_8_\u591a\u670d\u52a1\u8c03\u7528_mongodb_\u7684\u63a8\u8350\u65b9\u5f0f",
-      "target": "docs_mongo_call_examples_8_1_\u6bcf\u4e2a\u670d\u52a1\u72ec\u7acb\u8fdb\u7a0b",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_8_1_\u6bcf\u4e2a\u670d\u52a1\u72ec\u7acb\u8fdb\u7a0b"
     },
     {
       "relation": "contains",
@@ -47330,9 +47330,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L523",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_8_\u591a\u670d\u52a1\u8c03\u7528_mongodb_\u7684\u63a8\u8350\u65b9\u5f0f",
-      "target": "docs_mongo_call_examples_8_2_\u5355\u8fdb\u7a0b\u5185\u591a\u4e2a_repo",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_8_2_\u5355\u8fdb\u7a0b\u5185\u591a\u4e2a_repo"
     },
     {
       "relation": "contains",
@@ -47340,9 +47340,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L536",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_8_\u591a\u670d\u52a1\u8c03\u7528_mongodb_\u7684\u63a8\u8350\u65b9\u5f0f",
-      "target": "docs_mongo_call_examples_8_3_\u4e0d\u540c\u670d\u52a1\u4f7f\u7528\u4e0d\u540c_database",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_8_3_\u4e0d\u540c\u670d\u52a1\u4f7f\u7528\u4e0d\u540c_database"
     },
     {
       "relation": "contains",
@@ -47350,9 +47350,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L634",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_12_\u5e38\u89c1\u9519\u8bef",
-      "target": "docs_mongo_call_examples_12_1_\u5728_handler_\u91cc\u76f4\u63a5\u8c03\u7528_mongodb",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_12_1_\u5728_handler_\u91cc\u76f4\u63a5\u8c03\u7528_mongodb"
     },
     {
       "relation": "contains",
@@ -47360,9 +47360,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L659",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_12_\u5e38\u89c1\u9519\u8bef",
-      "target": "docs_mongo_call_examples_12_2_\u5728_service_\u91cc\u76f4\u63a5_new_documentstore",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_12_2_\u5728_service_\u91cc\u76f4\u63a5_new_documentstore"
     },
     {
       "relation": "contains",
@@ -47370,9 +47370,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L673",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_12_\u5e38\u89c1\u9519\u8bef",
-      "target": "docs_mongo_call_examples_12_3_\u628a_bson_tag_\u5199\u5230\u4e1a\u52a1\u5b9e\u4f53\u4e0a",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_12_3_\u628a_bson_tag_\u5199\u5230\u4e1a\u52a1\u5b9e\u4f53\u4e0a"
     },
     {
       "relation": "contains",
@@ -47380,9 +47380,9 @@
       "source_file": "docs/mongo-call-examples.md",
       "source_location": "L685",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongo_call_examples_12_\u5e38\u89c1\u9519\u8bef",
-      "target": "docs_mongo_call_examples_12_4_\u5fd8\u8bb0\u5904\u7406_errnotfound",
-      "confidence_score": 1.0
+      "target": "docs_mongo_call_examples_12_4_\u5fd8\u8bb0\u5904\u7406_errnotfound"
     },
     {
       "relation": "contains",
@@ -47390,9 +47390,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb",
-      "target": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b"
     },
     {
       "relation": "contains",
@@ -47400,9 +47400,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L471",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_10_\u5728\u670d\u52a1\u542f\u52a8\u65f6\u521b\u5efa_mongodb_client",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_10_\u5728\u670d\u52a1\u542f\u52a8\u65f6\u521b\u5efa_mongodb_client"
     },
     {
       "relation": "contains",
@@ -47410,9 +47410,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L542",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_11_ddd_\u4e2d_mongodb_\u4ee3\u7801\u5e94\u8be5\u653e\u5728\u54ea\u91cc",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_11_ddd_\u4e2d_mongodb_\u4ee3\u7801\u5e94\u8be5\u653e\u5728\u54ea\u91cc"
     },
     {
       "relation": "contains",
@@ -47420,9 +47420,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L584",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_12_\u5b9a\u4e49\u6587\u6863\u6a21\u578b",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_12_\u5b9a\u4e49\u6587\u6863\u6a21\u578b"
     },
     {
       "relation": "contains",
@@ -47430,9 +47430,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L621",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_13_\u5728_repo_\u5c42\u9002\u914d_bson_\u7ed3\u6784",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_13_\u5728_repo_\u5c42\u9002\u914d_bson_\u7ed3\u6784"
     },
     {
       "relation": "contains",
@@ -47440,9 +47440,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L672",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_14_\u5b9e\u73b0\u6a21\u578b\u8f6c\u6362",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_14_\u5b9e\u73b0\u6a21\u578b\u8f6c\u6362"
     },
     {
       "relation": "contains",
@@ -47450,9 +47450,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L711",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_15_\u521b\u5efa\u7d22\u5f15",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_15_\u521b\u5efa\u7d22\u5f15"
     },
     {
       "relation": "contains",
@@ -47460,9 +47460,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L746",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_16_\u4fdd\u5b58\u6587\u6863",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_16_\u4fdd\u5b58\u6587\u6863"
     },
     {
       "relation": "contains",
@@ -47470,9 +47470,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L789",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_17_\u6309_note_id_\u67e5\u8be2",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_17_\u6309_note_id_\u67e5\u8be2"
     },
     {
       "relation": "contains",
@@ -47480,9 +47480,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L809",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_18_\u6309\u4f5c\u8005\u5206\u9875\u67e5\u8be2",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_18_\u6309\u4f5c\u8005\u5206\u9875\u67e5\u8be2"
     },
     {
       "relation": "contains",
@@ -47490,9 +47490,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L844",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_19_\u5220\u9664\u6587\u6863",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_19_\u5220\u9664\u6587\u6863"
     },
     {
       "relation": "contains",
@@ -47500,9 +47500,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_1_\u5148\u7406\u89e3_mongodb_\u662f\u4ec0\u4e48",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_1_\u5148\u7406\u89e3_mongodb_\u662f\u4ec0\u4e48"
     },
     {
       "relation": "contains",
@@ -47510,9 +47510,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L863",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_20_\u5728_service_\u5c42\u4f7f\u7528_mongodb_\u4ed3\u50a8",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_20_\u5728_service_\u5c42\u4f7f\u7528_mongodb_\u4ed3\u50a8"
     },
     {
       "relation": "contains",
@@ -47520,9 +47520,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L906",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_21_\u5927\u6570\u636e\u91cf\u5206\u9875_\u6e38\u6807\u5206\u9875",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_21_\u5927\u6570\u636e\u91cf\u5206\u9875_\u6e38\u6807\u5206\u9875"
     },
     {
       "relation": "contains",
@@ -47530,9 +47530,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L946",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_22_mongodb_\u4e8b\u52a1",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_22_mongodb_\u4e8b\u52a1"
     },
     {
       "relation": "contains",
@@ -47540,9 +47540,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L979",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_23_\u5199\u4e00\u4e2a\u96c6\u6210\u6d4b\u8bd5",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_23_\u5199\u4e00\u4e2a\u96c6\u6210\u6d4b\u8bd5"
     },
     {
       "relation": "contains",
@@ -47550,9 +47550,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L1018",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_24_\u5e38\u89c1\u9519\u8bef\u6392\u67e5",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_24_\u5e38\u89c1\u9519\u8bef\u6392\u67e5"
     },
     {
       "relation": "contains",
@@ -47560,9 +47560,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L1087",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_25_\u8bfe\u5802\u7ec3\u4e60",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_25_\u8bfe\u5802\u7ec3\u4e60"
     },
     {
       "relation": "contains",
@@ -47570,9 +47570,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L1124",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_26_\u4e0a\u7ebf\u524d\u68c0\u67e5\u6e05\u5355",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_26_\u4e0a\u7ebf\u524d\u68c0\u67e5\u6e05\u5355"
     },
     {
       "relation": "contains",
@@ -47580,9 +47580,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L1138",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_27_\u5b66\u4e60\u8def\u7ebf\u603b\u7ed3",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_27_\u5b66\u4e60\u8def\u7ebf\u603b\u7ed3"
     },
     {
       "relation": "contains",
@@ -47590,9 +47590,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L66",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_2_\u4ec0\u4e48\u65f6\u5019\u9002\u5408\u7528_mongodb",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_2_\u4ec0\u4e48\u65f6\u5019\u9002\u5408\u7528_mongodb"
     },
     {
       "relation": "contains",
@@ -47600,9 +47600,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L93",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_3_\u51c6\u5907\u73af\u5883",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_3_\u51c6\u5907\u73af\u5883"
     },
     {
       "relation": "contains",
@@ -47610,9 +47610,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L137",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_4_\u51c6\u5907_mongodb_\u8fde\u63a5",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_4_\u51c6\u5907_mongodb_\u8fde\u63a5"
     },
     {
       "relation": "contains",
@@ -47620,9 +47620,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L156",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_5_\u4f7f\u7528_mongosh_\u505a\u7b2c\u4e00\u6b21\u8fde\u63a5",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_5_\u4f7f\u7528_mongosh_\u505a\u7b2c\u4e00\u6b21\u8fde\u63a5"
     },
     {
       "relation": "contains",
@@ -47630,9 +47630,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L200",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_6_\u7528_mongosh_\u5b66\u4f1a\u57fa\u7840_crud",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_6_\u7528_mongosh_\u5b66\u4f1a\u57fa\u7840_crud"
     },
     {
       "relation": "contains",
@@ -47640,9 +47640,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L307",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_7_\u7406\u89e3\u7d22\u5f15",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_7_\u7406\u89e3\u7d22\u5f15"
     },
     {
       "relation": "contains",
@@ -47650,9 +47650,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L361",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_8_\u811a\u624b\u67b6\u4e2d\u7684_mongodb_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_8_\u811a\u624b\u67b6\u4e2d\u7684_mongodb_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -47660,9 +47660,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L394",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_mongodb_\u4ece_0_\u5230_1_\u6559\u5b66\u6559\u7a0b",
-      "target": "docs_mongodb_9_\u811a\u624b\u67b6\u5185\u7f6e\u7684_mongox_\u5305",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_9_\u811a\u624b\u67b6\u5185\u7f6e\u7684_mongox_\u5305"
     },
     {
       "relation": "contains",
@@ -47670,9 +47670,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L95",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_3_\u51c6\u5907\u73af\u5883",
-      "target": "docs_mongodb_3_1_\u68c0\u67e5_go",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_3_1_\u68c0\u67e5_go"
     },
     {
       "relation": "contains",
@@ -47680,9 +47680,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L107",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_3_\u51c6\u5907\u73af\u5883",
-      "target": "docs_mongodb_3_2_\u68c0\u67e5_bw_cli_\u9879\u76ee",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_3_2_\u68c0\u67e5_bw_cli_\u9879\u76ee"
     },
     {
       "relation": "contains",
@@ -47690,9 +47690,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L204",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_6_\u7528_mongosh_\u5b66\u4f1a\u57fa\u7840_crud",
-      "target": "docs_mongodb_6_1_\u63d2\u5165\u4e00\u6761\u6587\u6863",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_6_1_\u63d2\u5165\u4e00\u6761\u6587\u6863"
     },
     {
       "relation": "contains",
@@ -47700,9 +47700,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L225",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_6_\u7528_mongosh_\u5b66\u4f1a\u57fa\u7840_crud",
-      "target": "docs_mongodb_6_2_\u67e5\u8be2\u5168\u90e8\u6587\u6863",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_6_2_\u67e5\u8be2\u5168\u90e8\u6587\u6863"
     },
     {
       "relation": "contains",
@@ -47710,9 +47710,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L237",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_6_\u7528_mongosh_\u5b66\u4f1a\u57fa\u7840_crud",
-      "target": "docs_mongodb_6_3_\u6309\u5b57\u6bb5\u67e5\u8be2",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_6_3_\u6309\u5b57\u6bb5\u67e5\u8be2"
     },
     {
       "relation": "contains",
@@ -47720,9 +47720,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L249",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_6_\u7528_mongosh_\u5b66\u4f1a\u57fa\u7840_crud",
-      "target": "docs_mongodb_6_4_\u66f4\u65b0\u6587\u6863",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_6_4_\u66f4\u65b0\u6587\u6863"
     },
     {
       "relation": "contains",
@@ -47730,9 +47730,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L269",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_6_\u7528_mongosh_\u5b66\u4f1a\u57fa\u7840_crud",
-      "target": "docs_mongodb_6_5_\u4e0d\u5b58\u5728\u5219\u63d2\u5165",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_6_5_\u4e0d\u5b58\u5728\u5219\u63d2\u5165"
     },
     {
       "relation": "contains",
@@ -47740,9 +47740,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L295",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_6_\u7528_mongosh_\u5b66\u4f1a\u57fa\u7840_crud",
-      "target": "docs_mongodb_6_6_\u5220\u9664\u6587\u6863",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_6_6_\u5220\u9664\u6587\u6863"
     },
     {
       "relation": "contains",
@@ -47750,9 +47750,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L301",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_6_\u7528_mongosh_\u5b66\u4f1a\u57fa\u7840_crud",
-      "target": "docs_mongodb_6_7_\u7edf\u8ba1\u6570\u91cf",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_6_7_\u7edf\u8ba1\u6570\u91cf"
     },
     {
       "relation": "contains",
@@ -47760,9 +47760,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L311",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_7_\u7406\u89e3\u7d22\u5f15",
-      "target": "docs_mongodb_7_1_\u521b\u5efa\u552f\u4e00\u7d22\u5f15",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_7_1_\u521b\u5efa\u552f\u4e00\u7d22\u5f15"
     },
     {
       "relation": "contains",
@@ -47770,9 +47770,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L322",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_7_\u7406\u89e3\u7d22\u5f15",
-      "target": "docs_mongodb_7_2_\u521b\u5efa\u7ec4\u5408\u7d22\u5f15",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_7_2_\u521b\u5efa\u7ec4\u5408\u7d22\u5f15"
     },
     {
       "relation": "contains",
@@ -47780,9 +47780,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L339",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_7_\u7406\u89e3\u7d22\u5f15",
-      "target": "docs_mongodb_7_3_\u67e5\u770b\u7d22\u5f15",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_7_3_\u67e5\u770b\u7d22\u5f15"
     },
     {
       "relation": "contains",
@@ -47790,9 +47790,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L345",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_7_\u7406\u89e3\u7d22\u5f15",
-      "target": "docs_mongodb_7_4_\u770b\u67e5\u8be2\u662f\u5426\u547d\u4e2d\u7d22\u5f15",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_7_4_\u770b\u67e5\u8be2\u662f\u5426\u547d\u4e2d\u7d22\u5f15"
     },
     {
       "relation": "contains",
@@ -47800,9 +47800,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L1020",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_24_\u5e38\u89c1\u9519\u8bef\u6392\u67e5",
-      "target": "docs_mongodb_24_1_server_selection_timeout",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_24_1_server_selection_timeout"
     },
     {
       "relation": "contains",
@@ -47810,9 +47810,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L1035",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_24_\u5e38\u89c1\u9519\u8bef\u6392\u67e5",
-      "target": "docs_mongodb_24_2_authentication_failed",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_24_2_authentication_failed"
     },
     {
       "relation": "contains",
@@ -47820,9 +47820,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L1044",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_24_\u5e38\u89c1\u9519\u8bef\u6392\u67e5",
-      "target": "docs_mongodb_24_3_no_documents_in_result",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_24_3_no_documents_in_result"
     },
     {
       "relation": "contains",
@@ -47830,9 +47830,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L1060",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_24_\u5e38\u89c1\u9519\u8bef\u6392\u67e5",
-      "target": "docs_mongodb_24_4_cursor_\u6cc4\u6f0f",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_24_4_cursor_\u6cc4\u6f0f"
     },
     {
       "relation": "contains",
@@ -47840,9 +47840,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L1068",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_24_\u5e38\u89c1\u9519\u8bef\u6392\u67e5",
-      "target": "docs_mongodb_24_5_\u6bcf\u6b21\u8bf7\u6c42\u90fd\u521b\u5efa_client",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_24_5_\u6bcf\u6b21\u8bf7\u6c42\u90fd\u521b\u5efa_client"
     },
     {
       "relation": "contains",
@@ -47850,9 +47850,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L1077",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_24_\u5e38\u89c1\u9519\u8bef\u6392\u67e5",
-      "target": "docs_mongodb_24_6_\u67e5\u8be2\u6162",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_24_6_\u67e5\u8be2\u6162"
     },
     {
       "relation": "contains",
@@ -47860,9 +47860,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L1089",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_25_\u8bfe\u5802\u7ec3\u4e60",
-      "target": "docs_mongodb_\u7ec3\u4e60_1_\u547d\u4ee4\u884c_crud",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_\u7ec3\u4e60_1_\u547d\u4ee4\u884c_crud"
     },
     {
       "relation": "contains",
@@ -47870,9 +47870,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L1098",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_25_\u8bfe\u5802\u7ec3\u4e60",
-      "target": "docs_mongodb_\u7ec3\u4e60_2_\u521b\u5efa\u7d22\u5f15\u5e76\u5206\u6790\u67e5\u8be2",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_\u7ec3\u4e60_2_\u521b\u5efa\u7d22\u5f15\u5e76\u5206\u6790\u67e5\u8be2"
     },
     {
       "relation": "contains",
@@ -47880,9 +47880,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L1106",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_25_\u8bfe\u5802\u7ec3\u4e60",
-      "target": "docs_mongodb_\u7ec3\u4e60_3_\u5728_go_\u4e2d\u4fdd\u5b58\u7b14\u8bb0\u6587\u6863",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_\u7ec3\u4e60_3_\u5728_go_\u4e2d\u4fdd\u5b58\u7b14\u8bb0\u6587\u6863"
     },
     {
       "relation": "contains",
@@ -47890,9 +47890,9 @@
       "source_file": "docs/mongodb.md",
       "source_location": "L1115",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_mongodb_25_\u8bfe\u5802\u7ec3\u4e60",
-      "target": "docs_mongodb_\u7ec3\u4e60_4_\u5b9e\u73b0\u5206\u9875\u67e5\u8be2",
-      "confidence_score": 1.0
+      "target": "docs_mongodb_\u7ec3\u4e60_4_\u5b9e\u73b0\u5206\u9875\u67e5\u8be2"
     },
     {
       "relation": "contains",
@@ -47900,9 +47900,9 @@
       "source_file": "docs/nacos.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_nacos",
-      "target": "docs_nacos_nacos_\u914d\u7f6e\u4e2d\u5fc3\u4f7f\u7528\u8bf4\u660e",
-      "confidence_score": 1.0
+      "target": "docs_nacos_nacos_\u914d\u7f6e\u4e2d\u5fc3\u4f7f\u7528\u8bf4\u660e"
     },
     {
       "relation": "contains",
@@ -47910,9 +47910,9 @@
       "source_file": "docs/nacos.md",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_nacos_nacos_\u914d\u7f6e\u4e2d\u5fc3\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_nacos_1_\u914d\u7f6e\u6765\u6e90\u89c4\u5219",
-      "confidence_score": 1.0
+      "target": "docs_nacos_1_\u914d\u7f6e\u6765\u6e90\u89c4\u5219"
     },
     {
       "relation": "contains",
@@ -47920,9 +47920,9 @@
       "source_file": "docs/nacos.md",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_nacos_nacos_\u914d\u7f6e\u4e2d\u5fc3\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_nacos_2_nacos_\u5f00\u5173\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_nacos_2_nacos_\u5f00\u5173\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -47930,9 +47930,9 @@
       "source_file": "docs/nacos.md",
       "source_location": "L61",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_nacos_nacos_\u914d\u7f6e\u4e2d\u5fc3\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_nacos_3_\u5728_nacos_\u4e2d\u521b\u5efa\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_nacos_3_\u5728_nacos_\u4e2d\u521b\u5efa\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -47940,9 +47940,9 @@
       "source_file": "docs/nacos.md",
       "source_location": "L104",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_nacos_nacos_\u914d\u7f6e\u4e2d\u5fc3\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_nacos_4_\u542f\u7528_nacos",
-      "confidence_score": 1.0
+      "target": "docs_nacos_4_\u542f\u7528_nacos"
     },
     {
       "relation": "contains",
@@ -47950,9 +47950,9 @@
       "source_file": "docs/nacos.md",
       "source_location": "L135",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_nacos_nacos_\u914d\u7f6e\u4e2d\u5fc3\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_nacos_5_\u672c\u5730\u5f00\u53d1\u548c\u751f\u4ea7\u5efa\u8bae",
-      "confidence_score": 1.0
+      "target": "docs_nacos_5_\u672c\u5730\u5f00\u53d1\u548c\u751f\u4ea7\u5efa\u8bae"
     },
     {
       "relation": "contains",
@@ -47960,9 +47960,9 @@
       "source_file": "docs/nacos.md",
       "source_location": "L155",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_nacos_nacos_\u914d\u7f6e\u4e2d\u5fc3\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_nacos_6_\u4e0d\u9700\u8981\u4fee\u6539_config_\u7ed3\u6784\u4f53",
-      "confidence_score": 1.0
+      "target": "docs_nacos_6_\u4e0d\u9700\u8981\u4fee\u6539_config_\u7ed3\u6784\u4f53"
     },
     {
       "relation": "contains",
@@ -47970,9 +47970,9 @@
       "source_file": "docs/nacos.md",
       "source_location": "L167",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_nacos_nacos_\u914d\u7f6e\u4e2d\u5fc3\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_nacos_7_\u6392\u67e5",
-      "confidence_score": 1.0
+      "target": "docs_nacos_7_\u6392\u67e5"
     },
     {
       "relation": "contains",
@@ -47980,9 +47980,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding",
-      "target": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599"
     },
     {
       "relation": "contains",
@@ -47990,9 +47990,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L272",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "target": "docs_onboarding_10_\u5f00\u53d1\u6d41\u7a0b",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_10_\u5f00\u53d1\u6d41\u7a0b"
     },
     {
       "relation": "contains",
@@ -48000,9 +48000,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L347",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "target": "docs_onboarding_11_\u6d4b\u8bd5\u4e0e\u8d28\u91cf\u95e8\u7981",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_11_\u6d4b\u8bd5\u4e0e\u8d28\u91cf\u95e8\u7981"
     },
     {
       "relation": "contains",
@@ -48010,9 +48010,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L371",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "target": "docs_onboarding_12_\u547d\u540d\u4e0e\u4ee3\u7801\u7ea6\u5b9a",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_12_\u547d\u540d\u4e0e\u4ee3\u7801\u7ea6\u5b9a"
     },
     {
       "relation": "contains",
@@ -48020,9 +48020,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L383",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "target": "docs_onboarding_13_git_\u7ea6\u5b9a",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_13_git_\u7ea6\u5b9a"
     },
     {
       "relation": "contains",
@@ -48030,9 +48030,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L401",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "target": "docs_onboarding_14_\u9879\u76ee\u8d44\u6599\u5165\u53e3",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_14_\u9879\u76ee\u8d44\u6599\u5165\u53e3"
     },
     {
       "relation": "contains",
@@ -48040,9 +48040,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L416",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "target": "docs_onboarding_15_\u5f53\u524d\u5df2\u77e5\u6ce8\u610f\u70b9",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_15_\u5f53\u524d\u5df2\u77e5\u6ce8\u610f\u70b9"
     },
     {
       "relation": "contains",
@@ -48050,9 +48050,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "target": "docs_onboarding_1_\u9879\u76ee\u5b9a\u4f4d",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_1_\u9879\u76ee\u5b9a\u4f4d"
     },
     {
       "relation": "contains",
@@ -48060,9 +48060,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "target": "docs_onboarding_2_\u6280\u672f\u6808",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_2_\u6280\u672f\u6808"
     },
     {
       "relation": "contains",
@@ -48070,9 +48070,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "target": "docs_onboarding_3_\u603b\u4f53\u67b6\u6784",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_3_\u603b\u4f53\u67b6\u6784"
     },
     {
       "relation": "contains",
@@ -48080,9 +48080,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L69",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "target": "docs_onboarding_4_\u5173\u952e\u76ee\u5f55",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_4_\u5173\u952e\u76ee\u5f55"
     },
     {
       "relation": "contains",
@@ -48090,9 +48090,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L92",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "target": "docs_onboarding_5_\u670d\u52a1\u5185\u5206\u5c42\u7ea6\u5b9a",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_5_\u670d\u52a1\u5185\u5206\u5c42\u7ea6\u5b9a"
     },
     {
       "relation": "contains",
@@ -48100,9 +48100,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L112",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "target": "docs_onboarding_6_http_\u63a5\u53e3\u6587\u6863",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_6_http_\u63a5\u53e3\u6587\u6863"
     },
     {
       "relation": "contains",
@@ -48110,9 +48110,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L179",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "target": "docs_onboarding_7_grpc_\u5951\u7ea6",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_7_grpc_\u5951\u7ea6"
     },
     {
       "relation": "contains",
@@ -48120,9 +48120,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L196",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "target": "docs_onboarding_8_\u8bf7\u6c42\u751f\u547d\u5468\u671f",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_8_\u8bf7\u6c42\u751f\u547d\u5468\u671f"
     },
     {
       "relation": "contains",
@@ -48130,9 +48130,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L256",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_\u9879\u76ee\u5165\u95e8\u8d44\u6599",
-      "target": "docs_onboarding_9_\u914d\u7f6e\u4e0e\u8fd0\u884c\u65f6",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_9_\u914d\u7f6e\u4e0e\u8fd0\u884c\u65f6"
     },
     {
       "relation": "contains",
@@ -48140,9 +48140,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L157",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_6_http_\u63a5\u53e3\u6587\u6863",
-      "target": "docs_onboarding_note_api",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_note_api"
     },
     {
       "relation": "contains",
@@ -48150,9 +48150,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L167",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_6_http_\u63a5\u53e3\u6587\u6863",
-      "target": "docs_onboarding_order_api",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_order_api"
     },
     {
       "relation": "contains",
@@ -48160,9 +48160,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L133",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_6_http_\u63a5\u53e3\u6587\u6863",
-      "target": "docs_onboarding_user_api",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_user_api"
     },
     {
       "relation": "contains",
@@ -48170,9 +48170,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L127",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_6_http_\u63a5\u53e3\u6587\u6863",
-      "target": "docs_onboarding_\u5065\u5eb7\u68c0\u67e5",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_\u5065\u5eb7\u68c0\u67e5"
     },
     {
       "relation": "contains",
@@ -48180,9 +48180,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L231",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_8_\u8bf7\u6c42\u751f\u547d\u5468\u671f",
-      "target": "docs_onboarding_\u521b\u5efa\u8ba2\u5355",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_\u521b\u5efa\u8ba2\u5355"
     },
     {
       "relation": "contains",
@@ -48190,9 +48190,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L243",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_8_\u8bf7\u6c42\u751f\u547d\u5468\u671f",
-      "target": "docs_onboarding_\u53d1\u5e03\u7b14\u8bb0",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_\u53d1\u5e03\u7b14\u8bb0"
     },
     {
       "relation": "contains",
@@ -48200,9 +48200,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L198",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_8_\u8bf7\u6c42\u751f\u547d\u5468\u671f",
-      "target": "docs_onboarding_\u6ce8\u518c\u7528\u6237",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_\u6ce8\u518c\u7528\u6237"
     },
     {
       "relation": "contains",
@@ -48210,9 +48210,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L215",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_8_\u8bf7\u6c42\u751f\u547d\u5468\u671f",
-      "target": "docs_onboarding_\u767b\u5f55\u5e76\u8bbf\u95ee\u5f53\u524d\u7528\u6237",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_\u767b\u5f55\u5e76\u8bbf\u95ee\u5f53\u524d\u7528\u6237"
     },
     {
       "relation": "contains",
@@ -48220,9 +48220,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L293",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_10_\u5f00\u53d1\u6d41\u7a0b",
-      "target": "docs_onboarding_\u4f7f\u7528_cli_\u751f\u6210\u9879\u76ee",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_\u4f7f\u7528_cli_\u751f\u6210\u9879\u76ee"
     },
     {
       "relation": "contains",
@@ -48230,9 +48230,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L339",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_10_\u5f00\u53d1\u6d41\u7a0b",
-      "target": "docs_onboarding_\u5220\u9664\u670d\u52a1",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_\u5220\u9664\u670d\u52a1"
     },
     {
       "relation": "contains",
@@ -48240,9 +48240,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L311",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_10_\u5f00\u53d1\u6d41\u7a0b",
-      "target": "docs_onboarding_\u65b0\u589e\u670d\u52a1",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_\u65b0\u589e\u670d\u52a1"
     },
     {
       "relation": "contains",
@@ -48250,9 +48250,9 @@
       "source_file": "docs/onboarding.md",
       "source_location": "L274",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_onboarding_10_\u5f00\u53d1\u6d41\u7a0b",
-      "target": "docs_onboarding_\u672c\u5730\u7ef4\u62a4\u811a\u624b\u67b6",
-      "confidence_score": 1.0
+      "target": "docs_onboarding_\u672c\u5730\u7ef4\u62a4\u811a\u624b\u67b6"
     },
     {
       "relation": "contains",
@@ -48260,9 +48260,9 @@
       "source_file": "docs/services/order.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_order",
-      "target": "services_order_order_\u670d\u52a1\u5f00\u53d1\u8bf4\u660e",
-      "confidence_score": 1.0
+      "target": "services_order_order_\u670d\u52a1\u5f00\u53d1\u8bf4\u660e"
     },
     {
       "relation": "contains",
@@ -48270,9 +48270,9 @@
       "source_file": "docs/services/order.md",
       "source_location": "L96",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_order_order_\u670d\u52a1\u5f00\u53d1\u8bf4\u660e",
-      "target": "services_order_entity_\u5c42",
-      "confidence_score": 1.0
+      "target": "services_order_entity_\u5c42"
     },
     {
       "relation": "contains",
@@ -48280,9 +48280,9 @@
       "source_file": "docs/services/order.md",
       "source_location": "L302",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_order_order_\u670d\u52a1\u5f00\u53d1\u8bf4\u660e",
-      "target": "services_order_gateway_\u5c42",
-      "confidence_score": 1.0
+      "target": "services_order_gateway_\u5c42"
     },
     {
       "relation": "contains",
@@ -48290,9 +48290,9 @@
       "source_file": "docs/services/order.md",
       "source_location": "L290",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_order_order_\u670d\u52a1\u5f00\u53d1\u8bf4\u660e",
-      "target": "services_order_handler_\u5c42",
-      "confidence_score": 1.0
+      "target": "services_order_handler_\u5c42"
     },
     {
       "relation": "contains",
@@ -48300,9 +48300,9 @@
       "source_file": "docs/services/order.md",
       "source_location": "L152",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_order_order_\u670d\u52a1\u5f00\u53d1\u8bf4\u660e",
-      "target": "services_order_model_\u5c42_\u6570\u636e\u5e93\u7ed3\u6784",
-      "confidence_score": 1.0
+      "target": "services_order_model_\u5c42_\u6570\u636e\u5e93\u7ed3\u6784"
     },
     {
       "relation": "contains",
@@ -48310,9 +48310,9 @@
       "source_file": "docs/services/order.md",
       "source_location": "L222",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_order_order_\u670d\u52a1\u5f00\u53d1\u8bf4\u660e",
-      "target": "services_order_repo_\u5c42_\u6570\u636e\u5e93\u5728\u54ea\u91cc\u64cd\u4f5c_\u5982\u4f55\u64cd\u4f5c",
-      "confidence_score": 1.0
+      "target": "services_order_repo_\u5c42_\u6570\u636e\u5e93\u5728\u54ea\u91cc\u64cd\u4f5c_\u5982\u4f55\u64cd\u4f5c"
     },
     {
       "relation": "contains",
@@ -48320,9 +48320,9 @@
       "source_file": "docs/services/order.md",
       "source_location": "L186",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_order_order_\u670d\u52a1\u5f00\u53d1\u8bf4\u660e",
-      "target": "services_order_service_\u5c42",
-      "confidence_score": 1.0
+      "target": "services_order_service_\u5c42"
     },
     {
       "relation": "contains",
@@ -48330,9 +48330,9 @@
       "source_file": "docs/services/order.md",
       "source_location": "L24",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_order_order_\u670d\u52a1\u5f00\u53d1\u8bf4\u660e",
-      "target": "services_order_\u542f\u52a8",
-      "confidence_score": 1.0
+      "target": "services_order_\u542f\u52a8"
     },
     {
       "relation": "contains",
@@ -48340,9 +48340,9 @@
       "source_file": "docs/services/order.md",
       "source_location": "L43",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_order_order_\u670d\u52a1\u5f00\u53d1\u8bf4\u660e",
-      "target": "services_order_\u57fa\u7840_crud",
-      "confidence_score": 1.0
+      "target": "services_order_\u57fa\u7840_crud"
     },
     {
       "relation": "contains",
@@ -48350,9 +48350,9 @@
       "source_file": "docs/services/order.md",
       "source_location": "L67",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_order_order_\u670d\u52a1\u5f00\u53d1\u8bf4\u660e",
-      "target": "services_order_\u5f00\u53d1\u987a\u5e8f",
-      "confidence_score": 1.0
+      "target": "services_order_\u5f00\u53d1\u987a\u5e8f"
     },
     {
       "relation": "contains",
@@ -48360,9 +48360,9 @@
       "source_file": "docs/services/order.md",
       "source_location": "L78",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_order_order_\u670d\u52a1\u5f00\u53d1\u8bf4\u660e",
-      "target": "services_order_\u6bcf\u4e00\u5c42\u600e\u4e48\u5199_\u4e3a\u4ec0\u4e48\u8fd9\u4e48\u5199",
-      "confidence_score": 1.0
+      "target": "services_order_\u6bcf\u4e00\u5c42\u600e\u4e48\u5199_\u4e3a\u4ec0\u4e48\u8fd9\u4e48\u5199"
     },
     {
       "relation": "contains",
@@ -48370,9 +48370,9 @@
       "source_file": "docs/services/order.md",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_order_order_\u670d\u52a1\u5f00\u53d1\u8bf4\u660e",
-      "target": "services_order_\u76ee\u5f55\u7ed3\u6784",
-      "confidence_score": 1.0
+      "target": "services_order_\u76ee\u5f55\u7ed3\u6784"
     },
     {
       "relation": "contains",
@@ -48380,9 +48380,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit",
-      "target": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b"
     },
     {
       "relation": "contains",
@@ -48390,9 +48390,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L321",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_10_redis_pkg_redisx",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_10_redis_pkg_redisx"
     },
     {
       "relation": "contains",
@@ -48400,9 +48400,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L371",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_11_elasticsearch_pkg_esx",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_11_elasticsearch_pkg_esx"
     },
     {
       "relation": "contains",
@@ -48410,9 +48410,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L437",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_12_kafka_pkg_kafkax",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_12_kafka_pkg_kafkax"
     },
     {
       "relation": "contains",
@@ -48420,9 +48420,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L551",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_13_\u6587\u4ef6\u4e0a\u4f20_pkg_filex",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_13_\u6587\u4ef6\u4e0a\u4f20_pkg_filex"
     },
     {
       "relation": "contains",
@@ -48430,9 +48430,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L753",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_14_\u652f\u4ed8\u5b9d\u652f\u4ed8_pkg_alipayx",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_14_\u652f\u4ed8\u5b9d\u652f\u4ed8_pkg_alipayx"
     },
     {
       "relation": "contains",
@@ -48440,9 +48440,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L969",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_15_validator_pkg_validator",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_15_validator_pkg_validator"
     },
     {
       "relation": "contains",
@@ -48450,9 +48450,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L981",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_16_\u811a\u624b\u67b6\u751f\u6210_pkg_scaffold",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_16_\u811a\u624b\u67b6\u751f\u6210_pkg_scaffold"
     },
     {
       "relation": "contains",
@@ -48460,9 +48460,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L1015",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_17_\u65f6\u95f4\u5904\u7406_pkg_timex",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_17_\u65f6\u95f4\u5904\u7406_pkg_timex"
     },
     {
       "relation": "contains",
@@ -48470,9 +48470,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L1052",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_18_\u63a8\u8350\u542f\u52a8\u987a\u5e8f",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_18_\u63a8\u8350\u542f\u52a8\u987a\u5e8f"
     },
     {
       "relation": "contains",
@@ -48480,9 +48480,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_1_\u516c\u5171\u5de5\u5177\u5217\u8868",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_1_\u516c\u5171\u5de5\u5177\u5217\u8868"
     },
     {
       "relation": "contains",
@@ -48490,9 +48490,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L29",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_2_\u5b89\u88c5\u548c\u5f15\u7528",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_2_\u5b89\u88c5\u548c\u5f15\u7528"
     },
     {
       "relation": "contains",
@@ -48500,9 +48500,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L74",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_3_\u914d\u7f6e\u52a0\u8f7d_pkg_config",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_3_\u914d\u7f6e\u52a0\u8f7d_pkg_config"
     },
     {
       "relation": "contains",
@@ -48510,9 +48510,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L92",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_4_\u65e5\u5fd7_pkg_logger",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_4_\u65e5\u5fd7_pkg_logger"
     },
     {
       "relation": "contains",
@@ -48520,9 +48520,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L131",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_5_http_\u4e2d\u95f4\u4ef6_pkg_middleware",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_5_http_\u4e2d\u95f4\u4ef6_pkg_middleware"
     },
     {
       "relation": "contains",
@@ -48530,9 +48530,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L171",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_6_http_\u54cd\u5e94\u548c\u9519\u8bef_pkg_httpx_pkg_errors",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_6_http_\u54cd\u5e94\u548c\u9519\u8bef_pkg_httpx_pkg_errors"
     },
     {
       "relation": "contains",
@@ -48540,9 +48540,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L196",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_7_grpc_\u62e6\u622a\u5668_pkg_grpcx",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_7_grpc_\u62e6\u622a\u5668_pkg_grpcx"
     },
     {
       "relation": "contains",
@@ -48550,9 +48550,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L223",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_8_gorm_\u6570\u636e\u5e93_pkg_database_pkg_mysqlx_pkg_postgresx",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_8_gorm_\u6570\u636e\u5e93_pkg_database_pkg_mysqlx_pkg_postgresx"
     },
     {
       "relation": "contains",
@@ -48560,9 +48560,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L267",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_\u5de5\u5177\u7ec4\u4ef6\u603b\u89c8\u4e0e\u8c03\u7528\u6d41\u7a0b",
-      "target": "docs_toolkit_9_mongodb_pkg_mongox",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_9_mongodb_pkg_mongox"
     },
     {
       "relation": "contains",
@@ -48570,9 +48570,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L576",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_13_\u6587\u4ef6\u4e0a\u4f20_pkg_filex",
-      "target": "docs_toolkit_13_1_\u901a\u7528\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_13_1_\u901a\u7528\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -48580,9 +48580,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L609",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_13_\u6587\u4ef6\u4e0a\u4f20_pkg_filex",
-      "target": "docs_toolkit_13_2_minio_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_13_2_minio_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -48590,9 +48590,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L624",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_13_\u6587\u4ef6\u4e0a\u4f20_pkg_filex",
-      "target": "docs_toolkit_13_3_\u963f\u91cc\u4e91_oss_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_13_3_\u963f\u91cc\u4e91_oss_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -48600,9 +48600,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L637",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_13_\u6587\u4ef6\u4e0a\u4f20_pkg_filex",
-      "target": "docs_toolkit_13_4_\u4e03\u725b\u4e91_kodo_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_13_4_\u4e03\u725b\u4e91_kodo_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -48610,9 +48610,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L652",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_13_\u6587\u4ef6\u4e0a\u4f20_pkg_filex",
-      "target": "docs_toolkit_13_5_\u817e\u8baf\u4e91_cos_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_13_5_\u817e\u8baf\u4e91_cos_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -48620,9 +48620,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L669",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_13_\u6587\u4ef6\u4e0a\u4f20_pkg_filex",
-      "target": "docs_toolkit_13_6_\u76f4\u63a5\u8c03\u7528\u4e0a\u4f20\u63a5\u53e3",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_13_6_\u76f4\u63a5\u8c03\u7528\u4e0a\u4f20\u63a5\u53e3"
     },
     {
       "relation": "contains",
@@ -48630,9 +48630,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L743",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_13_\u6587\u4ef6\u4e0a\u4f20_pkg_filex",
-      "target": "docs_toolkit_13_7_\u4e1a\u52a1\u5c42\u63a8\u8350\u653e\u7f6e\u65b9\u5f0f",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_13_7_\u4e1a\u52a1\u5c42\u63a8\u8350\u653e\u7f6e\u65b9\u5f0f"
     },
     {
       "relation": "contains",
@@ -48640,9 +48640,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L766",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_14_\u652f\u4ed8\u5b9d\u652f\u4ed8_pkg_alipayx",
-      "target": "docs_toolkit_14_1_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_14_1_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -48650,9 +48650,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L798",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_14_\u652f\u4ed8\u5b9d\u652f\u4ed8_pkg_alipayx",
-      "target": "docs_toolkit_14_2_\u521d\u59cb\u5316",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_14_2_\u521d\u59cb\u5316"
     },
     {
       "relation": "contains",
@@ -48660,9 +48660,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L820",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_14_\u652f\u4ed8\u5b9d\u652f\u4ed8_pkg_alipayx",
-      "target": "docs_toolkit_14_3_\u521b\u5efa\u652f\u4ed8",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_14_3_\u521b\u5efa\u652f\u4ed8"
     },
     {
       "relation": "contains",
@@ -48670,9 +48670,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L880",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_14_\u652f\u4ed8\u5b9d\u652f\u4ed8_pkg_alipayx",
-      "target": "docs_toolkit_14_4_\u540c\u6b65\u56de\u8c03\u9a8c\u7b7e",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_14_4_\u540c\u6b65\u56de\u8c03\u9a8c\u7b7e"
     },
     {
       "relation": "contains",
@@ -48680,9 +48680,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L904",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_14_\u652f\u4ed8\u5b9d\u652f\u4ed8_pkg_alipayx",
-      "target": "docs_toolkit_14_5_\u5f02\u6b65\u901a\u77e5\u56de\u8c03",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_14_5_\u5f02\u6b65\u901a\u77e5\u56de\u8c03"
     },
     {
       "relation": "contains",
@@ -48690,9 +48690,9 @@
       "source_file": "docs/toolkit.md",
       "source_location": "L946",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_toolkit_14_\u652f\u4ed8\u5b9d\u652f\u4ed8_pkg_alipayx",
-      "target": "docs_toolkit_14_6_\u9000\u6b3e",
-      "confidence_score": 1.0
+      "target": "docs_toolkit_14_6_\u9000\u6b3e"
     },
     {
       "relation": "contains",
@@ -48700,9 +48700,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage",
-      "target": "docs_usage_\u4f7f\u7528\u8bf4\u660e",
-      "confidence_score": 1.0
+      "target": "docs_usage_\u4f7f\u7528\u8bf4\u660e"
     },
     {
       "relation": "contains",
@@ -48710,9 +48710,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L890",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_usage_10_\u65b0\u589e\u4e00\u4e2a\u4e1a\u52a1\u670d\u52a1",
-      "confidence_score": 1.0
+      "target": "docs_usage_10_\u65b0\u589e\u4e00\u4e2a\u4e1a\u52a1\u670d\u52a1"
     },
     {
       "relation": "contains",
@@ -48720,9 +48720,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L1176",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_usage_11_\u53d1\u5e03\u516c\u5171\u5305\u7ed9\u5176\u4ed6\u9879\u76ee\u4f7f\u7528",
-      "confidence_score": 1.0
+      "target": "docs_usage_11_\u53d1\u5e03\u516c\u5171\u5305\u7ed9\u5176\u4ed6\u9879\u76ee\u4f7f\u7528"
     },
     {
       "relation": "contains",
@@ -48730,9 +48730,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L1230",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_usage_12_\u5e38\u89c1\u95ee\u9898",
-      "confidence_score": 1.0
+      "target": "docs_usage_12_\u5e38\u89c1\u95ee\u9898"
     },
     {
       "relation": "contains",
@@ -48740,9 +48740,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_usage_1_\u51c6\u5907\u73af\u5883",
-      "confidence_score": 1.0
+      "target": "docs_usage_1_\u51c6\u5907\u73af\u5883"
     },
     {
       "relation": "contains",
@@ -48750,9 +48750,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L58",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_usage_2_\u4f5c\u4e3a\u811a\u624b\u67b6\u7ef4\u62a4\u8005_\u53d1\u5e03_bw_cli",
-      "confidence_score": 1.0
+      "target": "docs_usage_2_\u4f5c\u4e3a\u811a\u624b\u67b6\u7ef4\u62a4\u8005_\u53d1\u5e03_bw_cli"
     },
     {
       "relation": "contains",
@@ -48760,9 +48760,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L102",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_usage_3_\u4f5c\u4e3a\u811a\u624b\u67b6\u4f7f\u7528\u8005_\u5b89\u88c5_bw_cli",
-      "confidence_score": 1.0
+      "target": "docs_usage_3_\u4f5c\u4e3a\u811a\u624b\u67b6\u4f7f\u7528\u8005_\u5b89\u88c5_bw_cli"
     },
     {
       "relation": "contains",
@@ -48770,9 +48770,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L128",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_usage_4_\u751f\u6210\u65b0\u9879\u76ee",
-      "confidence_score": 1.0
+      "target": "docs_usage_4_\u751f\u6210\u65b0\u9879\u76ee"
     },
     {
       "relation": "contains",
@@ -48780,9 +48780,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L253",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_usage_5_\u521d\u59cb\u5316\u751f\u6210\u540e\u7684\u9879\u76ee",
-      "confidence_score": 1.0
+      "target": "docs_usage_5_\u521d\u59cb\u5316\u751f\u6210\u540e\u7684\u9879\u76ee"
     },
     {
       "relation": "contains",
@@ -48790,9 +48790,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L291",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_usage_6_\u914d\u7f6e\u9879\u76ee",
-      "confidence_score": 1.0
+      "target": "docs_usage_6_\u914d\u7f6e\u9879\u76ee"
     },
     {
       "relation": "contains",
@@ -48800,9 +48800,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L655",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_usage_7_\u542f\u52a8\u670d\u52a1",
-      "confidence_score": 1.0
+      "target": "docs_usage_7_\u542f\u52a8\u670d\u52a1"
     },
     {
       "relation": "contains",
@@ -48810,9 +48810,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L741",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_usage_8_\u8c03\u7528\u63a5\u53e3\u9a8c\u8bc1",
-      "confidence_score": 1.0
+      "target": "docs_usage_8_\u8c03\u7528\u63a5\u53e3\u9a8c\u8bc1"
     },
     {
       "relation": "contains",
@@ -48820,9 +48820,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L838",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_\u4f7f\u7528\u8bf4\u660e",
-      "target": "docs_usage_9_\u4ee3\u7801\u7ed3\u6784\u600e\u4e48\u8bfb",
-      "confidence_score": 1.0
+      "target": "docs_usage_9_\u4ee3\u7801\u7ed3\u6784\u600e\u4e48\u8bfb"
     },
     {
       "relation": "contains",
@@ -48830,9 +48830,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_1_\u51c6\u5907\u73af\u5883",
-      "target": "docs_usage_1_1_\u68c0\u67e5_go",
-      "confidence_score": 1.0
+      "target": "docs_usage_1_1_\u68c0\u67e5_go"
     },
     {
       "relation": "contains",
@@ -48840,9 +48840,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L19",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_1_\u51c6\u5907\u73af\u5883",
-      "target": "docs_usage_1_2_\u68c0\u67e5_protoc",
-      "confidence_score": 1.0
+      "target": "docs_usage_1_2_\u68c0\u67e5_protoc"
     },
     {
       "relation": "contains",
@@ -48850,9 +48850,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L27",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_1_\u51c6\u5907\u73af\u5883",
-      "target": "docs_usage_1_3_\u5b89\u88c5_go_\u7684_proto_\u63d2\u4ef6",
-      "confidence_score": 1.0
+      "target": "docs_usage_1_3_\u5b89\u88c5_go_\u7684_proto_\u63d2\u4ef6"
     },
     {
       "relation": "contains",
@@ -48860,9 +48860,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L42",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_1_\u51c6\u5907\u73af\u5883",
-      "target": "docs_usage_1_4_\u9a8c\u8bc1\u811a\u624b\u67b6\u81ea\u8eab",
-      "confidence_score": 1.0
+      "target": "docs_usage_1_4_\u9a8c\u8bc1\u811a\u624b\u67b6\u81ea\u8eab"
     },
     {
       "relation": "contains",
@@ -48870,9 +48870,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L62",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_2_\u4f5c\u4e3a\u811a\u624b\u67b6\u7ef4\u62a4\u8005_\u53d1\u5e03_bw_cli",
-      "target": "docs_usage_2_1_\u786e\u8ba4_go_mod_module",
-      "confidence_score": 1.0
+      "target": "docs_usage_2_1_\u786e\u8ba4_go_mod_module"
     },
     {
       "relation": "contains",
@@ -48880,9 +48880,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L74",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_2_\u4f5c\u4e3a\u811a\u624b\u67b6\u7ef4\u62a4\u8005_\u53d1\u5e03_bw_cli",
-      "target": "docs_usage_2_2_\u63d0\u4ea4\u5230_git_\u4ed3\u5e93",
-      "confidence_score": 1.0
+      "target": "docs_usage_2_2_\u63d0\u4ea4\u5230_git_\u4ed3\u5e93"
     },
     {
       "relation": "contains",
@@ -48890,9 +48890,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L86",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_2_\u4f5c\u4e3a\u811a\u624b\u67b6\u7ef4\u62a4\u8005_\u53d1\u5e03_bw_cli",
-      "target": "docs_usage_2_3_\u9a8c\u8bc1\u8fdc\u7a0b\u5b89\u88c5\u547d\u4ee4",
-      "confidence_score": 1.0
+      "target": "docs_usage_2_3_\u9a8c\u8bc1\u8fdc\u7a0b\u5b89\u88c5\u547d\u4ee4"
     },
     {
       "relation": "contains",
@@ -48900,9 +48900,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L137",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_4_\u751f\u6210\u65b0\u9879\u76ee",
-      "target": "docs_usage_4_1_\u751f\u6210\u5e72\u51c0\u4e1a\u52a1\u9879\u76ee",
-      "confidence_score": 1.0
+      "target": "docs_usage_4_1_\u751f\u6210\u5e72\u51c0\u4e1a\u52a1\u9879\u76ee"
     },
     {
       "relation": "contains",
@@ -48910,9 +48910,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L189",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_4_\u751f\u6210\u65b0\u9879\u76ee",
-      "target": "docs_usage_4_2_\u751f\u6210\u6f14\u793a\u9879\u76ee",
-      "confidence_score": 1.0
+      "target": "docs_usage_4_2_\u751f\u6210\u6f14\u793a\u9879\u76ee"
     },
     {
       "relation": "contains",
@@ -48920,9 +48920,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L209",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_4_\u751f\u6210\u65b0\u9879\u76ee",
-      "target": "docs_usage_4_3_\u4ece\u672c\u5730\u811a\u624b\u67b6\u76ee\u5f55\u751f\u6210",
-      "confidence_score": 1.0
+      "target": "docs_usage_4_3_\u4ece\u672c\u5730\u811a\u624b\u67b6\u76ee\u5f55\u751f\u6210"
     },
     {
       "relation": "contains",
@@ -48930,9 +48930,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L239",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_4_\u751f\u6210\u65b0\u9879\u76ee",
-      "target": "docs_usage_4_4_bw_cli_\u751f\u6210\u65f6\u505a\u4e86\u4ec0\u4e48",
-      "confidence_score": 1.0
+      "target": "docs_usage_4_4_bw_cli_\u751f\u6210\u65f6\u505a\u4e86\u4ec0\u4e48"
     },
     {
       "relation": "contains",
@@ -48940,9 +48940,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L544",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_6_\u914d\u7f6e\u9879\u76ee",
-      "target": "docs_usage_6_10_elasticsearch_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_usage_6_10_elasticsearch_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -48950,9 +48950,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L559",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_6_\u914d\u7f6e\u9879\u76ee",
-      "target": "docs_usage_6_11_kafka_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_usage_6_11_kafka_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -48960,9 +48960,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L607",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_6_\u914d\u7f6e\u9879\u76ee",
-      "target": "docs_usage_6_12_cors_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_usage_6_12_cors_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -48970,9 +48970,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L636",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_6_\u914d\u7f6e\u9879\u76ee",
-      "target": "docs_usage_6_13_jwt_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_usage_6_13_jwt_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -48980,9 +48980,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L299",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_6_\u914d\u7f6e\u9879\u76ee",
-      "target": "docs_usage_6_1_\u670d\u52a1\u540d\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_usage_6_1_\u670d\u52a1\u540d\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -48990,9 +48990,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L309",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_6_\u914d\u7f6e\u9879\u76ee",
-      "target": "docs_usage_6_2_http_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_usage_6_2_http_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -49000,9 +49000,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L325",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_6_\u914d\u7f6e\u9879\u76ee",
-      "target": "docs_usage_6_3_grpc_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_usage_6_3_grpc_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -49010,9 +49010,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L344",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_6_\u914d\u7f6e\u9879\u76ee",
-      "target": "docs_usage_6_4_mysql_\u9ed8\u8ba4\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_usage_6_4_mysql_\u9ed8\u8ba4\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -49020,9 +49020,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L362",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_6_\u914d\u7f6e\u9879\u76ee",
-      "target": "docs_usage_6_5_\u5207\u6362\u5230_sqlite",
-      "confidence_score": 1.0
+      "target": "docs_usage_6_5_\u5207\u6362\u5230_sqlite"
     },
     {
       "relation": "contains",
@@ -49030,9 +49030,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L378",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_6_\u914d\u7f6e\u9879\u76ee",
-      "target": "docs_usage_6_6_\u5207\u6362\u5230_postgresql",
-      "confidence_score": 1.0
+      "target": "docs_usage_6_6_\u5207\u6362\u5230_postgresql"
     },
     {
       "relation": "contains",
@@ -49040,9 +49040,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L411",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_6_\u914d\u7f6e\u9879\u76ee",
-      "target": "docs_usage_6_7_mongodb_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_usage_6_7_mongodb_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -49050,9 +49050,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L451",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_6_\u914d\u7f6e\u9879\u76ee",
-      "target": "docs_usage_6_8_\u6587\u4ef6\u4e0a\u4f20\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_usage_6_8_\u6587\u4ef6\u4e0a\u4f20\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -49060,9 +49060,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L524",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_6_\u914d\u7f6e\u9879\u76ee",
-      "target": "docs_usage_6_9_redis_\u914d\u7f6e",
-      "confidence_score": 1.0
+      "target": "docs_usage_6_9_redis_\u914d\u7f6e"
     },
     {
       "relation": "contains",
@@ -49070,9 +49070,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L685",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_7_\u542f\u52a8\u670d\u52a1",
-      "target": "docs_usage_7_1_\u6f14\u793a\u9879\u76ee_\u542f\u52a8_user_service",
-      "confidence_score": 1.0
+      "target": "docs_usage_7_1_\u6f14\u793a\u9879\u76ee_\u542f\u52a8_user_service"
     },
     {
       "relation": "contains",
@@ -49080,9 +49080,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L697",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_7_\u542f\u52a8\u670d\u52a1",
-      "target": "docs_usage_7_2_\u6f14\u793a\u9879\u76ee_\u542f\u52a8_note_service",
-      "confidence_score": 1.0
+      "target": "docs_usage_7_2_\u6f14\u793a\u9879\u76ee_\u542f\u52a8_note_service"
     },
     {
       "relation": "contains",
@@ -49090,9 +49090,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L709",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_7_\u542f\u52a8\u670d\u52a1",
-      "target": "docs_usage_7_3_\u542f\u52a8_gateway",
-      "confidence_score": 1.0
+      "target": "docs_usage_7_3_\u542f\u52a8_gateway"
     },
     {
       "relation": "contains",
@@ -49100,9 +49100,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L721",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_7_\u542f\u52a8\u670d\u52a1",
-      "target": "docs_usage_7_4_\u67e5\u770b\u65e5\u5fd7",
-      "confidence_score": 1.0
+      "target": "docs_usage_7_4_\u67e5\u770b\u65e5\u5fd7"
     },
     {
       "relation": "contains",
@@ -49110,9 +49110,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L743",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_8_\u8c03\u7528\u63a5\u53e3\u9a8c\u8bc1",
-      "target": "docs_usage_8_1_\u5e72\u51c0\u9879\u76ee_\u5065\u5eb7\u68c0\u67e5",
-      "confidence_score": 1.0
+      "target": "docs_usage_8_1_\u5e72\u51c0\u9879\u76ee_\u5065\u5eb7\u68c0\u67e5"
     },
     {
       "relation": "contains",
@@ -49120,9 +49120,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L756",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_8_\u8c03\u7528\u63a5\u53e3\u9a8c\u8bc1",
-      "target": "docs_usage_8_2_\u6f14\u793a\u9879\u76ee_\u6ce8\u518c\u7528\u6237",
-      "confidence_score": 1.0
+      "target": "docs_usage_8_2_\u6f14\u793a\u9879\u76ee_\u6ce8\u518c\u7528\u6237"
     },
     {
       "relation": "contains",
@@ -49130,9 +49130,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L781",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_8_\u8c03\u7528\u63a5\u53e3\u9a8c\u8bc1",
-      "target": "docs_usage_8_3_\u767b\u5f55\u7528\u6237",
-      "confidence_score": 1.0
+      "target": "docs_usage_8_3_\u767b\u5f55\u7528\u6237"
     },
     {
       "relation": "contains",
@@ -49140,9 +49140,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L791",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_8_\u8c03\u7528\u63a5\u53e3\u9a8c\u8bc1",
-      "target": "docs_usage_8_4_\u67e5\u8be2\u7528\u6237",
-      "confidence_score": 1.0
+      "target": "docs_usage_8_4_\u67e5\u8be2\u7528\u6237"
     },
     {
       "relation": "contains",
@@ -49150,9 +49150,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L799",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_8_\u8c03\u7528\u63a5\u53e3\u9a8c\u8bc1",
-      "target": "docs_usage_8_5_\u521b\u5efa\u7b14\u8bb0",
-      "confidence_score": 1.0
+      "target": "docs_usage_8_5_\u521b\u5efa\u7b14\u8bb0"
     },
     {
       "relation": "contains",
@@ -49160,9 +49160,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L824",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_8_\u8c03\u7528\u63a5\u53e3\u9a8c\u8bc1",
-      "target": "docs_usage_8_6_\u53d1\u5e03\u7b14\u8bb0",
-      "confidence_score": 1.0
+      "target": "docs_usage_8_6_\u53d1\u5e03\u7b14\u8bb0"
     },
     {
       "relation": "contains",
@@ -49170,9 +49170,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L840",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_9_\u4ee3\u7801\u7ed3\u6784\u600e\u4e48\u8bfb",
-      "target": "docs_usage_9_1_http_\u5165\u53c2\u5728\u54ea\u91cc",
-      "confidence_score": 1.0
+      "target": "docs_usage_9_1_http_\u5165\u53c2\u5728\u54ea\u91cc"
     },
     {
       "relation": "contains",
@@ -49180,9 +49180,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L858",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_9_\u4ee3\u7801\u7ed3\u6784\u600e\u4e48\u8bfb",
-      "target": "docs_usage_9_2_\u8def\u7531\u5728\u54ea\u91cc",
-      "confidence_score": 1.0
+      "target": "docs_usage_9_2_\u8def\u7531\u5728\u54ea\u91cc"
     },
     {
       "relation": "contains",
@@ -49190,9 +49190,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L874",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_9_\u4ee3\u7801\u7ed3\u6784\u600e\u4e48\u8bfb",
-      "target": "docs_usage_9_3_\u4e1a\u52a1\u670d\u52a1\u600e\u4e48\u770b",
-      "confidence_score": 1.0
+      "target": "docs_usage_9_3_\u4e1a\u52a1\u670d\u52a1\u600e\u4e48\u770b"
     },
     {
       "relation": "contains",
@@ -49200,9 +49200,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L963",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_10_\u65b0\u589e\u4e00\u4e2a\u4e1a\u52a1\u670d\u52a1",
-      "target": "docs_usage_10_1_\u751f\u6210\u540e\u5df2\u7ecf\u5177\u5907\u4ec0\u4e48",
-      "confidence_score": 1.0
+      "target": "docs_usage_10_1_\u751f\u6210\u540e\u5df2\u7ecf\u5177\u5907\u4ec0\u4e48"
     },
     {
       "relation": "contains",
@@ -49210,9 +49210,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L1013",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_10_\u65b0\u589e\u4e00\u4e2a\u4e1a\u52a1\u670d\u52a1",
-      "target": "docs_usage_10_2_\u6bcf\u4e00\u5c42\u600e\u4e48\u5199_\u4e3a\u4ec0\u4e48\u8fd9\u4e48\u5199",
-      "confidence_score": 1.0
+      "target": "docs_usage_10_2_\u6bcf\u4e00\u5c42\u600e\u4e48\u5199_\u4e3a\u4ec0\u4e48\u8fd9\u4e48\u5199"
     },
     {
       "relation": "contains",
@@ -49220,9 +49220,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L1031",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_10_\u65b0\u589e\u4e00\u4e2a\u4e1a\u52a1\u670d\u52a1",
-      "target": "docs_usage_10_3_entity_\u5c42_\u5199\u4e1a\u52a1\u6838\u5fc3",
-      "confidence_score": 1.0
+      "target": "docs_usage_10_3_entity_\u5c42_\u5199\u4e1a\u52a1\u6838\u5fc3"
     },
     {
       "relation": "contains",
@@ -49230,9 +49230,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L1048",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_10_\u65b0\u589e\u4e00\u4e2a\u4e1a\u52a1\u670d\u52a1",
-      "target": "docs_usage_10_4_model_\u5c42_\u5199\u6570\u636e\u5e93\u7ed3\u6784",
-      "confidence_score": 1.0
+      "target": "docs_usage_10_4_model_\u5c42_\u5199\u6570\u636e\u5e93\u7ed3\u6784"
     },
     {
       "relation": "contains",
@@ -49240,9 +49240,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L1066",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_10_\u65b0\u589e\u4e00\u4e2a\u4e1a\u52a1\u670d\u52a1",
-      "target": "docs_usage_10_5_service_\u5c42_\u5199\u4e1a\u52a1\u6d41\u7a0b",
-      "confidence_score": 1.0
+      "target": "docs_usage_10_5_service_\u5c42_\u5199\u4e1a\u52a1\u6d41\u7a0b"
     },
     {
       "relation": "contains",
@@ -49250,9 +49250,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L1093",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_10_\u65b0\u589e\u4e00\u4e2a\u4e1a\u52a1\u670d\u52a1",
-      "target": "docs_usage_10_6_repo_\u5c42_\u6570\u636e\u5e93\u5728\u54ea\u91cc\u64cd\u4f5c_\u5982\u4f55\u64cd\u4f5c",
-      "confidence_score": 1.0
+      "target": "docs_usage_10_6_repo_\u5c42_\u6570\u636e\u5e93\u5728\u54ea\u91cc\u64cd\u4f5c_\u5982\u4f55\u64cd\u4f5c"
     },
     {
       "relation": "contains",
@@ -49260,9 +49260,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L1133",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_10_\u65b0\u589e\u4e00\u4e2a\u4e1a\u52a1\u670d\u52a1",
-      "target": "docs_usage_10_7_gateway_\u5c42_http_\u8c03\u7528\u5df2\u7ecf\u63a5\u597d",
-      "confidence_score": 1.0
+      "target": "docs_usage_10_7_gateway_\u5c42_http_\u8c03\u7528\u5df2\u7ecf\u63a5\u597d"
     },
     {
       "relation": "contains",
@@ -49270,9 +49270,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L1121",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_10_\u65b0\u589e\u4e00\u4e2a\u4e1a\u52a1\u670d\u52a1",
-      "target": "docs_usage_10_7_handler_\u5c42_\u534f\u8bae\u8f6c\u6362",
-      "confidence_score": 1.0
+      "target": "docs_usage_10_7_handler_\u5c42_\u534f\u8bae\u8f6c\u6362"
     },
     {
       "relation": "contains",
@@ -49280,9 +49280,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L1232",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_12_\u5e38\u89c1\u95ee\u9898",
-      "target": "docs_usage_12_1_bw_cli_command_not_found",
-      "confidence_score": 1.0
+      "target": "docs_usage_12_1_bw_cli_command_not_found"
     },
     {
       "relation": "contains",
@@ -49290,9 +49290,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L1248",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_12_\u5e38\u89c1\u95ee\u9898",
-      "target": "docs_usage_12_2_go_install_\u8fdc\u7a0b\u5b89\u88c5\u5931\u8d25",
-      "confidence_score": 1.0
+      "target": "docs_usage_12_2_go_install_\u8fdc\u7a0b\u5b89\u88c5\u5931\u8d25"
     },
     {
       "relation": "contains",
@@ -49300,9 +49300,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L1262",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_12_\u5e38\u89c1\u95ee\u9898",
-      "target": "docs_usage_12_3_\u751f\u6210\u9879\u76ee\u540e_protobuf_panic",
-      "confidence_score": 1.0
+      "target": "docs_usage_12_3_\u751f\u6210\u9879\u76ee\u540e_protobuf_panic"
     },
     {
       "relation": "contains",
@@ -49310,9 +49310,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L1273",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_12_\u5e38\u89c1\u95ee\u9898",
-      "target": "docs_usage_12_4_\u6f14\u793a\u9879\u76ee_gateway_\u8c03\u7528_user_note_\u5931\u8d25",
-      "confidence_score": 1.0
+      "target": "docs_usage_12_4_\u6f14\u793a\u9879\u76ee_gateway_\u8c03\u7528_user_note_\u5931\u8d25"
     },
     {
       "relation": "contains",
@@ -49320,9 +49320,9 @@
       "source_file": "docs/usage.md",
       "source_location": "L1295",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_usage_12_\u5e38\u89c1\u95ee\u9898",
-      "target": "docs_usage_12_5_jwt_\u8fd4\u56de_invalid_token",
-      "confidence_score": 1.0
+      "target": "docs_usage_12_5_jwt_\u8fd4\u56de_invalid_token"
     },
     {
       "relation": "references",
@@ -50066,5 +50066,5 @@
       "source_file": ".codex/skills/graphify/SKILL.md"
     }
   ],
-  "built_at_commit": "991f6c9094ff64ad4871d2f8c9d9e335069fde87"
+  "built_at_commit": "760350470900fd9ae2ec7034d38e13610b3ebd47"
 }

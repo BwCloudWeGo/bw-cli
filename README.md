@@ -347,13 +347,13 @@ services:
 
 需要修改端口时，直接修改 `services.order.port`；gateway 连接地址同步修改 `services.order.target`。如果启用了 Nacos，把本地新增的 `services.order` 同步到 Nacos 中的完整业务配置。
 
-如果已经有一张符合默认 CRUD 字段的表，可以用 `--table` 让生成的 Gorm 仓储直接绑定已有表：
+如果已经有一张业务表，可以用 `--table` 让脚手架读取数据库真实字段并生成对应的 Gorm 仓储和服务结构：
 
 ```bash
 bw-cli service order --table orders --tidy
 ```
 
-当前 `--table` 会校验表存在，并要求字段包含 `id`、`name`、`description`、`created_at`、`updated_at`，其中 `id` 必须是主键。生成后的服务会跳过 `AutoMigrate`，避免脚手架修改既有表结构。MySQL 或 PostgreSQL 需要指定 schema 时，可以传 `--schema`。
+当前 `--table` 会连接 `configs/config.yaml` 中配置的数据库并读取指定表字段，不再要求表包含默认示例字段，例如 `description`。生成后的服务会跳过 `AutoMigrate`，避免脚手架修改既有表结构。MySQL 或 PostgreSQL 需要指定 schema 时，可以传 `--schema`。
 
 删除脚手架生成的服务：
 

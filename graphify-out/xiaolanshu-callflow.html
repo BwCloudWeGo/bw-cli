@@ -60,7 +60,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
 <div class="container">
 
 <h1>xiaolanshu — Complete Call Flow &amp; Architecture Documentation</h1>
-<p class="subtitle">Generated from graphify knowledge graph: 1814 nodes, 2992 edges, 117 communities. Commit: 991f6c9</p>
+<p class="subtitle">Generated from graphify knowledge graph: 1814 nodes, 2992 edges, 118 communities. Commit: 7603504</p>
 
 <div class="nav">
     <a href="#overview">Architecture Overview</a>
@@ -88,7 +88,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
 
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    EXTRACT_PIPELINE_5F350230("Extraction Pipeline<br/><small>1266 nodes</small>")
+    EXTRACT_PIPELINE_5F350230("Extraction Pipeline<br/><small>1267 nodes</small>")
     class EXTRACT_PIPELINE_5F350230 module;
     BUILD_GRAPH_321CBB04("Graph Build<br/><small>8 nodes</small>")
     class BUILD_GRAPH_321CBB04 module;
@@ -100,7 +100,7 @@ flowchart LR
     class CLI_SKILLS_9964CBB8 module;
     INGEST_CACHE_UPDATE_FF457338("Ingestion &amp; Updates<br/><small>11 nodes</small>")
     class INGEST_CACHE_UPDATE_FF457338 module;
-    SERVE_API_35EC8E86("Serving API<br/><small>100 nodes</small>")
+    SERVE_API_35EC8E86("Serving API<br/><small>99 nodes</small>")
     class SERVE_API_35EC8E86 module;
     SECURITY_GLOBAL_5B9C6A04("Security &amp; Global Graph<br/><small>32 nodes</small>")
     class SECURITY_GLOBAL_5B9C6A04 module;
@@ -118,8 +118,8 @@ flowchart LR
     class COMMUNITY_84_E2B1E2D2 module;
     OTHER_D0941E68("Other<br/><small>113 nodes</small>")
     class OTHER_D0941E68 module;
-    SERVE_API_35EC8E86 -->|references x15| EXTRACT_PIPELINE_5F350230
-    EXTRACT_PIPELINE_5F350230 -->|references x11| SERVE_API_35EC8E86
+    SERVE_API_35EC8E86 -->|references x16| EXTRACT_PIPELINE_5F350230
+    EXTRACT_PIPELINE_5F350230 -->|references x10| SERVE_API_35EC8E86
     COMMUNITY_81_5A9A8994 -->|contains x5| OTHER_D0941E68
     CLI_SKILLS_9964CBB8 -->|relates x4| ANALYSIS_CLUSTERING_C79796DA
     CLI_SKILLS_9964CBB8 -->|references| BUILD_GRAPH_321CBB04
@@ -142,7 +142,7 @@ flowchart LR
     <h4>Architecture Layers</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>Layer</th><th>Nodes</th><th>Communities</th></tr>
-      <tr><td>Extraction Pipeline</td><td>1266</td><td><code>0, 1, 2, 3, 4, 5, 6, 21, 8, 9, 27, 11, 12, 13, 14, 15, 77, 17, 18, 19, 22, 7, 23, 24, 28, 30, 31, 32, 34, 35, 36, 38, 44, 39, 40, 41, 33, 46, 45, 47, 49, 50, 57, 52, 54, 55, 56, 101, 59, 61, 64, 65, 68, 71, 73</code></td></tr><tr><td>Graph Build</td><td>8</td><td><code>112, 63, 116</code></td></tr><tr><td>Analysis &amp; Clustering</td><td>13</td><td><code>98, 108, 111</code></td></tr><tr><td>Outputs &amp; Docs</td><td>8</td><td><code>94</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>101</td><td><code>25, 29, 83, 16, 87, 88, 97, 105, 107, 115, 72</code></td></tr><tr><td>Ingestion &amp; Updates</td><td>11</td><td><code>106, 109, 113</code></td></tr><tr><td>Serving API</td><td>100</td><td><code>80, 10, 43, 51, 53, 48, 60, 62, 66, 69, 70</code></td></tr><tr><td>Security &amp; Global Graph</td><td>32</td><td><code>79</code></td></tr><tr><td>Tests &amp; Fixtures</td><td>49</td><td><code>26, 37, 42, 58, 67</code></td></tr><tr><td>Community 78</td><td>33</td><td><code>78</code></td></tr><tr><td>Project Documentation</td><td>26</td><td><code>20</code></td></tr><tr><td>Community 81</td><td>24</td><td><code>81</code></td></tr><tr><td>Community 82</td><td>16</td><td><code>82</code></td></tr><tr><td>Community 84</td><td>14</td><td><code>84</code></td></tr><tr><td>Other</td><td>113</td><td><code>85, 86, 89, 90, 91, 92, 93, 95, 96, 100, 102, 103, 99, 104, 110, 114, 74, 75, 76</code></td></tr>
+      <tr><td>Extraction Pipeline</td><td>1267</td><td><code>0, 1, 2, 3, 4, 5, 6, 21, 8, 9, 27, 11, 12, 13, 14, 15, 77, 17, 18, 19, 7, 23, 24, 22, 28, 30, 31, 32, 34, 35, 36, 38, 33, 39, 40, 41, 117, 44, 46, 52, 45, 47, 49, 50, 54, 55, 56, 57, 101, 59, 61, 64, 65, 68, 71, 73</code></td></tr><tr><td>Graph Build</td><td>8</td><td><code>112, 63, 116</code></td></tr><tr><td>Analysis &amp; Clustering</td><td>13</td><td><code>98, 108, 111</code></td></tr><tr><td>Outputs &amp; Docs</td><td>8</td><td><code>94</code></td></tr><tr><td>CLI &amp; Skill Installers</td><td>101</td><td><code>25, 29, 83, 16, 87, 88, 97, 105, 107, 115, 72</code></td></tr><tr><td>Ingestion &amp; Updates</td><td>11</td><td><code>106, 109, 113</code></td></tr><tr><td>Serving API</td><td>99</td><td><code>80, 10, 43, 51, 48, 53, 60, 62, 66, 69, 70</code></td></tr><tr><td>Security &amp; Global Graph</td><td>32</td><td><code>79</code></td></tr><tr><td>Tests &amp; Fixtures</td><td>49</td><td><code>26, 37, 42, 58, 67</code></td></tr><tr><td>Community 78</td><td>33</td><td><code>78</code></td></tr><tr><td>Project Documentation</td><td>26</td><td><code>20</code></td></tr><tr><td>Community 81</td><td>24</td><td><code>81</code></td></tr><tr><td>Community 82</td><td>16</td><td><code>82</code></td></tr><tr><td>Community 84</td><td>14</td><td><code>84</code></td></tr><tr><td>Other</td><td>113</td><td><code>85, 86, 89, 90, 91, 92, 93, 95, 96, 100, 102, 103, 99, 104, 110, 114, 74, 75, 76</code></td></tr>
     </table>
   </div>
   <div class="card">
@@ -154,7 +154,7 @@ flowchart LR
   <div class="card">
     <h4>Graph Report Highlights</h4>
     <ul>
-      <li>1814 nodes · 2992 edges · 117 communities (88 shown, 29 thin omitted)</li>
+      <li>1814 nodes · 2992 edges · 118 communities (89 shown, 29 thin omitted)</li>
       <li>Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 239 edges (avg confidence: 0.8)</li>
       <li>Token cost: 0 input · 0 output</li>
       <li>1. `writeFile()` - 31 edges</li>
@@ -166,12 +166,12 @@ flowchart LR
 <hr>
 <!-- ====== 2. Extraction Pipeline ====== -->
 <h2 id="extract-pipeline">2. Extraction Pipeline</h2>
-<p>Extraction Pipeline groups implementation around pkg, internal, order, note, mostly in pkg/scaffold/service.go, note/v1/note.pb.go, pkg/kafkax/kafkax.go. This section covers 1266 nodes and 2337 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>Extraction Pipeline groups implementation around pkg, internal, order, note, mostly in pkg/scaffold/service.go, note/v1/note.pb.go, pkg/kafkax/kafkax.go. This section covers 1267 nodes and 2338 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Extraction Pipeline (1266 nodes, 2337 edges)
+    %% Section: Extraction Pipeline (1267 nodes, 2338 edges)
     subgraph extract_pipeline_note_v1_note_pb_go_f132b846["note/v1/note.pb.go"]
         v1_noteresponse_bbe5286a("NoteResponse<br/><small>note/v1/note.pb.go</small>")
         v1_publishnoterequest_af5051e9("PublishNoteRequest<br/><small>note/v1/note.pb.go</small>")
@@ -203,7 +203,7 @@ flowchart LR
     v1_createnoterequest_descriptor_8e109e7a -->|calls| v1_note_pb_file_note_v1_note_proto_rawdescgzip_e5c8e4ed
     v1_getnoterequest_87bed2f8 -->|method| v1_getnoterequest_descriptor_1f434cc2
     v1_getnoterequest_descriptor_1f434cc2 -->|calls| v1_note_pb_file_note_v1_note_proto_rawdescgzip_e5c8e4ed
-    %% Omitted for readability: 1248 nodes, 0 edges
+    %% Omitted for readability: 1249 nodes, 0 edges
     class v1_noteresponse_bbe5286a klass;
     class v1_publishnoterequest_af5051e9 klass;
     class v1_createnoterequest_6c75a547 klass;
@@ -493,7 +493,7 @@ flowchart LR
       <tr><td><code>pkg/scaffold/service.go</code></td><td>55 nodes</td></tr>
 <tr><td><code>note/v1/note.pb.go</code></td><td>52 nodes</td></tr>
 <tr><td><code>pkg/kafkax/kafkax.go</code></td><td>50 nodes</td></tr>
-<tr><td><code>order/v1/order.pb.go</code></td><td>44 nodes</td></tr>
+<tr><td><code>order/v1/order.pb.go</code></td><td>45 nodes</td></tr>
 <tr><td><code>pkg/esx/esx.go</code></td><td>42 nodes</td></tr>
 <tr><td><code>user/v1/user.pb.go</code></td><td>41 nodes</td></tr>
 <tr><td><code>README.md</code></td><td>39 nodes</td></tr>
@@ -502,7 +502,7 @@ flowchart LR
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: references x908, contains x529, calls x396, method x285. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: references x909, contains x529, calls x396, method x285. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
@@ -1500,21 +1500,21 @@ flowchart LR
 
 <!-- ====== 8. Serving API ====== -->
 <h2 id="serve-api">8. Serving API</h2>
-<p>Serving API groups implementation around router, internal, gateway, order, mostly in docs/onboarding.md, order/v1/order.pb.go, gateway/router/router_test.go. This section covers 100 nodes and 110 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>Serving API groups implementation around router, internal, gateway, testgo, mostly in docs/onboarding.md, order/v1/order.pb.go, gateway/router/router_test.go. This section covers 99 nodes and 109 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Serving API (100 nodes, 110 edges)
+    %% Section: Serving API (99 nodes, 109 edges)
     subgraph serve_api_order_v1_order_pb_go_968f7782["order/v1/order.pb.go"]
         v1_orderresponse_1e8d7255("OrderResponse<br/><small>order/v1/order.pb.go</small>")
         v1_listordersrequest_3017fc29("ListOrdersRequest<br/><small>order/v1/order.pb.go</small>")
-        v1_deleteorderresponse_729512cc("DeleteOrderResponse<br/><small>order/v1/order.pb.go</small>")
         v1_deleteorderrequest_c65ed459("DeleteOrderRequest<br/><small>order/v1/order.pb.go</small>")
+        v1_deleteorderresponse_729512cc("DeleteOrderResponse<br/><small>order/v1/order.pb.go</small>")
+        v1_listordersrequest_descriptor_4944e66a("Descriptor()<br/><small>order/v1/order.pb.go</small>")
         v1_listordersrequest_getpage_f56ffd82("GetPage()<br/><small>order/v1/order.pb.go</small>")
         v1_listordersrequest_getpagesize_5991839e("GetPageSize()<br/><small>order/v1/order.pb.go</small>")
         v1_listordersrequest_protomessage_293649d5("ProtoMessage()<br/><small>order/v1/order.pb.go</small>")
-        v1_listordersrequest_protoreflect_fcb48186("ProtoReflect()<br/><small>order/v1/order.pb.go</small>")
         v1_listordersrequest_reset_3bb19c7d("Reset()<br/><small>order/v1/order.pb.go</small>")
         v1_listordersrequest_string_43ec1fc9("String()<br/><small>order/v1/order.pb.go</small>")
         v1_deleteorderrequest_getid_867a3bfa("GetId()<br/><small>order/v1/order.pb.go</small>")
@@ -1528,10 +1528,10 @@ flowchart LR
         router_fakenoteclient_3de3e392("fakeNoteClient<br/><small>gateway/router/router_test.go</small>")
         router_fakeuserclient_92c26871("fakeUserClient<br/><small>gateway/router/router_test.go</small>")
     end
+    v1_listordersrequest_3017fc29 -->|method| v1_listordersrequest_descriptor_4944e66a
     v1_listordersrequest_3017fc29 -->|method| v1_listordersrequest_getpage_f56ffd82
     v1_listordersrequest_3017fc29 -->|method| v1_listordersrequest_getpagesize_5991839e
     v1_listordersrequest_3017fc29 -->|method| v1_listordersrequest_protomessage_293649d5
-    v1_listordersrequest_3017fc29 -->|method| v1_listordersrequest_protoreflect_fcb48186
     v1_listordersrequest_3017fc29 -->|method| v1_listordersrequest_reset_3bb19c7d
     v1_listordersrequest_3017fc29 -->|method| v1_listordersrequest_string_43ec1fc9
     v1_deleteorderrequest_c65ed459 -->|method| v1_deleteorderrequest_getid_867a3bfa
@@ -1540,15 +1540,15 @@ flowchart LR
     v1_deleteorderrequest_c65ed459 -->|method| v1_deleteorderrequest_string_210caf0f
     v1_orderresponse_1e8d7255 -->|method| v1_orderresponse_getcreatedat_6da87ff8
     v1_orderresponse_1e8d7255 -->|method| v1_orderresponse_getdescription_aa4df894
-    %% Omitted for readability: 82 nodes, 0 edges
+    %% Omitted for readability: 81 nodes, 0 edges
     class v1_orderresponse_1e8d7255 klass;
     class v1_listordersrequest_3017fc29 klass;
-    class v1_deleteorderresponse_729512cc klass;
     class v1_deleteorderrequest_c65ed459 klass;
+    class v1_deleteorderresponse_729512cc klass;
+    class v1_listordersrequest_descriptor_4944e66a function;
     class v1_listordersrequest_getpage_f56ffd82 function;
     class v1_listordersrequest_getpagesize_5991839e function;
     class v1_listordersrequest_protomessage_293649d5 function;
-    class v1_listordersrequest_protoreflect_fcb48186 function;
     class v1_listordersrequest_reset_3bb19c7d function;
     class v1_listordersrequest_string_43ec1fc9 function;
     class v1_deleteorderrequest_getid_867a3bfa function;
@@ -1827,8 +1827,8 @@ flowchart LR
     <h4>Key Files</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>order/v1/order.pb.go</code></td><td>29 nodes</td></tr>
-<tr><td><code>docs/onboarding.md</code></td><td>29 nodes</td></tr>
+      <tr><td><code>docs/onboarding.md</code></td><td>29 nodes</td></tr>
+<tr><td><code>order/v1/order.pb.go</code></td><td>28 nodes</td></tr>
 <tr><td><code>gateway/router/router_test.go</code></td><td>25 nodes</td></tr>
 <tr><td><code>gateway/request/note_request_test.go</code></td><td>4 nodes</td></tr>
 <tr><td><code>gateway/request/order_request.go</code></td><td>4 nodes</td></tr>
@@ -1839,7 +1839,7 @@ flowchart LR
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x45, references x35, method x29, calls x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x45, references x35, method x28, calls x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
@@ -4330,7 +4330,7 @@ flowchart LR
       <tr><td>Nodes</td><td>1814</td></tr>
       <tr><td>Edges</td><td>2992</td></tr>
       <tr><td>Hyperedges</td><td>6</td></tr>
-      <tr><td>Communities</td><td>117</td></tr>
+      <tr><td>Communities</td><td>118</td></tr>
       <tr><td>Documented Sections</td><td>15</td></tr>
     </table>
   </div>
@@ -4346,7 +4346,7 @@ flowchart LR
 
 <div style="text-align:center; padding:40px 0; color: var(--muted); font-size:0.9rem;">
   <p>xiaolanshu — Architecture Documentation</p>
-  <p>Generated: 2026-06-08 08:13 UTC · graphify callflow-html</p>
+  <p>Generated: 2026-06-08 09:32 UTC · graphify callflow-html</p>
 </div>
 
 </div><!-- .container -->

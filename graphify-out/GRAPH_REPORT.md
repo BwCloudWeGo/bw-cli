@@ -1,16 +1,16 @@
 # Graph Report - xiaolanshu  (2026-06-08)
 
 ## Corpus Check
-- 128 files · ~69,236 words
+- 128 files · ~69,139 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1814 nodes · 2992 edges · 117 communities (88 shown, 29 thin omitted)
+- 1814 nodes · 2992 edges · 118 communities (89 shown, 29 thin omitted)
 - Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 239 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `991f6c90`
+- Built from commit: `76035047`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -131,6 +131,7 @@
 - [[_COMMUNITY_Community 114|Community 114]]
 - [[_COMMUNITY_Community 115|Community 115]]
 - [[_COMMUNITY_Community 116|Community 116]]
+- [[_COMMUNITY_Community 117|Community 117]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `writeFile()` - 31 edges
@@ -167,7 +168,7 @@
 - **Query Navigation Flows** — graphify_skill_existing_graph_query_flow, graphify_skill_query_path_and_explain, references_query_bfs_traversal, references_query_dfs_traversal [INFERRED 0.75]
 - **Semantic Extraction Pipeline** — graphify_skill_semantic_extraction, references_extraction_spec_semantic_fragment_schema, references_transcribe_whisper_transcription [INFERRED 0.75]
 
-## Communities (117 total, 29 thin omitted)
+## Communities (118 total, 29 thin omitted)
 
 ### Community 0 - "CLI Scaffolding"
 Cohesion: 0.06
@@ -258,8 +259,8 @@ Cohesion: 0.08
 Nodes (28): Cursor, DocumentStore, FindOptions, Context, Database, Logger, Order, NewMongoRepository() (+20 more)
 
 ### Community 22 - "File Upload Utilities"
-Cohesion: 0.16
-Nodes (23): containsFold(), contentTypeAllowed(), DefaultAllowedContentTypes(), DefaultAllowedExtensions(), DefaultConfig(), DetectContentType(), maxSizeBytes(), NewObjectKey() (+15 more)
+Cohesion: 0.19
+Nodes (17): containsFold(), contentTypeAllowed(), DetectContentType(), NewObjectKey(), normalizeContentType(), normalizeContentTypes(), publicURL(), ValidateUpload() (+9 more)
 
 ### Community 23 - "Redis Locking"
 Cohesion: 0.18
@@ -302,8 +303,8 @@ Cohesion: 0.15
 Nodes (10): newQiniuBackend(), qiniuMetadata(), qiniuBackend, FormUploader, Mac, backend, Config, Context (+2 more)
 
 ### Community 33 - "Uploader Backend"
-Cohesion: 0.31
-Nodes (9): backend, Config, newBackend(), NewUploader(), Uploader, MinIOConfig, OSSConfig, QiniuConfig (+1 more)
+Cohesion: 0.22
+Nodes (11): Config, DefaultAllowedContentTypes(), DefaultAllowedExtensions(), DefaultConfig(), maxSizeBytes(), normalizeConfig(), normalizeExtensions(), MinIOConfig (+3 more)
 
 ### Community 34 - "Aliyun OSS Storage"
 Cohesion: 0.18
@@ -342,8 +343,8 @@ Cohesion: 0.36
 Nodes (8): Context, Note, T, memoryNoteRepo, newMemoryNoteRepo(), TestCreateNote(), TestCreateNoteRequiresAuthorTitleAndContent(), TestPublishSubmittedCreatesPublishedNote()
 
 ### Community 44 - "Tencent COS Backend"
-Cohesion: 0.17
-Nodes (8): newTencentCOSBackend(), cosBackend, backend, Client, Config, Context, preparedUpload, TencentCOSConfig
+Cohesion: 0.25
+Nodes (5): cosBackend, Client, Context, preparedUpload, TencentCOSConfig
 
 ### Community 49 - "MySQL Client"
 Cohesion: 0.38
@@ -516,6 +517,10 @@ Nodes (3): 3.1 检查 Go, 3.2 检查 bw-cli 项目, 3. 准备环境
 ### Community 111 - "Community 111"
 Cohesion: 1.00
 Nodes (3): Extra Exports and Benchmark, MCP Server Export, Optional Exports and Benchmark
+
+### Community 117 - "Community 117"
+Cohesion: 0.29
+Nodes (7): backend, newTencentCOSBackend(), newBackend(), NewUploader(), Uploader, backend, Config
 
 ## Knowledge Gaps
 - **541 isolated node(s):** `PreToolUse`, `UnsafeNoteServiceServer`, `ServiceRegistrar`, `UnsafeOrderServiceServer`, `ServiceRegistrar` (+536 more)
