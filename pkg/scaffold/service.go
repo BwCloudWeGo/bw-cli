@@ -377,17 +377,6 @@ func validateDefaultCRUDColumns(table string, columns []tableColumn) error {
 	for _, column := range columns {
 		seen[strings.ToLower(column.Name)] = column
 	}
-	for _, name := range []string{"id", "name", "description"} {
-		if _, ok := seen[name]; !ok {
-			return fmt.Errorf("--table %s currently requires column %q for generated default CRUD; add the column or generate without --table and adjust fields manually", table, name)
-		}
-	}
-	if _, ok := seen["created_at"]; !ok {
-		return fmt.Errorf("--table %s currently requires column %q for generated default CRUD", table, "created_at")
-	}
-	if _, ok := seen["updated_at"]; !ok {
-		return fmt.Errorf("--table %s currently requires column %q for generated default CRUD", table, "updated_at")
-	}
 	id := seen["id"]
 	if !id.PrimaryKey {
 		return fmt.Errorf("--table %s requires id to be the primary key", table)

@@ -28,11 +28,11 @@ services:
     target: 127.0.0.1:9100
 
 database:
-  driver: sqlite
-  dsn: data/xiaolanshu.db
+  driver: mysql
+  dsn: "账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local"
 
 mysql:
-  dsn: ""
+  dsn: "账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local"
   max_idle_conns: 10
   max_open_conns: 100
   conn_max_lifetime_seconds: 3600

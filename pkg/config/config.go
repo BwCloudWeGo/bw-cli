@@ -26,6 +26,8 @@ import (
 
 var remoteConfigLoader = nacosx.LoadConfig
 
+const defaultMySQLDSN = "账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local"
+
 // Source 标识进程从哪里加载应用配置。
 type Source string
 
@@ -338,9 +340,9 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("services.note.name", "note-service")
 	v.SetDefault("services.note.port", 9002)
 	v.SetDefault("services.note.target", "127.0.0.1:9002")
-	v.SetDefault("database.driver", "sqlite")
-	v.SetDefault("database.dsn", "data/xiaolanshu.db")
-	v.SetDefault("mysql.dsn", mysqlx.DefaultConfig().DSN)
+	v.SetDefault("database.driver", "mysql")
+	v.SetDefault("database.dsn", defaultMySQLDSN)
+	v.SetDefault("mysql.dsn", defaultMySQLDSN)
 	v.SetDefault("mysql.max_idle_conns", mysqlx.DefaultConfig().MaxIdleConns)
 	v.SetDefault("mysql.max_open_conns", mysqlx.DefaultConfig().MaxOpenConns)
 	v.SetDefault("mysql.conn_max_lifetime_seconds", int(mysqlx.DefaultConfig().ConnMaxLifetime/time.Second))

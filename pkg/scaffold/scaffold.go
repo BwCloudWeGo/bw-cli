@@ -532,11 +532,11 @@ services:
     name: gateway
 
 database:
-  driver: sqlite
-  dsn: data/app.db
+  driver: mysql
+  dsn: "账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local"
 
 mysql:
-  dsn: ""
+  dsn: "账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local"
   max_idle_conns: 10
   max_open_conns: 100
   conn_max_lifetime_seconds: 3600
@@ -959,7 +959,7 @@ bw-cli service comment --table comments --tidy
 
 - 服务名、gRPC 端口和 gateway target 写在 `+"`services.comment`"+`。
 - 数据库继续读取当前项目已有的 `+"`database`"+`、`+"`mysql`"+`、`+"`postgresql`"+` 配置。
-- 默认 SQLite 可直接本地运行，服务启动时自动执行 `+"`AutoMigrate`"+`。
+- 默认使用 MySQL，启动前需要把 `+"`mysql.dsn`"+` 中的账号、密码、服务器 IP 和数据库名替换为真实值。
 - proto、handler、entity、model、service、repo、gateway HTTP 入口和 service 单测都会同时生成。
 - 如果启用了 Nacos，命令行会提示把本地新增配置同步到 Nacos。
 

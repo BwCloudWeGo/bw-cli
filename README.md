@@ -589,7 +589,21 @@ configs/config.yaml
 
 ### 7.1 默认数据库
 
-默认使用 SQLite，适合本地快速体验：
+默认使用 MySQL。启动前需要把连接串中的账号、密码、服务器 IP 和数据库名替换为真实值：
+
+```yaml
+database:
+  driver: mysql
+  dsn: "账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local"
+
+mysql:
+  dsn: "账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local"
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime_seconds: 3600
+```
+
+### 7.2 切换 SQLite
 
 ```yaml
 database:
@@ -598,19 +612,6 @@ database:
 ```
 
 SQLite 文件会写入 `data/` 目录，该目录已被 `.gitignore` 忽略。
-
-### 7.2 切换 MySQL
-
-```yaml
-database:
-  driver: mysql
-
-mysql:
-  dsn: ""
-  max_idle_conns: 10
-  max_open_conns: 100
-  conn_max_lifetime_seconds: 3600
-```
 
 ### 7.3 切换 PostgreSQL
 
