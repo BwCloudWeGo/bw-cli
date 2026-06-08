@@ -16,7 +16,7 @@
 MongoDB 调用必须遵守脚手架分层：
 
 ```text
-handler -> service -> model.Repository -> repo -> pkg/mongox -> MongoDB
+handler -> service -> entity.Repository -> repo -> model -> pkg/mongox -> MongoDB
 ```
 
 各层职责：
@@ -26,9 +26,10 @@ handler -> service -> model.Repository -> repo -> pkg/mongox -> MongoDB
 | `cmd/<service>` | 可以初始化 client | 读取配置、创建 MongoDB client、Ping、选择 database、注入 repo |
 | `handler` | 不可以 | 只把 gRPC/HTTP 请求转换成 `dto.Command` |
 | `dto` | 不可以 | 只定义业务入参和业务出参 |
-| `service` | 不可以直接调 driver 或 `mongox.DocumentStore` | 编排业务流程，只依赖 `model.Repository` |
-| `model` | 不可以 | 定义领域实体、业务错误、仓储接口 |
-| `repo` | 可以 | 定义 MongoDB 文档结构，调用 `mongox.DocumentStore[T]` 做 CRUD |
+| `service` | 不可以直接调 driver 或 `mongox.DocumentStore` | 编排业务流程，只依赖 `entity.Repository` |
+| `entity` | 不可以 | 定义业务实体、业务错误、仓储接口 |
+| `model` | 不可以调用 MongoDB | 定义 MongoDB 文档结构、BSON tag 和 `MongoCollectionName()` |
+| `repo` | 可以 | 调用 `mongox.DocumentStore[T]` 做 CRUD，并完成 entity/model 映射 |
 | `pkg/mongox` | 可以 | 公共 MongoDB client 和 collection 操作封装 |
 
 这样做的目的很简单：业务逻辑不和 MongoDB driver 耦合，后续切换 MySQL、PostgreSQL、MongoDB 或写 fake repository 都更轻。
@@ -115,7 +116,7 @@ auditRepo := auditrepo.NewMongoRepository(mongoDB, log)
 
 ## 4. 公共操作类怎么用
 
-`mongox.NewDocumentStore[T]` 是业务仓储推荐使用的公共 MongoDB 操作类入口。`T` 是集合文档结构体，通常定义在业务服务的 `repo` 包中，并通过 `MongoCollectionName()` 声明集合名称。
+`mongox.NewDocumentStore[T]` 是业务仓储推荐使用的公共 MongoDB 操作类入口。`T` 是集合文档结构体，通常定义在业务服务的 `model` 包中，并通过 `MongoCollectionName()` 声明集合名称。
 
 ```go
 type NoteDocument struct {
@@ -174,12 +175,12 @@ cmd/note/main.go
   -> internal/note/handler.NewServer(svc, log)
 ```
 
-### 5.1 model 层定义仓储接口
+### 5.1 entity 层定义仓储接口
 
-`internal/note/model/repository.go`
+`internal/note/entity/repository.go`
 
 ```go
-package model
+package entity
 
 import "context"
 
@@ -193,11 +194,11 @@ type Repository interface {
 
 ```go
 type Service struct {
-    repo model.Repository
+    repo entity.Repository
 }
 
 func (s *Service) Create(ctx context.Context, cmd dto.CreateNoteCommand) (*dto.NoteDTO, error) {
-    note, err := model.NewNote(cmd.AuthorID, cmd.Title, cmd.Content)
+    note, err := entity.NewNote(cmd.AuthorID, cmd.Title, cmd.Content)
     if err != nil {
         return nil, err
     }
@@ -208,11 +209,13 @@ func (s *Service) Create(ctx context.Context, cmd dto.CreateNoteCommand) (*dto.N
 }
 ```
 
-### 5.2 repo 层定义 MongoDB 文档
+### 5.2 model 层定义 MongoDB 文档
 
-`internal/note/repo/mongo_repository.go`
+`internal/note/model/note.go`
 
 ```go
+package model
+
 type NoteDocument struct {
     ID          string     `bson:"_id"`
     AuthorID    string     `bson:"author_id"`
@@ -227,35 +230,33 @@ type NoteDocument struct {
     CreatedAt   time.Time  `bson:"created_at"`
     UpdatedAt   time.Time  `bson:"updated_at"`
 }
-```
-
-注意：`bson` tag 只放在 repo 层文档结构里，不要放到 `model.Note` 上。
-
-### 5.3 repo 层调用公共 Mongo 类
-
-```go
-const noteCollectionName = "notes"
 
 func (NoteDocument) MongoCollectionName() string {
-    return noteCollectionName
+    return "notes"
 }
+```
 
+注意：`bson` tag 只放在 model 层数据库文档结构里，不要放到 `entity.Note` 上。
+
+### 5.3 repo 层调用公共 Mongo 类并做映射
+
+```go
 type MongoRepository struct {
-    notes mongox.DocumentSaverFinder[NoteDocument]
+    notes mongox.DocumentSaverFinder[dbmodel.NoteDocument]
     log   *zap.Logger
 }
 
 func NewMongoRepository(db *mongo.Database, loggers ...*zap.Logger) *MongoRepository {
     log := optionalLogger(loggers...)
-    store := mongox.NewDocumentStore[NoteDocument](db, log)
+    store := mongox.NewDocumentStore[dbmodel.NoteDocument](db, log)
     return NewMongoRepositoryWithStore(store, log)
 }
 
-func NewMongoRepositoryWithStore(store mongox.DocumentSaverFinder[NoteDocument], loggers ...*zap.Logger) *MongoRepository {
+func NewMongoRepositoryWithStore(store mongox.DocumentSaverFinder[dbmodel.NoteDocument], loggers ...*zap.Logger) *MongoRepository {
     return &MongoRepository{notes: store, log: optionalLogger(loggers...)}
 }
 
-func (r *MongoRepository) Save(ctx context.Context, note *model.Note) error {
+func (r *MongoRepository) Save(ctx context.Context, note *entity.Note) error {
     _, err := r.notes.UpsertByID(ctx, note.ID, toNoteDocument(note))
     return err
 }
@@ -266,10 +267,10 @@ func (r *MongoRepository) Save(ctx context.Context, note *model.Note) error {
 公共类找不到文档时返回 `mongox.ErrNotFound`。repo 层要把它转换成业务领域错误：
 
 ```go
-func (r *MongoRepository) FindByID(ctx context.Context, id string) (*model.Note, error) {
+func (r *MongoRepository) FindByID(ctx context.Context, id string) (*entity.Note, error) {
     document, err := r.notes.FindByID(ctx, id)
     if errors.Is(err, mongox.ErrNotFound) {
-        return nil, model.ErrNoteNotFound
+        return nil, entity.ErrNoteNotFound
     }
     if err != nil {
         return nil, err
@@ -280,11 +281,11 @@ func (r *MongoRepository) FindByID(ctx context.Context, id string) (*model.Note,
 
 ## 6. 示例二：order 服务改成 MongoDB CRUD
 
-通过 `bw-cli service order --tidy` 生成的服务默认是 Gorm 仓储。如果某个服务更适合文档存储，可以保留 `model.Repository` 接口不变，只新增一个 MongoDB 仓储实现。
+通过 `bw-cli service order --tidy` 生成的服务默认是 Gorm 仓储。如果某个服务更适合文档存储，可以保留 `entity.Repository` 接口不变，只新增一个 MongoDB 仓储实现。
 
-### 6.1 保持 model 接口不变
+### 6.1 保持 entity 接口不变
 
-`internal/order/model/repository.go`
+`internal/order/entity/repository.go`
 
 ```go
 type Repository interface {
@@ -305,33 +306,19 @@ package repo
 import (
     "context"
     "errors"
-    "time"
 
     "go.mongodb.org/mongo-driver/v2/bson"
     "go.mongodb.org/mongo-driver/v2/mongo"
     "go.mongodb.org/mongo-driver/v2/mongo/options"
     "go.uber.org/zap"
 
-    "github.com/BwCloudWeGo/bw-cli/internal/order/model"
+    "github.com/BwCloudWeGo/bw-cli/internal/order/entity"
+    dbmodel "github.com/BwCloudWeGo/bw-cli/internal/order/model"
     "github.com/BwCloudWeGo/bw-cli/pkg/mongox"
 )
 
-const orderCollectionName = "orders"
-
-type OrderDocument struct {
-    ID          string    `bson:"_id"`
-    Name        string    `bson:"name"`
-    Description string    `bson:"description"`
-    CreatedAt   time.Time `bson:"created_at"`
-    UpdatedAt   time.Time `bson:"updated_at"`
-}
-
-func (OrderDocument) MongoCollectionName() string {
-    return orderCollectionName
-}
-
 type MongoRepository struct {
-    orders *mongox.DocumentStore[OrderDocument]
+    orders *mongox.DocumentStore[dbmodel.OrderDocument]
     log    *zap.Logger
 }
 
@@ -340,20 +327,20 @@ func NewMongoRepository(db *mongo.Database, log *zap.Logger) *MongoRepository {
         log = zap.NewNop()
     }
     return &MongoRepository{
-        orders: mongox.NewDocumentStore[OrderDocument](db, log),
+        orders: mongox.NewDocumentStore[dbmodel.OrderDocument](db, log),
         log:    log,
     }
 }
 
-func (r *MongoRepository) Save(ctx context.Context, item *model.Order) error {
+func (r *MongoRepository) Save(ctx context.Context, item *entity.Order) error {
     _, err := r.orders.UpsertByID(ctx, item.ID, toOrderDocument(item))
     return err
 }
 
-func (r *MongoRepository) FindByID(ctx context.Context, id string) (*model.Order, error) {
+func (r *MongoRepository) FindByID(ctx context.Context, id string) (*entity.Order, error) {
     document, err := r.orders.FindByID(ctx, id)
     if errors.Is(err, mongox.ErrNotFound) {
-        return nil, model.ErrOrderNotFound
+        return nil, entity.ErrOrderNotFound
     }
     if err != nil {
         return nil, err
@@ -361,7 +348,7 @@ func (r *MongoRepository) FindByID(ctx context.Context, id string) (*model.Order
     return toOrderDomain(document), nil
 }
 
-func (r *MongoRepository) List(ctx context.Context, offset int, limit int) ([]*model.Order, int64, error) {
+func (r *MongoRepository) List(ctx context.Context, offset int, limit int) ([]*entity.Order, int64, error) {
     filter := bson.M{}
     total, err := r.orders.Count(ctx, filter)
     if err != nil {
@@ -378,7 +365,7 @@ func (r *MongoRepository) List(ctx context.Context, offset int, limit int) ([]*m
         return nil, 0, err
     }
 
-    items := make([]*model.Order, 0, len(documents))
+    items := make([]*entity.Order, 0, len(documents))
     for i := range documents {
         items = append(items, toOrderDomain(&documents[i]))
     }
@@ -391,13 +378,13 @@ func (r *MongoRepository) Delete(ctx context.Context, id string) error {
         return err
     }
     if result.DeletedCount == 0 {
-        return model.ErrOrderNotFound
+        return entity.ErrOrderNotFound
     }
     return nil
 }
 
-func toOrderDocument(item *model.Order) *OrderDocument {
-    return &OrderDocument{
+func toOrderDocument(item *entity.Order) *dbmodel.OrderDocument {
+    return &dbmodel.OrderDocument{
         ID:          item.ID,
         Name:        item.Name,
         Description: item.Description,
@@ -406,8 +393,8 @@ func toOrderDocument(item *model.Order) *OrderDocument {
     }
 }
 
-func toOrderDomain(document *OrderDocument) *model.Order {
-    return &model.Order{
+func toOrderDomain(document *dbmodel.OrderDocument) *entity.Order {
+    return &entity.Order{
         ID:          document.ID,
         Name:        document.Name,
         Description: document.Description,
@@ -416,10 +403,10 @@ func toOrderDomain(document *OrderDocument) *model.Order {
     }
 }
 
-var _ model.Repository = (*MongoRepository)(nil)
+var _ entity.Repository = (*MongoRepository)(nil)
 ```
 
-这个示例里，`service` 和 `handler` 不需要改。只要 `MongoRepository` 实现了 `model.Repository`，业务层就可以直接复用。
+这个示例里，`service` 和 `handler` 不需要改。只要 `MongoRepository` 实现了 `entity.Repository`，业务层就可以直接复用。
 
 ### 6.3 在 order main 中注入 MongoDB 仓储
 
@@ -611,7 +598,7 @@ type DocumentSaverFinder[T any] interface {
 store := &fakeNoteDocumentStore{}
 repository := repo.NewMongoRepositoryWithStore(store)
 
-note, _ := model.NewNote("user-1", "Mongo note", "content")
+note, _ := entity.NewNote("user-1", "Mongo note", "content")
 err := repository.Save(context.Background(), note)
 
 require.NoError(t, err)
@@ -681,9 +668,9 @@ func (s *Service) Create(ctx context.Context, cmd dto.CreateCommand) error {
 }
 ```
 
-正确做法：把 `mongox.NewDocumentStore` 放进 `repo`，service 只依赖 `model.Repository`。
+正确做法：把 `mongox.NewDocumentStore` 放进 `repo`，service 只依赖 `entity.Repository`。
 
-### 12.3 把 bson tag 写到领域模型上
+### 12.3 把 bson tag 写到业务实体上
 
 错误写法：
 
@@ -693,7 +680,7 @@ type Note struct {
 }
 ```
 
-正确做法：领域模型保持纯净，MongoDB 文档结构放在 `repo` 包。
+正确做法：业务实体保持纯净，MongoDB 文档结构放在 `model` 包。
 
 ### 12.4 忘记处理 ErrNotFound
 
@@ -701,7 +688,7 @@ type Note struct {
 
 ```go
 if errors.Is(err, mongox.ErrNotFound) {
-    return nil, model.ErrNoteNotFound
+    return nil, entity.ErrNoteNotFound
 }
 ```
 
@@ -713,13 +700,13 @@ handler 再把业务错误转换成 HTTP/gRPC 错误码。
 
 1. 在 `configs/config.yaml` 配置 `mongodb.*`。
 2. 在 `cmd/<service>/main.go` 中创建 MongoDB client、Ping、获取 database。
-3. 在 `internal/<service>/model/repository.go` 定义业务需要的仓储接口。
-4. 在 `internal/<service>/repo/mongo_repository.go` 定义 MongoDB 文档结构。
+3. 在 `internal/<service>/entity/repository.go` 定义业务需要的仓储接口。
+4. 在 `internal/<service>/model/<service>.go` 定义 MongoDB 文档结构。
 5. 在文档结构体上实现 `MongoCollectionName() string`，声明集合名称。
 6. 在 repo 中调用 `mongox.NewDocumentStore[T](db, log)`。
-7. 在 repo 中完成领域模型和文档模型转换。
+7. 在 repo 中完成业务实体和数据库模型转换。
 8. 在 repo 中把 `mongox.ErrNotFound` 转成领域错误。
-9. 在 `service` 中继续依赖 `model.Repository`，不要直接依赖 MongoDB。
+9. 在 `service` 中继续依赖 `entity.Repository`，不要直接依赖 MongoDB。
 10. 在 `handler` 中只做请求转换和错误映射。
 11. 为 repo 写 fake 单测，为真实 MongoDB 写显式开关的集成测试。
 

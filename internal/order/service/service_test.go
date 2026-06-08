@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/BwCloudWeGo/bw-cli/internal/order/dto"
-	"github.com/BwCloudWeGo/bw-cli/internal/order/model"
+	"github.com/BwCloudWeGo/bw-cli/internal/order/entity"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
@@ -41,34 +41,34 @@ func TestServiceCRUD(t *testing.T) {
 
 	require.NoError(t, svc.Delete(ctx, created.ID))
 	_, err = svc.Get(ctx, created.ID)
-	require.ErrorIs(t, err, model.ErrOrderNotFound)
+	require.ErrorIs(t, err, entity.ErrOrderNotFound)
 }
 
 type fakeRepository struct {
-	items map[string]*model.Order
+	items map[string]*entity.Order
 }
 
 func newFakeRepository() *fakeRepository {
-	return &fakeRepository{items: make(map[string]*model.Order)}
+	return &fakeRepository{items: make(map[string]*entity.Order)}
 }
 
-func (r *fakeRepository) Save(ctx context.Context, item *model.Order) error {
+func (r *fakeRepository) Save(ctx context.Context, item *entity.Order) error {
 	copy := *item
 	r.items[item.ID] = &copy
 	return nil
 }
 
-func (r *fakeRepository) FindByID(ctx context.Context, id string) (*model.Order, error) {
+func (r *fakeRepository) FindByID(ctx context.Context, id string) (*entity.Order, error) {
 	item, ok := r.items[id]
 	if !ok {
-		return nil, model.ErrOrderNotFound
+		return nil, entity.ErrOrderNotFound
 	}
 	copy := *item
 	return &copy, nil
 }
 
-func (r *fakeRepository) List(ctx context.Context, offset int, limit int) ([]*model.Order, int64, error) {
-	items := make([]*model.Order, 0, len(r.items))
+func (r *fakeRepository) List(ctx context.Context, offset int, limit int) ([]*entity.Order, int64, error) {
+	items := make([]*entity.Order, 0, len(r.items))
 	for _, item := range r.items {
 		copy := *item
 		items = append(items, &copy)
@@ -85,10 +85,10 @@ func (r *fakeRepository) List(ctx context.Context, offset int, limit int) ([]*mo
 
 func (r *fakeRepository) Delete(ctx context.Context, id string) error {
 	if _, ok := r.items[id]; !ok {
-		return model.ErrOrderNotFound
+		return entity.ErrOrderNotFound
 	}
 	delete(r.items, id)
 	return nil
 }
 
-var _ model.Repository = (*fakeRepository)(nil)
+var _ entity.Repository = (*fakeRepository)(nil)

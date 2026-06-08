@@ -875,7 +875,8 @@ v1.go           # /api/v1
 以新增 `comment` 服务为例：
 
 ```text
-internal/comment/model      # Comment 实体、错误、Repository 接口
+internal/comment/entity     # Comment 业务实体、错误、Repository 接口
+internal/comment/model      # 数据库表结构和文档结构
 internal/comment/dto
   ├── command.go            # CreateCommand、UpdateCommand、ListCommand
   └── comment.go            # CommentDTO、ListCommentDTO、FromComment
@@ -931,6 +932,7 @@ updated_at
 api/proto/comment/v1/comment.proto
 api/gen/comment/v1
 cmd/comment/main.go
+internal/comment/entity
 internal/comment/model
 internal/comment/dto/command.go
 internal/comment/dto/comment.go
@@ -989,7 +991,7 @@ HTTP client
   -> api/proto/comment/v1/comment.proto
   -> internal/comment/handler
   -> internal/comment/service
-  -> internal/comment/model.Repository
+  -> internal/comment/entity.Repository
   -> internal/comment/repo(Gorm)
   -> database.Open(cfg.Database, cfg.MySQL, cfg.PostgreSQL, log)
 ```
@@ -1014,21 +1016,22 @@ gateway 调用服务时读取 `services.comment.target`。如需调整地址，�
 | `api/proto/<service>/v1` | gRPC 协议 | 默认带 CRUD RPC，请按业务改 Request/Response 字段 | 先稳定外部契约，避免 handler/service 随意暴露内部模型 |
 | `api/gen/<service>/v1` | 生成代码 | 只通过 `make proto` 生成，不手写 | 保持 proto 和 Go 类型一致，减少人为错误 |
 | `cmd/<service>` | 服务启动入口 | 加载配置、初始化日志、打开数据库、注册 gRPC server | 入口负责组装依赖，业务逻辑不放在 main 中 |
-| `internal/<service>/model` | 领域模型 | 写实体、业务错误、Repository 接口 | model 是业务核心，不依赖 Gin、gRPC、Gorm，方便测试和替换基础设施 |
+| `internal/<service>/entity` | 业务核心 | 写业务实体、业务错误、Repository 接口 | entity 是业务核心，不依赖 Gin、gRPC、Gorm，方便测试和替换基础设施 |
+| `internal/<service>/model` | 数据库模型 | 写 Gorm 表结构、MongoDB 文档结构、`TableName()`、`MongoCollectionName()` | 数据库结构单独维护，不混入查询逻辑 |
 | `internal/<service>/dto/command.go` | 业务用例入参 | 定义 `CreateCommand`、`UpdateCommand`、`ListCommand` 等命令对象 | handler 只组装命令，不堆业务字段 |
-| `internal/<service>/dto/<service>.go` | 业务用例出参 | 定义 DTO，并把领域模型转成返回结构 | 对外不暴露领域模型和数据库模型 |
-| `internal/<service>/service/service.go` | 业务流程编排 | 接收命令对象，调用领域模型和仓储接口 | service 表达业务流程，避免 handler 直接写业务 |
-| `internal/<service>/repo` | 数据库实现 | 默认用 Gorm 实现 `model.Repository` | 数据库操作集中在 repo，业务层只面向接口 |
+| `internal/<service>/dto/<service>.go` | 业务用例出参 | 定义 DTO，并把业务实体转成返回结构 | 对外不暴露业务实体和数据库模型 |
+| `internal/<service>/service/service.go` | 业务流程编排 | 接收命令对象，调用业务实体和仓储接口 | service 表达业务流程，避免 handler 直接写业务 |
+| `internal/<service>/repo` | 数据库实现 | 默认用 Gorm 实现 `entity.Repository`，并做 entity/model 映射 | 数据库操作集中在 repo，业务层只面向接口 |
 | `internal/<service>/handler` | gRPC 入站适配 | 把 proto request 转成 service command，把 DTO 转成 proto response | handler 只做协议转换，不写数据库和复杂业务 |
 | `internal/gateway/request` | HTTP 入参 DTO | 定义 Gin bind/validate 结构体 | 控制器不堆请求字段，入参可复用和测试 |
 | `internal/gateway/handler` | HTTP 控制器 | 参数绑定、调用下游 gRPC client、统一响应 | HTTP 层只处理 Web 协议，不直接操作数据库 |
 | `internal/gateway/router` | 路由注册 | 按 `/api/v1/<business>` 分文件注册 | 路由按版本/业务拆分，避免所有接口堆在一个文件 |
 
-### 10.3 model 层：写业务核心
+### 10.3 entity 层：写业务核心
 
-生成后的 `model` 默认包含 `ID`、`Name`、`Description`、`CreatedAt`、`UpdatedAt`，这是 CRUD 示例字段。真实开发时，把 `Name/Description` 换成业务字段，把校验放在构造函数或实体方法里。
+生成后的 `entity` 默认包含 `ID`、`Name`、`Description`、`CreatedAt`、`UpdatedAt`，这是 CRUD 示例字段。真实开发时，把 `Name/Description` 换成业务字段，把校验放在构造函数或实体方法里。
 
-Repository 接口也放在 `model`：
+Repository 接口也放在 `entity`：
 
 ```go
 type Repository interface {
@@ -1041,7 +1044,25 @@ type Repository interface {
 
 这样做的原因是：业务层只关心“保存、查询、分页、删除”这些能力，不关心底层是 MySQL、PostgreSQL、MongoDB 还是测试 fake。
 
-### 10.4 service 层：写业务流程
+### 10.4 model 层：写数据库结构
+
+`model` 只维护数据库结构。Gorm 结构写 `gorm` tag 和 `TableName()`，MongoDB 文档结构写 `bson` tag 和 `MongoCollectionName()`，不写查询逻辑、不放业务错误。
+
+```go
+type CommentModel struct {
+    ID          string `gorm:"primaryKey;size:64"`
+    Name        string `gorm:"size:128;not null"`
+    Description string `gorm:"type:text"`
+    CreatedAt   time.Time
+    UpdatedAt   time.Time
+}
+
+func (CommentModel) TableName() string {
+    return "comments"
+}
+```
+
+### 10.5 service 层：写业务流程
 
 `dto` 与 `service` 已经按职责拆开，`service` 层只保留 `Create/Get/List/Update/Delete` 用例流程：
 
@@ -1051,11 +1072,11 @@ internal/comment/dto/comment.go      # 业务出参 DTO 和 FromComment
 internal/comment/service/service.go  # 业务流程编排
 ```
 
-新增业务规则时写在 `service.go` 或 `model`，不要写在 handler。新增入参先放 `dto/command.go`，新增出参和转换放 `dto/comment.go`。
+新增业务规则时写在 `service.go` 或 `entity`，不要写在 handler。新增入参先放 `dto/command.go`，新增出参和转换放 `dto/comment.go`。
 
 ```go
 func (s *Service) Create(ctx context.Context, cmd dto.CreateCommand) (*dto.CommentDTO, error) {
-    item, err := model.NewComment(cmd.Name, cmd.Description)
+    item, err := entity.NewComment(cmd.Name, cmd.Description)
     if err != nil {
         return nil, err
     }
@@ -1066,9 +1087,9 @@ func (s *Service) Create(ctx context.Context, cmd dto.CreateCommand) (*dto.Comme
 }
 ```
 
-这样写的原因是：业务规则集中在 service/model，handler 变薄，repo 可替换，单元测试可以用 fake repository。生成的 `internal/comment/service/service_test.go` 已经给出 fake repository 的 CRUD 测试示例。
+这样写的原因是：业务规则集中在 service/entity，handler 变薄，repo 可替换，单元测试可以用 fake repository。生成的 `internal/comment/service/service_test.go` 已经给出 fake repository 的 CRUD 测试示例。
 
-### 10.5 repo 层：数据库在哪里操作，如何操作
+### 10.6 repo 层：数据库在哪里操作，如何操作
 
 数据库操作只放在 `internal/<service>/repo`。默认使用 Gorm，`cmd/<service>/main.go` 负责打开数据库并注入 repo：
 
@@ -1082,20 +1103,21 @@ svc := commentservice.NewService(repo, log)
 
 - `AutoMigrate(db)`：创建或更新表结构。
 - `Save(ctx, item)`：新增或更新。
-- `FindByID(ctx, id)`：按 ID 查询，查不到返回 `model.ErrCommentNotFound`。
+- `FindByID(ctx, id)`：按 ID 查询，查不到返回 `entity.ErrCommentNotFound`。
 - `List(ctx, offset, limit)`：分页查询并返回总数。
-- `Delete(ctx, id)`：按 ID 删除，删不到返回 `model.ErrCommentNotFound`。
+- `Delete(ctx, id)`：按 ID 删除，删不到返回 `entity.ErrCommentNotFound`。
 
 数据库操作规则：
 
 - `handler` 不直接操作数据库。
 - `service` 不直接使用 `*gorm.DB`。
-- `model` 不引入 Gorm tag，避免领域模型和数据库实现耦合。
+- `entity` 不引入 Gorm/BSON tag，避免业务模型和数据库实现耦合。
+- `model` 只写数据库结构、tag、`TableName()` 和 `MongoCollectionName()`，不写查询逻辑。
 - 查询、分页、事务、锁、索引相关实现都放在 `repo`。
 - 需要事务时，在 repo 层内部使用 `db.Transaction(func(tx *gorm.DB) error { ... })`。
-- 多数据源时保持接口不变，例如 `GormRepository`、`MongoRepository` 都实现 `model.Repository`。
+- 多数据源时保持接口不变，例如 `GormRepository`、`MongoRepository` 都实现 `entity.Repository`。
 
-### 10.6 handler 层：协议转换
+### 10.7 handler 层：协议转换
 
 `handler` 层已经生成 CRUD 方法。它只处理协议转换：
 

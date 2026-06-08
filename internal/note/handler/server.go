@@ -8,7 +8,7 @@ import (
 
 	notev1 "github.com/BwCloudWeGo/bw-cli/api/gen/note/v1"
 	"github.com/BwCloudWeGo/bw-cli/internal/note/dto"
-	"github.com/BwCloudWeGo/bw-cli/internal/note/model"
+	"github.com/BwCloudWeGo/bw-cli/internal/note/entity"
 	"github.com/BwCloudWeGo/bw-cli/internal/note/service"
 	apperrors "github.com/BwCloudWeGo/bw-cli/pkg/errors"
 )
@@ -83,9 +83,9 @@ func toProto(note *dto.NoteDTO) *notev1.NoteResponse {
 
 func mapNoteError(err error) error {
 	switch {
-	case stderrors.Is(err, model.ErrInvalidNote):
+	case stderrors.Is(err, entity.ErrInvalidNote):
 		return apperrors.InvalidArgument("invalid_note", "invalid note input")
-	case stderrors.Is(err, model.ErrNoteNotFound):
+	case stderrors.Is(err, entity.ErrNoteNotFound):
 		return apperrors.NotFound("note_not_found", "note not found")
 	default:
 		return apperrors.Wrap(apperrors.KindInternal, "note_service_error", "note service error", err)

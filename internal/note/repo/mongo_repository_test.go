@@ -8,23 +8,24 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
-	"github.com/BwCloudWeGo/bw-cli/internal/note/model"
+	"github.com/BwCloudWeGo/bw-cli/internal/note/entity"
+	dbmodel "github.com/BwCloudWeGo/bw-cli/internal/note/model"
 	"github.com/BwCloudWeGo/bw-cli/pkg/mongox"
 )
 
 type fakeNoteDocumentStore struct {
 	upsertID       any
-	upsertDocument *NoteDocument
+	upsertDocument *dbmodel.NoteDocument
 	upsertErr      error
 
 	findID       any
-	findDocument *NoteDocument
+	findDocument *dbmodel.NoteDocument
 	findErr      error
 }
 
-var _ mongox.CollectionNamed = NoteDocument{}
+var _ mongox.CollectionNamed = dbmodel.NoteDocument{}
 
-func (s *fakeNoteDocumentStore) UpsertByID(ctx context.Context, id any, document *NoteDocument, opts ...options.Lister[options.ReplaceOptions]) (*mongo.UpdateResult, error) {
+func (s *fakeNoteDocumentStore) UpsertByID(ctx context.Context, id any, document *dbmodel.NoteDocument, opts ...options.Lister[options.ReplaceOptions]) (*mongo.UpdateResult, error) {
 	s.upsertID = id
 	s.upsertDocument = document
 	if s.upsertErr != nil {
@@ -33,7 +34,7 @@ func (s *fakeNoteDocumentStore) UpsertByID(ctx context.Context, id any, document
 	return &mongo.UpdateResult{MatchedCount: 1, ModifiedCount: 1}, nil
 }
 
-func (s *fakeNoteDocumentStore) FindByID(ctx context.Context, id any, opts ...options.Lister[options.FindOneOptions]) (*NoteDocument, error) {
+func (s *fakeNoteDocumentStore) FindByID(ctx context.Context, id any, opts ...options.Lister[options.FindOneOptions]) (*dbmodel.NoteDocument, error) {
 	s.findID = id
 	if s.findErr != nil {
 		return nil, s.findErr
@@ -44,7 +45,7 @@ func (s *fakeNoteDocumentStore) FindByID(ctx context.Context, id any, opts ...op
 func TestMongoRepositorySaveUsesSharedMongoxCollection(t *testing.T) {
 	store := &fakeNoteDocumentStore{}
 	repository := NewMongoRepositoryWithStore(store)
-	note, err := model.NewNote("user-1", "Mongo note", "stored by shared collection")
+	note, err := entity.NewNote("user-1", "Mongo note", "stored by shared collection")
 	require.NoError(t, err)
 	note.NoteType = 2
 	note.Permission = 1
@@ -67,12 +68,12 @@ func TestMongoRepositorySaveUsesSharedMongoxCollection(t *testing.T) {
 
 func TestMongoRepositoryFindByIDMapsDocumentToDomain(t *testing.T) {
 	store := &fakeNoteDocumentStore{
-		findDocument: &NoteDocument{
+		findDocument: &dbmodel.NoteDocument{
 			ID:         "note-1",
 			AuthorID:   "user-1",
 			Title:      "Mongo note",
 			Content:    "stored by shared collection",
-			Status:     model.NoteStatusPublishedCode,
+			Status:     entity.NoteStatusPublishedCode,
 			NoteType:   2,
 			Permission: 1,
 			TopicIDs:   []string{"topic-1"},
@@ -85,7 +86,7 @@ func TestMongoRepositoryFindByIDMapsDocumentToDomain(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "note-1", store.findID)
 	require.Equal(t, "note-1", note.ID)
-	require.Equal(t, model.NoteStatusPublished, note.Status)
+	require.Equal(t, entity.NoteStatusPublished, note.Status)
 	require.Equal(t, int32(2), note.NoteType)
 	require.Equal(t, []string{"topic-1"}, note.TopicIDs)
 }
@@ -95,5 +96,5 @@ func TestMongoRepositoryFindByIDMapsMongoNotFound(t *testing.T) {
 
 	_, err := repository.FindByID(context.Background(), "missing")
 
-	require.ErrorIs(t, err, model.ErrNoteNotFound)
+	require.ErrorIs(t, err, entity.ErrNoteNotFound)
 }

@@ -312,6 +312,7 @@ bw-cli service order --tidy
 api/proto/order/v1/order.proto
 api/gen/order/v1
 cmd/order/main.go
+internal/order/entity
 internal/order/model
 internal/order/dto/command.go
 internal/order/dto/order.go
@@ -365,7 +366,7 @@ bw-cli delete-service order --tidy
 生成后的基础调用链已经成型：
 
 ```text
-HTTP client -> gateway router/handler -> gRPC client -> proto -> handler -> service -> model.Repository -> repo(Gorm) -> database
+HTTP client -> gateway router/handler -> gRPC client -> proto -> handler -> service -> entity.Repository -> repo(Gorm) -> database
 ```
 
 默认启动使用 `repo/gorm_repository.go`。命令也会生成 `repo/mongo_repository.go`，其中已经包含 `MongoCollectionName()`、`mongox.NewDocumentStore[T]` 和基础 CRUD 方法；如果该服务需要改用 MongoDB，只需要在 `cmd/order/main.go` 中改为注入 `repo.NewMongoRepository`。
@@ -465,11 +466,12 @@ internal/gateway
 依赖方向：
 
 ```text
-handler -> service -> model
+handler -> service -> entity
+repo -> entity
 repo -> model
 ```
 
-`model` 不依赖 Gin、gRPC、Gorm、MongoDB SDK 或日志框架，便于测试和替换基础设施。
+`entity` 不依赖 Gin、gRPC、Gorm、MongoDB SDK 或日志框架，便于测试和替换基础设施；`model` 只维护数据库结构。
 `service.go` 只写业务流程；命令入参放 `dto/command.go`，返回 DTO 和转换函数放 `dto/<service>.go`，避免控制器或服务主文件堆字段。
 
 ### 6.1 C4 架构图说明
@@ -506,7 +508,7 @@ C4Container
 
   System_Boundary(project, "Generated Project") {
     Container(gateway, "Gateway", "Gin HTTP", "统一入口、路由、中间件、HTTP 响应封装")
-    Container(service, "Business gRPC Service", "Go + gRPC", "承载业务用例、领域模型和仓储接口")
+    Container(service, "Business gRPC Service", "Go + gRPC", "承载业务用例、业务实体和仓储接口")
     ContainerDb(sqlDb, "Relational Database", "SQLite/MySQL/PostgreSQL + Gorm", "默认业务数据持久化")
     ContainerDb(mongoDb, "MongoDB", "MongoDB Driver", "文档型数据存储")
     ContainerDb(redis, "Redis", "go-redis", "缓存、分布式锁和临时状态")
@@ -538,17 +540,19 @@ C4Component
     Component(grpcHandler, "handler", "gRPC Adapter", "把 proto request 转成 service command")
     Component(command, "dto/command.go", "Command DTO", "定义业务用例入参")
     Component(usecase, "service/service.go", "Use Case Service", "编排业务流程和事务意图")
-    Component(dto, "dto/<service>.go", "Response DTO", "定义业务出参并转换领域模型")
-    Component(model, "model", "Domain Model", "实体、值对象、业务错误和 Repository 接口")
-    Component(repo, "repo", "Gorm Repository", "实现 model.Repository 并操作数据库")
+    Component(dto, "dto/<service>.go", "Response DTO", "定义业务出参并转换业务实体")
+    Component(entity, "entity", "Business Entity", "业务实体、业务错误和 Repository 接口")
+    Component(model, "model", "Persistence Model", "数据库表结构、文档结构、TableName 和 MongoCollectionName")
+    Component(repo, "repo", "Gorm Repository", "实现 entity.Repository 并操作数据库")
   }
 
   Rel(gateway, grpcHandler, "调用 RPC", "gRPC")
   Rel(grpcHandler, command, "组装入参")
   Rel(grpcHandler, usecase, "调用业务用例")
-  Rel(usecase, model, "执行业务规则")
+  Rel(usecase, entity, "执行业务规则")
   Rel(usecase, repo, "通过接口访问仓储")
-  Rel(repo, model, "实现 Repository 接口")
+  Rel(repo, entity, "实现 Repository 接口")
+  Rel(repo, model, "读写数据库结构")
   Rel(repo, sqlDb, "读写数据", "Gorm")
   Rel(usecase, dto, "返回业务出参")
 ```
@@ -557,7 +561,7 @@ C4Component
 
 - 看系统边界时，先看 Level 1，确认 `bw-cli`、生成项目、外部调用方和 Git 仓库的关系。
 - 看运行时调用链时，看 Level 2，确认 gateway、gRPC 服务和各类数据源之间的依赖。
-- 写具体业务代码时，看 Level 3，确认入参、业务流程、DTO、领域模型和数据库实现分别放在哪一层。
+- 写具体业务代码时，看 Level 3，确认入参、业务流程、DTO、业务实体、数据库模型和数据库实现分别放在哪一层。
 
 ## 7. 常用 Make 命令
 

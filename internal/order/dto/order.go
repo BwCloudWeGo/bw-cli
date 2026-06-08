@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/BwCloudWeGo/bw-cli/internal/order/model"
+	"github.com/BwCloudWeGo/bw-cli/internal/order/entity"
 )
 
 // OrderDTO 是 order 用例层返回给 handler 的数据结构。
@@ -23,7 +23,7 @@ type ListOrderDTO struct {
 }
 
 // FromOrder 将 order 领域聚合转换成 service 对外返回的 DTO。
-func FromOrder(item *model.Order) *OrderDTO {
+func FromOrder(item *entity.Order) *OrderDTO {
 	return &OrderDTO{
 		ID:          item.ID,
 		Name:        item.Name,

@@ -12,17 +12,19 @@ import (
 	"go.uber.org/zap"
 
 	notev1 "github.com/BwCloudWeGo/bw-cli/api/gen/note/v1"
+	"github.com/BwCloudWeGo/bw-cli/internal/note/entity"
 	notehandler "github.com/BwCloudWeGo/bw-cli/internal/note/handler"
-	"github.com/BwCloudWeGo/bw-cli/internal/note/model"
 	noterepo "github.com/BwCloudWeGo/bw-cli/internal/note/repo"
 	noteservice "github.com/BwCloudWeGo/bw-cli/internal/note/service"
 	"github.com/BwCloudWeGo/bw-cli/pkg/config"
 	"github.com/BwCloudWeGo/bw-cli/pkg/mongox"
 )
 
+const runNotePublishMongoDBEnv = "RUN_NOTE_PUBLISH_MONGODB"
+
 func TestPublishNoteWritesSubmittedNoteToConfiguredMongoDB(t *testing.T) {
-	if os.Getenv("APP_RUN_NOTE_PUBLISH_MONGODB") != "true" {
-		t.Skip("set APP_RUN_NOTE_PUBLISH_MONGODB=true to write a published note into MongoDB using configs/config.yaml")
+	if os.Getenv(runNotePublishMongoDBEnv) != "true" {
+		t.Skip("set RUN_NOTE_PUBLISH_MONGODB=true to write a published note into MongoDB using configs/config.yaml")
 	}
 
 	previous := config.GlobalConfig
@@ -53,7 +55,7 @@ func TestPublishNoteWritesSubmittedNoteToConfiguredMongoDB(t *testing.T) {
 		NoteType:   1,
 		Permission: 1,
 		TopicIds:   []string{"integration", "mongodb"},
-		Status:     model.NoteStatusPublishedCode,
+		Status:     entity.NoteStatusPublishedCode,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.GetId())
@@ -65,7 +67,7 @@ func TestPublishNoteWritesSubmittedNoteToConfiguredMongoDB(t *testing.T) {
 	require.Equal(t, resp.GetAuthorId(), stored.AuthorID)
 	require.Equal(t, resp.GetTitle(), stored.Title)
 	require.Equal(t, resp.GetContent(), stored.Content)
-	require.Equal(t, model.NoteStatusPublished, stored.Status)
+	require.Equal(t, entity.NoteStatusPublished, stored.Status)
 	require.Equal(t, int32(1), stored.NoteType)
 	require.Equal(t, int32(1), stored.Permission)
 	require.Equal(t, []string{"integration", "mongodb"}, stored.TopicIDs)

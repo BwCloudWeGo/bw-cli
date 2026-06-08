@@ -10,24 +10,9 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"github.com/BwCloudWeGo/bw-cli/internal/user/model"
+	"github.com/BwCloudWeGo/bw-cli/internal/user/entity"
+	dbmodel "github.com/BwCloudWeGo/bw-cli/internal/user/model"
 )
-
-// UserModel is the Gorm persistence model for the users table.
-type UserModel struct {
-	ID           int64  `gorm:"primaryKey;column:id;autoIncrement"`
-	Account      string `gorm:"uniqueIndex;column:account;size:64;not null"`
-	DisplayName  string `gorm:"column:name;size:20"`
-	Sex          bool   `gorm:"column:sex"`
-	PasswordSalt string `gorm:"column:password_salt;size:64;not null"`
-	PasswordHash string `gorm:"column:password_hash;size:255;not null"`
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-}
-
-func (UserModel) TableName() string {
-	return "xls_user"
-}
 
 // GormRepository persists user aggregates with Gorm.
 type GormRepository struct {
@@ -46,17 +31,17 @@ func NewGormRepository(db *gorm.DB, loggers ...*zap.Logger) *GormRepository {
 
 // AutoMigrate creates or updates the users table schema.
 func AutoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(&UserModel{})
+	return db.AutoMigrate(&dbmodel.UserModel{})
 }
 
 // Save inserts or updates a user aggregate.
-func (r *GormRepository) Save(ctx context.Context, user *model.User) error {
+func (r *GormRepository) Save(ctx context.Context, user *entity.User) error {
 	start := time.Now()
 	record := toUserModel(user)
 	tx := r.db.WithContext(ctx).Save(record)
 	err := tx.Error
 	if err != nil && strings.Contains(strings.ToLower(err.Error()), "unique") {
-		err = model.ErrAccountAlreadyExists
+		err = entity.ErrAccountAlreadyExists
 	}
 	if err == nil && user.ID == "" {
 		user.ID = strconv.FormatInt(record.ID, 10)
@@ -66,13 +51,13 @@ func (r *GormRepository) Save(ctx context.Context, user *model.User) error {
 }
 
 // FindByID loads a user aggregate by id.
-func (r *GormRepository) FindByID(ctx context.Context, id string) (*model.User, error) {
+func (r *GormRepository) FindByID(ctx context.Context, id string) (*entity.User, error) {
 	start := time.Now()
-	var record UserModel
+	var record dbmodel.UserModel
 	tx := r.db.WithContext(ctx).Where("id = ?", id).First(&record)
 	err := tx.Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		err = model.ErrUserNotFound
+		err = entity.ErrUserNotFound
 	}
 	if err != nil {
 		r.logOperation("FindByID", tx.RowsAffected, start, err)
@@ -83,13 +68,13 @@ func (r *GormRepository) FindByID(ctx context.Context, id string) (*model.User, 
 }
 
 // FindByAccount loads a user aggregate by normalized account.
-func (r *GormRepository) FindByAccount(ctx context.Context, account string) (*model.User, error) {
+func (r *GormRepository) FindByAccount(ctx context.Context, account string) (*entity.User, error) {
 	start := time.Now()
-	var record UserModel
-	tx := r.db.WithContext(ctx).Where("account = ?", model.NormalizeAccount(account)).First(&record)
+	var record dbmodel.UserModel
+	tx := r.db.WithContext(ctx).Where("account = ?", entity.NormalizeAccount(account)).First(&record)
 	err := tx.Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		err = model.ErrUserNotFound
+		err = entity.ErrUserNotFound
 	}
 	if err != nil {
 		r.logOperation("FindByAccount", tx.RowsAffected, start, err)
@@ -114,10 +99,10 @@ func (r *GormRepository) logOperation(operation string, rows int64, start time.T
 	r.log.Info("repository operation completed", fields...)
 }
 
-func toUserModel(user *model.User) *UserModel {
+func toUserModel(user *entity.User) *dbmodel.UserModel {
 	id, _ := strconv.ParseInt(user.ID, 10, 64)
 	salt, _, _ := strings.Cut(user.PasswordHash, ":")
-	return &UserModel{
+	return &dbmodel.UserModel{
 		ID:           id,
 		Account:      user.Account,
 		DisplayName:  user.DisplayName,
@@ -129,8 +114,8 @@ func toUserModel(user *model.User) *UserModel {
 	}
 }
 
-func toUserDomain(record *UserModel) *model.User {
-	return &model.User{
+func toUserDomain(record *dbmodel.UserModel) *entity.User {
+	return &entity.User{
 		ID:           strconv.FormatInt(record.ID, 10),
 		Account:      record.Account,
 		DisplayName:  record.DisplayName,

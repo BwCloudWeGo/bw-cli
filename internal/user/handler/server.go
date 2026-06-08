@@ -5,7 +5,7 @@ import (
 	stderrors "errors"
 	userv1 "github.com/BwCloudWeGo/bw-cli/api/gen/user/v1"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/dto"
-	"github.com/BwCloudWeGo/bw-cli/internal/user/model"
+	"github.com/BwCloudWeGo/bw-cli/internal/user/entity"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/service"
 	apperrors "github.com/BwCloudWeGo/bw-cli/pkg/errors"
 	"go.uber.org/zap"
@@ -69,13 +69,13 @@ func toProto(user *dto.UserDTO) *userv1.UserResponse {
 
 func mapUserError(err error) error {
 	switch {
-	case stderrors.Is(err, model.ErrInvalidUser):
+	case stderrors.Is(err, entity.ErrInvalidUser):
 		return apperrors.InvalidArgument("invalid_user", "invalid user input")
-	case stderrors.Is(err, model.ErrAccountAlreadyExists):
+	case stderrors.Is(err, entity.ErrAccountAlreadyExists):
 		return apperrors.Conflict("account_already_exists", "account already exists")
-	case stderrors.Is(err, model.ErrUserNotFound):
+	case stderrors.Is(err, entity.ErrUserNotFound):
 		return apperrors.NotFound("user_not_found", "user not found")
-	case stderrors.Is(err, model.ErrInvalidCredentials):
+	case stderrors.Is(err, entity.ErrInvalidCredentials):
 		return apperrors.Unauthorized("invalid_credentials", "invalid credentials")
 	default:
 		return apperrors.Wrap(apperrors.KindInternal, "user_service_error", "user service error", err)

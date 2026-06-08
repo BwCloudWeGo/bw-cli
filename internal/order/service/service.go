@@ -6,17 +6,17 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/BwCloudWeGo/bw-cli/internal/order/dto"
-	"github.com/BwCloudWeGo/bw-cli/internal/order/model"
+	"github.com/BwCloudWeGo/bw-cli/internal/order/entity"
 )
 
 // Service orchestrates order use cases.
 type Service struct {
-	repo model.Repository
+	repo entity.Repository
 	log  *zap.Logger
 }
 
 // NewService constructs the order use-case service.
-func NewService(repo model.Repository, log *zap.Logger) *Service {
+func NewService(repo entity.Repository, log *zap.Logger) *Service {
 	if log == nil {
 		log = zap.NewNop()
 	}
@@ -25,7 +25,7 @@ func NewService(repo model.Repository, log *zap.Logger) *Service {
 
 // Create creates a order record.
 func (s *Service) Create(ctx context.Context, cmd dto.CreateCommand) (*dto.OrderDTO, error) {
-	item, err := model.NewOrder(cmd.Name, cmd.Description)
+	item, err := entity.NewOrder(cmd.Name, cmd.Description)
 	if err != nil {
 		return nil, err
 	}

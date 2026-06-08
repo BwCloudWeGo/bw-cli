@@ -1,49 +1,19 @@
 package model
 
-import (
-	"errors"
-	"strings"
-	"time"
-)
+import "time"
 
-var (
-	ErrUserNotFound         = errors.New("user not found")
-	ErrAccountAlreadyExists = errors.New("account already exists")
-	ErrInvalidCredentials   = errors.New("invalid credentials")
-	ErrInvalidUser          = errors.New("invalid user")
-)
-
-// User is the user aggregate used by the user service.
-type User struct {
-	ID           string
-	Account      string
-	DisplayName  string
-	PasswordHash string
-	PasswordSalt string
-	Sex          bool
+// UserModel is the Gorm persistence model for the xls_user table.
+type UserModel struct {
+	ID           int64  `gorm:"primaryKey;column:id;autoIncrement"`
+	Account      string `gorm:"uniqueIndex;column:account;size:64;not null"`
+	DisplayName  string `gorm:"column:name;size:20"`
+	Sex          bool   `gorm:"column:sex"`
+	PasswordSalt string `gorm:"column:password_salt;size:64;not null"`
+	PasswordHash string `gorm:"column:password_hash;size:255;not null"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
 
-// NewUser validates input and creates a user aggregate with a normalized account.
-func NewUser(account string, displayName string, passwordHash string) (*User, error) {
-	account = NormalizeAccount(account)
-	displayName = strings.TrimSpace(displayName)
-	if account == "" || displayName == "" || passwordHash == "" {
-		return nil, ErrInvalidUser
-	}
-
-	now := time.Now().UTC()
-	return &User{
-		Account:      account,
-		DisplayName:  displayName,
-		PasswordHash: passwordHash,
-		CreatedAt:    now,
-		UpdatedAt:    now,
-	}, nil
-}
-
-// NormalizeAccount trims and lowercases account names for unique lookup.
-func NormalizeAccount(account string) string {
-	return strings.TrimSpace(strings.ToLower(account))
+func (UserModel) TableName() string {
+	return "xls_user"
 }

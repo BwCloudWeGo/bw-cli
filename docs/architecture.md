@@ -30,25 +30,25 @@ Client
 Client
   -> Gin Gateway
       -> UserService gRPC
-          -> handler -> service -> model
-                      -> repo -> Gorm
+          -> handler -> service -> entity
+                      -> repo -> model -> Gorm
       -> NoteService gRPC
-          -> handler -> service -> model
-                      -> repo -> Gorm
+          -> handler -> service -> entity
+                      -> repo -> model -> Gorm
 ```
 
 ## 服务内分层
 
-### model
+### entity
 
-放业务模型和最稳定的业务规则：
+放业务实体和最稳定的业务规则：
 
 - 实体：例如 `User`、`Note`、`Order`
 - 状态：例如 `Draft`、`Published`、`Paid`
 - 业务错误：例如 `ErrUserNotFound`、`ErrInvalidOrder`
 - 仓储接口：`Repository`
 
-这一层不依赖框架和数据库。
+这一层不依赖框架和数据库，不写 Gorm/BSON tag。
 
 ### service
 
@@ -65,20 +65,30 @@ internal/<service>/dto/<service>.go    # 业务用例出参 DTO 和转换
 internal/<service>/service/service.go  # 业务流程编排
 ```
 
-`dto/command.go` 只定义 `CreateCommand`、`UpdateCommand` 等入参，不写业务流程。`dto/<service>.go` 只定义返回结构和 `FromXxx` 转换，不暴露领域模型或数据库模型。`service/service.go` 只写用例方法，负责调用领域模型和 `model.Repository`。
+`dto/command.go` 只定义 `CreateCommand`、`UpdateCommand` 等入参，不写业务流程。`dto/<service>.go` 只定义返回结构和 `FromXxx` 转换，不暴露业务实体或数据库模型。`service/service.go` 只写用例方法，负责调用 `entity` 中的业务实体和 `entity.Repository`。
 
-这一层只依赖 `model` 中的接口和实体。事务、幂等、权限等业务编排也放在这里。
+这一层只依赖 `entity` 中的接口和业务实体。事务、幂等、权限等业务编排也放在这里。
+
+### model
+
+放数据库结构：
+
+- Gorm 表结构和 `gorm` tag
+- MongoDB 文档结构和 `bson` tag
+- `TableName()`
+- `MongoCollectionName()`
+
+这一层只描述数据库结构，不写查询逻辑、不放业务错误、不定义 Repository 接口。
 
 ### repo
 
 放基础设施实现：
 
-- Gorm Model
 - Gorm Repository
 - 数据库迁移
 - Redis、ES、Kafka 等外部依赖适配
 
-这一层实现 `model.Repository` 接口。
+这一层实现 `entity.Repository` 接口，并负责业务实体和数据库模型之间的转换。
 
 ### handler
 
@@ -232,13 +242,14 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 bw-cli service <service> --tidy
 ```
 
-命令会创建 proto、cmd、model、service、repo、handler、gateway request/handler/router 和服务文档。repo 层默认生成 `gorm_repository.go` 和 `mongo_repository.go`：Gorm 仓储默认启用，MongoDB 仓储已通过 `MongoCollectionName()` 和 `mongox.NewDocumentStore[T]` 接好基础 CRUD，后续可在 main 中替换注入。需要手工扩展时按以下步骤：
+命令会创建 proto、cmd、entity、model、service、repo、handler、gateway request/handler/router 和服务文档。repo 层默认生成 `gorm_repository.go` 和 `mongo_repository.go`：Gorm 仓储默认启用，MongoDB 仓储已通过 `MongoCollectionName()` 和 `mongox.NewDocumentStore[T]` 接好基础 CRUD，后续可在 main 中替换注入。需要手工扩展时按以下步骤：
 
 1. 在 `api/proto/<service>/v1` 添加 proto。
 2. 运行 `make proto`。
-3. 创建 `internal/<service>/model`。
-4. 创建 `internal/<service>/dto/command.go`、`dto/<service>.go`、`service/service.go`。
-5. 创建 `internal/<service>/repo`。
-6. 创建 `internal/<service>/handler`。
-7. 创建 `cmd/<service>/main.go`。
-8. 在 gateway 增加 gRPC client 和 HTTP route。
+3. 创建 `internal/<service>/entity`，放业务实体、业务错误和 Repository 接口。
+4. 创建 `internal/<service>/model`，放数据库表结构、文档结构、`TableName()` 和 `MongoCollectionName()`。
+5. 创建 `internal/<service>/dto/command.go`、`dto/<service>.go`、`service/service.go`。
+6. 创建 `internal/<service>/repo`，实现数据库访问和 entity/model 映射。
+7. 创建 `internal/<service>/handler`。
+8. 创建 `cmd/<service>/main.go`。
+9. 在 gateway 增加 gRPC client 和 HTTP route。

@@ -8,27 +8,9 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"github.com/BwCloudWeGo/bw-cli/internal/note/model"
+	"github.com/BwCloudWeGo/bw-cli/internal/note/entity"
+	dbmodel "github.com/BwCloudWeGo/bw-cli/internal/note/model"
 )
-
-// NoteModel is the Gorm persistence model for the notes table.
-type NoteModel struct {
-	ID          string     `gorm:"column:id;primaryKey;size:64"`
-	AuthorID    string     `gorm:"column:author_id;index;size:64;not null"`
-	Title       string     `gorm:"column:title;size:100;comment:标题"`
-	Content     string     `gorm:"column:content;type:text;comment:内容"`
-	Status      int32      `gorm:"column:status;comment:状态（1.草稿 2.发布）"`
-	TypeID      int32      `gorm:"column:type_id;comment:笔记类型 1.文字 2.图片 3.视频"`
-	Remark      string     `gorm:"column:remark;size:50;comment:备注"`
-	Permission  int32      `gorm:"column:permission;comment:权限（1.公开 2.私密 3.部分 4.好友 5.密码）"`
-	PublishedAt *time.Time `gorm:"column:published_at"`
-	CreatedAt   time.Time  `gorm:"column:created_at"`
-	UpdatedAt   time.Time  `gorm:"column:updated_at"`
-}
-
-func (NoteModel) TableName() string {
-	return "notes"
-}
 
 // GormRepository persists note aggregates with Gorm.
 type GormRepository struct {
@@ -47,11 +29,11 @@ func NewGormRepository(db *gorm.DB, loggers ...*zap.Logger) *GormRepository {
 
 // AutoMigrate creates or updates the notes table schema.
 func AutoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(&NoteModel{})
+	return db.AutoMigrate(&dbmodel.NoteModel{})
 }
 
 // Save inserts or updates a note aggregate.
-func (r *GormRepository) Save(ctx context.Context, note *model.Note) error {
+func (r *GormRepository) Save(ctx context.Context, note *entity.Note) error {
 	start := time.Now()
 	tx := r.db.WithContext(ctx).Save(toNoteModel(note))
 	r.logOperation("Save", tx.RowsAffected, start, tx.Error)
@@ -59,13 +41,13 @@ func (r *GormRepository) Save(ctx context.Context, note *model.Note) error {
 }
 
 // FindByID loads a note aggregate by id.
-func (r *GormRepository) FindByID(ctx context.Context, id string) (*model.Note, error) {
+func (r *GormRepository) FindByID(ctx context.Context, id string) (*entity.Note, error) {
 	start := time.Now()
-	var record NoteModel
+	var record dbmodel.NoteModel
 	tx := r.db.WithContext(ctx).Where("id = ?", id).First(&record)
 	err := tx.Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		err = model.ErrNoteNotFound
+		err = entity.ErrNoteNotFound
 	}
 	if err != nil {
 		r.logOperation("FindByID", tx.RowsAffected, start, err)
@@ -90,8 +72,8 @@ func (r *GormRepository) logOperation(operation string, rows int64, start time.T
 	r.log.Info("repository operation completed", fields...)
 }
 
-func toNoteModel(note *model.Note) *NoteModel {
-	return &NoteModel{
+func toNoteModel(note *entity.Note) *dbmodel.NoteModel {
+	return &dbmodel.NoteModel{
 		ID:          note.ID,
 		AuthorID:    note.AuthorID,
 		Title:       note.Title,
@@ -106,13 +88,13 @@ func toNoteModel(note *model.Note) *NoteModel {
 	}
 }
 
-func toNoteDomain(record *NoteModel) *model.Note {
-	return &model.Note{
+func toNoteDomain(record *dbmodel.NoteModel) *entity.Note {
+	return &entity.Note{
 		ID:          record.ID,
 		AuthorID:    record.AuthorID,
 		Title:       record.Title,
 		Content:     record.Content,
-		Status:      model.NoteStatusFromCode(record.Status),
+		Status:      entity.NoteStatusFromCode(record.Status),
 		NoteType:    record.TypeID,
 		Permission:  record.Permission,
 		Remark:      record.Remark,

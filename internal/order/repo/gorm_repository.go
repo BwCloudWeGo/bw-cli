@@ -8,21 +8,9 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"github.com/BwCloudWeGo/bw-cli/internal/order/model"
+	"github.com/BwCloudWeGo/bw-cli/internal/order/entity"
+	dbmodel "github.com/BwCloudWeGo/bw-cli/internal/order/model"
 )
-
-// OrderModel is the Gorm persistence model for the orders table.
-type OrderModel struct {
-	ID          string `gorm:"primaryKey;size:64"`
-	Name        string `gorm:"size:128;not null"`
-	Description string `gorm:"type:text"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-}
-
-func (OrderModel) TableName() string {
-	return "orders"
-}
 
 // GormRepository persists order aggregates with Gorm.
 type GormRepository struct {
@@ -41,11 +29,11 @@ func NewGormRepository(db *gorm.DB, loggers ...*zap.Logger) *GormRepository {
 
 // AutoMigrate creates or updates the orders table schema.
 func AutoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(&OrderModel{})
+	return db.AutoMigrate(&dbmodel.OrderModel{})
 }
 
 // Save inserts or updates a order aggregate.
-func (r *GormRepository) Save(ctx context.Context, item *model.Order) error {
+func (r *GormRepository) Save(ctx context.Context, item *entity.Order) error {
 	start := time.Now()
 	tx := r.db.WithContext(ctx).Save(toRecord(item))
 	r.logOperation("Save", tx.RowsAffected, start, tx.Error)
@@ -53,13 +41,13 @@ func (r *GormRepository) Save(ctx context.Context, item *model.Order) error {
 }
 
 // FindByID loads a order aggregate by id.
-func (r *GormRepository) FindByID(ctx context.Context, id string) (*model.Order, error) {
+func (r *GormRepository) FindByID(ctx context.Context, id string) (*entity.Order, error) {
 	start := time.Now()
-	var record OrderModel
+	var record dbmodel.OrderModel
 	tx := r.db.WithContext(ctx).Where("id = ?", id).First(&record)
 	err := tx.Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		err = model.ErrOrderNotFound
+		err = entity.ErrOrderNotFound
 	}
 	if err != nil {
 		r.logOperation("FindByID", tx.RowsAffected, start, err)
@@ -70,15 +58,15 @@ func (r *GormRepository) FindByID(ctx context.Context, id string) (*model.Order,
 }
 
 // List loads paginated order aggregates.
-func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*model.Order, int64, error) {
+func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*entity.Order, int64, error) {
 	start := time.Now()
 	var total int64
-	countTx := r.db.WithContext(ctx).Model(&OrderModel{}).Count(&total)
+	countTx := r.db.WithContext(ctx).Model(&dbmodel.OrderModel{}).Count(&total)
 	if countTx.Error != nil {
 		r.logOperation("Count", countTx.RowsAffected, start, countTx.Error)
 		return nil, 0, countTx.Error
 	}
-	var records []OrderModel
+	var records []dbmodel.OrderModel
 	tx := r.db.WithContext(ctx).
 		Order("created_at desc").
 		Offset(offset).
@@ -88,7 +76,7 @@ func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*mo
 		r.logOperation("List", tx.RowsAffected, start, tx.Error)
 		return nil, 0, tx.Error
 	}
-	items := make([]*model.Order, 0, len(records))
+	items := make([]*entity.Order, 0, len(records))
 	for i := range records {
 		items = append(items, toDomain(&records[i]))
 	}
@@ -99,10 +87,10 @@ func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*mo
 // Delete removes a order aggregate by id.
 func (r *GormRepository) Delete(ctx context.Context, id string) error {
 	start := time.Now()
-	tx := r.db.WithContext(ctx).Where("id = ?", id).Delete(&OrderModel{})
+	tx := r.db.WithContext(ctx).Where("id = ?", id).Delete(&dbmodel.OrderModel{})
 	err := tx.Error
 	if err == nil && tx.RowsAffected == 0 {
-		err = model.ErrOrderNotFound
+		err = entity.ErrOrderNotFound
 	}
 	r.logOperation("Delete", tx.RowsAffected, start, err)
 	return err
@@ -123,8 +111,8 @@ func (r *GormRepository) logOperation(operation string, rows int64, start time.T
 	r.log.Info("repository operation completed", fields...)
 }
 
-func toRecord(item *model.Order) *OrderModel {
-	return &OrderModel{
+func toRecord(item *entity.Order) *dbmodel.OrderModel {
+	return &dbmodel.OrderModel{
 		ID:          item.ID,
 		Name:        item.Name,
 		Description: item.Description,
@@ -133,8 +121,8 @@ func toRecord(item *model.Order) *OrderModel {
 	}
 }
 
-func toDomain(record *OrderModel) *model.Order {
-	return &model.Order{
+func toDomain(record *dbmodel.OrderModel) *entity.Order {
+	return &entity.Order{
 		ID:          record.ID,
 		Name:        record.Name,
 		Description: record.Description,
@@ -143,4 +131,4 @@ func toDomain(record *OrderModel) *model.Order {
 	}
 }
 
-var _ model.Repository = (*GormRepository)(nil)
+var _ entity.Repository = (*GormRepository)(nil)

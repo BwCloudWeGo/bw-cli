@@ -828,7 +828,7 @@ docs           # 使用和架构文档
 bw-cli service order --tidy
 `+"```"+`
 
-命令会生成 `+"`cmd/order`"+`、`+"`api/proto/order`"+`、`+"`internal/order/model`"+`、`+"`internal/order/dto`"+`、`+"`internal/order/service/service.go`"+`、`+"`repo/gorm_repository.go`"+`、`+"`repo/mongo_repository.go`"+`、`+"`handler`"+`、gateway request/handler/router 和 `+"`docs/services/order.md`"+`。生成后的服务默认带 Create/Get/List/Update/Delete 基础 CRUD，并会把服务名、gRPC 端口和 gateway target 写入 `+"`configs/config.yaml`"+`。默认启动使用 Gorm，MongoDB 仓储已通过 `+"`mongox.NewDocumentStore[T]`"+` 预先接好。
+命令会生成 `+"`cmd/order`"+`、`+"`api/proto/order`"+`、`+"`internal/order/entity`"+`、`+"`internal/order/model`"+`、`+"`internal/order/dto`"+`、`+"`internal/order/service/service.go`"+`、`+"`repo/gorm_repository.go`"+`、`+"`repo/mongo_repository.go`"+`、`+"`handler`"+`、gateway request/handler/router 和 `+"`docs/services/order.md`"+`。生成后的服务默认带 Create/Get/List/Update/Delete 基础 CRUD，并会把服务名、gRPC 端口和 gateway target 写入 `+"`configs/config.yaml`"+`。默认启动使用 Gorm，MongoDB 仓储已通过 `+"`mongox.NewDocumentStore[T]`"+` 预先接好。
 
 需要指定端口时使用：
 
@@ -960,7 +960,7 @@ bw-cli service comment --table comments --tidy
 - 服务名、gRPC 端口和 gateway target 写在 `+"`services.comment`"+`。
 - 数据库继续读取当前项目已有的 `+"`database`"+`、`+"`mysql`"+`、`+"`postgresql`"+` 配置。
 - 默认 SQLite 可直接本地运行，服务启动时自动执行 `+"`AutoMigrate`"+`。
-- proto、handler、service、model、repo、gateway HTTP 入口和 service 单测都会同时生成。
+- proto、handler、entity、model、service、repo、gateway HTTP 入口和 service 单测都会同时生成。
 - 如果启用了 Nacos，命令行会提示把本地新增配置同步到 Nacos。
 
 生成结构：
@@ -969,7 +969,8 @@ bw-cli service comment --table comments --tidy
 api/proto/comment/v1/comment.proto
 api/gen/comment/v1
 cmd/comment/main.go
-internal/comment/model      # 领域实体、业务错误、Repository 接口
+internal/comment/entity     # 业务实体、业务错误、Repository 接口
+internal/comment/model      # 数据库表结构和文档结构
 internal/comment/dto/command.go      # 业务用例入参命令
 internal/comment/dto/comment.go      # 业务用例出参 DTO 和转换
 internal/comment/service/service.go  # 业务流程编排
@@ -992,7 +993,7 @@ bw-cli delete-service comment --tidy
 生成后的基础 CRUD 调用链：
 
 `+"```text"+`
-gRPC client -> proto -> handler -> service -> model.Repository -> repo(Gorm) -> database
+gRPC client -> proto -> handler -> service -> entity.Repository -> repo(Gorm) -> database
 `+"```"+`
 
 默认启动使用 `+"`repo/gorm_repository.go`"+`。如果业务更适合 MongoDB，生成的 `+"`repo/mongo_repository.go`"+` 已经包含 `+"`MongoCollectionName()`"+`、`+"`mongox.NewDocumentStore[T]`"+` 和基础 CRUD 方法，只需要在服务 main 中改为注入 `+"`repo.NewMongoRepository`"+`。
@@ -1019,7 +1020,8 @@ DeleteComment
 
 开发原则：
 
-- `+"`model`"+` 写业务核心，不依赖 Gin、gRPC、Gorm。
+- `+"`entity`"+` 写业务核心，不依赖 Gin、gRPC、Gorm，也不写数据库 tag。
+- `+"`model`"+` 只写数据库表结构、文档结构、`+"`TableName()`"+` 和 `+"`MongoCollectionName()`"+`，不写查询逻辑。
 - `+"`dto/command.go`"+` 写业务入参，`+"`dto/<service>.go`"+` 写业务出参，`+"`service/service.go`"+` 写业务流程。
 - `+"`repo`"+` 是数据库操作唯一入口，Gorm/MongoDB/Redis 查询都放这里。
 - `+"`handler`"+` 只做 gRPC request/response 转换和错误映射。
@@ -1039,7 +1041,8 @@ func cleanArchitectureDoc() string {
 新增服务时按以下包名组织：
 
 ~~~text
-internal/<service>/model    # 实体、值对象、业务错误、仓储接口
+internal/<service>/entity   # 业务实体、业务错误、仓储接口
+internal/<service>/model    # 数据库表结构和文档结构
 internal/<service>/dto/command.go      # 业务用例入参命令
 internal/<service>/dto/<service>.go    # 业务用例出参 DTO 和转换
 internal/<service>/service/service.go  # 业务流程编排
@@ -1050,11 +1053,12 @@ internal/<service>/handler  # gRPC/HTTP 入站适配
 依赖方向：
 
 ~~~text
-handler -> service -> model
+handler -> service -> entity
+repo -> entity
 repo -> model
 ~~~
 
-model 不依赖 Gin、gRPC、Gorm 或云 SDK，便于测试和替换基础设施。service 继续拆为 command、dto、service 三个文件：command 放业务入参，dto 放业务出参和转换，service 放业务流程。
+entity 不依赖 Gin、gRPC、Gorm 或云 SDK，便于测试和替换基础设施。model 只维护数据库结构，不写查询逻辑。service 继续拆为 command、dto、service 三个文件：command 放业务入参，dto 放业务出参和转换，service 放业务流程。
 
 ## Gateway
 
@@ -1260,17 +1264,18 @@ func demoArchitectureDoc() string {
 Client
   -> Gin Gateway
       -> UserService gRPC
-          -> handler -> service -> model
-                      -> repo -> Gorm
+          -> handler -> service -> entity
+                      -> repo -> model -> Gorm
       -> NoteService gRPC
-          -> handler -> service -> model
-                      -> repo -> Gorm
+          -> handler -> service -> entity
+                      -> repo -> model -> Gorm
 ~~~
 
 ## 服务分层
 
 ~~~text
-internal/<service>/model    # 实体、值对象、业务错误、仓储接口
+internal/<service>/entity   # 业务实体、业务错误、仓储接口
+internal/<service>/model    # 数据库表结构和文档结构
 internal/<service>/dto/command.go      # 业务用例入参命令
 internal/<service>/dto/<service>.go    # 业务用例出参 DTO 和转换
 internal/<service>/service/service.go  # 业务流程编排
@@ -1281,7 +1286,8 @@ internal/<service>/handler  # gRPC/HTTP 入站适配
 依赖方向：
 
 ~~~text
-handler -> service -> model
+handler -> service -> entity
+repo -> entity
 repo -> model
 ~~~
 
@@ -1722,11 +1728,11 @@ documents := mongox.NewDocumentStore[Document](db)
 
 ## 6. Repo 层建议
 
-建议把 MongoDB 代码放在 `+"`internal/<service>/repo`"+`，不要在 handler 或 service 里直接操作集合。repo 层通过 `+"`mongox.NewDocumentStore[T]`"+` 复用公共 CRUD 操作，集合名称由文档结构体的 `+"`MongoCollectionName()`"+` 统一声明：
+建议把 MongoDB 查询代码放在 `+"`internal/<service>/repo`"+`，不要在 handler 或 service 里直接操作集合。MongoDB 文档结构放在 `+"`internal/<service>/model`"+`，写 `+"`bson`"+` tag 和 `+"`MongoCollectionName()`"+`；repo 层通过 `+"`mongox.NewDocumentStore[T]`"+` 复用公共 CRUD 操作，并负责 entity/model 转换：
 
 `+"```text"+`
-handler -> service -> model.Repository
-repo -> MongoDB collection
+handler -> service -> entity.Repository
+repo -> model -> MongoDB collection
 `+"```"+`
 
 `+"```go"+`
@@ -1741,8 +1747,9 @@ document, err := documents.FindByID(ctx, "doc-1")
 示例结构：
 
 `+"```text"+`
-internal/content/model/document.go
-internal/content/model/repository.go
+internal/content/entity/content.go
+internal/content/entity/repository.go
+internal/content/model/content.go
 internal/content/repo/mongo_repository.go
 `+"```"+`
 

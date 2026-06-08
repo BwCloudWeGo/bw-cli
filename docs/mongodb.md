@@ -567,7 +567,8 @@ internal/note
 
 规则：
 
-- `model` 定义领域对象和仓储接口。
+- `entity` 定义业务对象和仓储接口。
+- `model` 定义数据库表结构、文档结构、`TableName()` 和 `MongoCollectionName()`。
 - `service` 编排业务流程。
 - `repo` 实现 MongoDB 读写。
 - `handler` 不直接操作 MongoDB。
@@ -584,10 +585,10 @@ collection.Find(ctx, bson.M{"author_id": id})
 
 示例：给笔记服务增加 MongoDB 文档模型。
 
-文件：`internal/note/model/note_document.go`
+文件：`internal/note/entity/note_document.go`
 
 ```go
-package model
+package entity
 
 import (
     "context"
@@ -615,9 +616,9 @@ type NoteDocumentRepository interface {
 }
 ```
 
-这里的 `model.NoteDocument` 不引入 MongoDB SDK。它是领域层可以理解的数据结构。
+这里的 `entity.NoteDocument` 不引入 MongoDB SDK。它是业务层可以理解的数据结构。如果字段已经确定为 MongoDB 持久化结构，应放到 `internal/note/model` 并写 `bson` tag；repo 负责 entity/model 转换。
 
-## 13. 在 repo 层定义 BSON 结构
+## 13. 在 repo 层适配 BSON 结构
 
 文件：`internal/note/repo/mongo_repository.go`
 
@@ -632,7 +633,7 @@ import (
     "go.mongodb.org/mongo-driver/v2/mongo"
     "go.mongodb.org/mongo-driver/v2/mongo/options"
 
-    "github.com/BwCloudWeGo/bw-cli/internal/note/model"
+    "github.com/BwCloudWeGo/bw-cli/internal/note/entity"
     "github.com/BwCloudWeGo/bw-cli/pkg/mongox"
 )
 
@@ -662,10 +663,10 @@ func NewNoteMongoRepository(client *mongo.Client, database string) *NoteMongoRep
 }
 ```
 
-为什么领域模型和 BSON 模型分开？
+为什么业务实体和 BSON 数据结构分开？
 
-- 领域层不依赖 MongoDB SDK。
-- BSON tag 只出现在基础设施层。
+- 业务层不依赖 MongoDB SDK。
+- BSON tag 默认放在 `internal/<service>/model` 的数据库文档结构中；如果需要更底层的自定义 record，也只在 repo 内部适配。
 - 后续替换存储方案时，业务层不需要跟着改。
 
 ## 14. 实现模型转换
@@ -673,7 +674,7 @@ func NewNoteMongoRepository(client *mongo.Client, database string) *NoteMongoRep
 继续写在 `internal/note/repo/mongo_repository.go`：
 
 ```go
-func toNoteDocumentRecord(doc model.NoteDocument) noteDocumentRecord {
+func toNoteDocumentRecord(doc entity.NoteDocument) noteDocumentRecord {
     record := noteDocumentRecord{
         NoteID:    doc.NoteID,
         AuthorID:  doc.AuthorID,
@@ -692,8 +693,8 @@ func toNoteDocumentRecord(doc model.NoteDocument) noteDocumentRecord {
     return record
 }
 
-func toNoteDocument(record noteDocumentRecord) model.NoteDocument {
-    return model.NoteDocument{
+func toNoteDocument(record noteDocumentRecord) entity.NoteDocument {
+    return entity.NoteDocument{
         ID:        record.ID.Hex(),
         NoteID:    record.NoteID,
         AuthorID:  record.AuthorID,
@@ -745,7 +746,7 @@ if err := noteDocRepo.EnsureIndexes(context.Background()); err != nil {
 ## 16. 保存文档
 
 ```go
-func (r *NoteMongoRepository) Save(ctx context.Context, doc model.NoteDocument) error {
+func (r *NoteMongoRepository) Save(ctx context.Context, doc entity.NoteDocument) error {
     now := time.Now()
     if doc.CreatedAt.IsZero() {
         doc.CreatedAt = now
@@ -788,10 +789,10 @@ func (r *NoteMongoRepository) Save(ctx context.Context, doc model.NoteDocument) 
 ## 17. 按 note_id 查询
 
 ```go
-func (r *NoteMongoRepository) FindByNoteID(ctx context.Context, noteID string) (model.NoteDocument, error) {
+func (r *NoteMongoRepository) FindByNoteID(ctx context.Context, noteID string) (entity.NoteDocument, error) {
     record, err := r.documents.FindOne(ctx, bson.M{"note_id": noteID})
     if err != nil {
-        return model.NoteDocument{}, err
+        return entity.NoteDocument{}, err
     }
     return toNoteDocument(*record), nil
 }
@@ -801,7 +802,7 @@ func (r *NoteMongoRepository) FindByNoteID(ctx context.Context, noteID string) (
 
 ```go
 if errors.Is(err, mongox.ErrNotFound) {
-    return model.NoteDocument{}, apperrors.NewNotFound("note document not found")
+    return entity.NoteDocument{}, apperrors.NewNotFound("note document not found")
 }
 ```
 
@@ -810,7 +811,7 @@ if errors.Is(err, mongox.ErrNotFound) {
 简单分页：
 
 ```go
-func (r *NoteMongoRepository) ListByAuthor(ctx context.Context, authorID string, limit int64) ([]model.NoteDocument, error) {
+func (r *NoteMongoRepository) ListByAuthor(ctx context.Context, authorID string, limit int64) ([]entity.NoteDocument, error) {
     if limit <= 0 || limit > 100 {
         limit = 20
     }
@@ -826,7 +827,7 @@ func (r *NoteMongoRepository) ListByAuthor(ctx context.Context, authorID string,
         return nil, err
     }
 
-    docs := make([]model.NoteDocument, 0, len(records))
+    docs := make([]entity.NoteDocument, 0, len(records))
     for _, record := range records {
         docs = append(docs, toNoteDocument(record))
     }
@@ -865,11 +866,11 @@ _, err := r.documents.UpdateOne(
 
 ```go
 type NoteService struct {
-    noteRepo     model.NoteRepository
-    documentRepo model.NoteDocumentRepository
+    noteRepo     entity.NoteRepository
+    documentRepo entity.NoteDocumentRepository
 }
 
-func NewService(noteRepo model.NoteRepository, documentRepo model.NoteDocumentRepository) *NoteService {
+func NewService(noteRepo entity.NoteRepository, documentRepo entity.NoteDocumentRepository) *NoteService {
     return &NoteService{
         noteRepo:      noteRepo,
         documentRepo: documentRepo,
@@ -880,11 +881,11 @@ func NewService(noteRepo model.NoteRepository, documentRepo model.NoteDocumentRe
 保存笔记时，同时写关系型数据库和 MongoDB 文档库：
 
 ```go
-func (s *NoteService) SaveDraft(ctx context.Context, note model.Note) error {
+func (s *NoteService) SaveDraft(ctx context.Context, note entity.Note) error {
     if err := s.noteRepo.Save(ctx, note); err != nil {
         return err
     }
-    return s.documentRepo.Save(ctx, model.NoteDocument{
+    return s.documentRepo.Save(ctx, entity.NoteDocument{
         NoteID:    note.ID,
         AuthorID:  note.AuthorID,
         Title:     note.Title,
@@ -1052,7 +1053,7 @@ mongo.ErrNoDocuments
 
 ```go
 if errors.Is(err, mongo.ErrNoDocuments) {
-    return model.NoteDocument{}, apperrors.NewNotFound("note document not found")
+    return entity.NoteDocument{}, apperrors.NewNotFound("note document not found")
 }
 ```
 

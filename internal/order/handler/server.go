@@ -8,7 +8,7 @@ import (
 
 	orderv1 "github.com/BwCloudWeGo/bw-cli/api/gen/order/v1"
 	"github.com/BwCloudWeGo/bw-cli/internal/order/dto"
-	"github.com/BwCloudWeGo/bw-cli/internal/order/model"
+	"github.com/BwCloudWeGo/bw-cli/internal/order/entity"
 	"github.com/BwCloudWeGo/bw-cli/internal/order/service"
 	apperrors "github.com/BwCloudWeGo/bw-cli/pkg/errors"
 )
@@ -101,9 +101,9 @@ func toProto(item *dto.OrderDTO) *orderv1.OrderResponse {
 
 func mapOrderError(err error) error {
 	switch {
-	case stderrors.Is(err, model.ErrInvalidOrder):
+	case stderrors.Is(err, entity.ErrInvalidOrder):
 		return apperrors.InvalidArgument("invalid_order", "invalid order input")
-	case stderrors.Is(err, model.ErrOrderNotFound):
+	case stderrors.Is(err, entity.ErrOrderNotFound):
 		return apperrors.NotFound("order_not_found", "order not found")
 	default:
 		return apperrors.Wrap(apperrors.KindInternal, "order_service_error", "order service error", err)

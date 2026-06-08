@@ -12,9 +12,11 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/config"
 )
 
+const runNoteMongoDBExampleEnv = "RUN_NOTE_MONGODB_EXAMPLE"
+
 func TestRunMongoDocumentStoreExampleUsesCurrentConfig(t *testing.T) {
-	if os.Getenv("APP_RUN_NOTE_MONGODB_EXAMPLE") != "true" {
-		t.Skip("set APP_RUN_NOTE_MONGODB_EXAMPLE=true to run this MongoDB example against configs/config.yaml")
+	if os.Getenv(runNoteMongoDBExampleEnv) != "true" {
+		t.Skip("set RUN_NOTE_MONGODB_EXAMPLE=true to run this MongoDB example against configs/config.yaml")
 	}
 
 	previous := config.GlobalConfig
@@ -28,5 +30,5 @@ func TestRunMongoDocumentStoreExampleUsesCurrentConfig(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, document)
 	require.NotEmpty(t, document.ID)
-	require.Equal(t, cfg.App.NoteServiceName, document.Service)
+	require.Equal(t, cfg.ServiceName("note"), document.Service)
 }

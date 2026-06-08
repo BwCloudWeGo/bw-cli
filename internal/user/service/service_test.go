@@ -8,25 +8,25 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/BwCloudWeGo/bw-cli/internal/user/dto"
-	"github.com/BwCloudWeGo/bw-cli/internal/user/model"
+	"github.com/BwCloudWeGo/bw-cli/internal/user/entity"
 	"github.com/BwCloudWeGo/bw-cli/internal/user/service"
 )
 
 type memoryUserRepo struct {
 	nextID    int64
-	byID      map[string]*model.User
-	byAccount map[string]*model.User
+	byID      map[string]*entity.User
+	byAccount map[string]*entity.User
 }
 
 func newMemoryUserRepo() *memoryUserRepo {
 	return &memoryUserRepo{
 		nextID:    1,
-		byID:      map[string]*model.User{},
-		byAccount: map[string]*model.User{},
+		byID:      map[string]*entity.User{},
+		byAccount: map[string]*entity.User{},
 	}
 }
 
-func (r *memoryUserRepo) Save(_ context.Context, user *model.User) error {
+func (r *memoryUserRepo) Save(_ context.Context, user *entity.User) error {
 	if user.ID == "" {
 		user.ID = strconv.FormatInt(r.nextID, 10)
 		r.nextID++
@@ -36,18 +36,18 @@ func (r *memoryUserRepo) Save(_ context.Context, user *model.User) error {
 	return nil
 }
 
-func (r *memoryUserRepo) FindByID(_ context.Context, id string) (*model.User, error) {
+func (r *memoryUserRepo) FindByID(_ context.Context, id string) (*entity.User, error) {
 	user, ok := r.byID[id]
 	if !ok {
-		return nil, model.ErrUserNotFound
+		return nil, entity.ErrUserNotFound
 	}
 	return user, nil
 }
 
-func (r *memoryUserRepo) FindByAccount(_ context.Context, account string) (*model.User, error) {
+func (r *memoryUserRepo) FindByAccount(_ context.Context, account string) (*entity.User, error) {
 	user, ok := r.byAccount[account]
 	if !ok {
-		return nil, model.ErrUserNotFound
+		return nil, entity.ErrUserNotFound
 	}
 	return user, nil
 }
@@ -98,7 +98,7 @@ func TestRegisterCreatesUserAndRejectsDuplicateAccount(t *testing.T) {
 		DisplayName: "Ada Again",
 		Password:    "secret123",
 	})
-	require.ErrorIs(t, err, model.ErrAccountAlreadyExists)
+	require.ErrorIs(t, err, entity.ErrAccountAlreadyExists)
 }
 
 func TestLoginValidatesPassword(t *testing.T) {
@@ -121,9 +121,9 @@ func TestLoginValidatesPassword(t *testing.T) {
 		Account:  "grace",
 		Password: "wrong",
 	})
-	require.ErrorIs(t, err, model.ErrInvalidCredentials)
+	require.ErrorIs(t, err, entity.ErrInvalidCredentials)
 }
 
-func newTestService(repo model.Repository) *service.Service {
+func newTestService(repo entity.Repository) *service.Service {
 	return service.NewService(repo, plainHasher{})
 }

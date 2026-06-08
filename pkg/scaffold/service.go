@@ -459,8 +459,9 @@ func writeServiceFiles(root string, data serviceTemplateData) error {
 	files := map[string]string{
 		filepath.Join("api", "proto", data.Dir, "v1", data.ProtoFile):      renderServiceTemplate(serviceProtoTemplate, data),
 		filepath.Join("cmd", data.Dir, "main.go"):                          renderServiceTemplate(serviceMainTemplate, data),
-		filepath.Join("internal", data.Dir, "model", data.Dir+".go"):       renderServiceTemplate(serviceModelTemplate, data),
-		filepath.Join("internal", data.Dir, "model", "repository.go"):      renderServiceTemplate(serviceRepositoryTemplate, data),
+		filepath.Join("internal", data.Dir, "entity", data.Dir+".go"):      renderServiceTemplate(serviceEntityTemplate, data),
+		filepath.Join("internal", data.Dir, "entity", "repository.go"):     renderServiceTemplate(serviceRepositoryTemplate, data),
+		filepath.Join("internal", data.Dir, "model", data.Dir+".go"):       renderServiceTemplate(servicePersistenceModelTemplate, data),
 		filepath.Join("internal", data.Dir, "dto", "command.go"):           renderServiceTemplate(serviceCommandTemplate, data),
 		filepath.Join("internal", data.Dir, "dto", data.Dir+".go"):         renderServiceTemplate(serviceDTOTemplate, data),
 		filepath.Join("internal", data.Dir, "service", "service.go"):       renderServiceTemplate(serviceUseCaseTemplate, data),
@@ -971,8 +972,9 @@ func nacosEnabled(root string) (bool, string) {
 func gofmtService(root string, serviceDir string) error {
 	args := []string{
 		filepath.Join("cmd", serviceDir, "main.go"),
+		filepath.Join("internal", serviceDir, "entity", serviceDir+".go"),
+		filepath.Join("internal", serviceDir, "entity", "repository.go"),
 		filepath.Join("internal", serviceDir, "model", serviceDir+".go"),
-		filepath.Join("internal", serviceDir, "model", "repository.go"),
 		filepath.Join("internal", serviceDir, "dto", "command.go"),
 		filepath.Join("internal", serviceDir, "dto", serviceDir+".go"),
 		filepath.Join("internal", serviceDir, "service", "service.go"),
@@ -1252,7 +1254,7 @@ func shutdownOnSignal(server *grpc.Server, log *zap.Logger) {
 }
 `
 
-const serviceModelTemplate = `package model
+const serviceEntityTemplate = `package entity
 
 import (
 	"errors"
@@ -1294,7 +1296,7 @@ func New{{ .Pascal }}(name string, description string) (*{{ .Pascal }}, error) {
 	}, nil
 }
 
-// Update changes mutable fields while keeping validation inside the domain model.
+// Update changes mutable fields while keeping validation inside the domain entity.
 func (item *{{ .Pascal }}) Update(name string, description string) error {
 	name = strings.TrimSpace(name)
 	description = strings.TrimSpace(description)
@@ -1308,7 +1310,7 @@ func (item *{{ .Pascal }}) Update(name string, description string) error {
 }
 `
 
-const serviceRepositoryTemplate = `package model
+const serviceRepositoryTemplate = `package entity
 
 import "context"
 
@@ -1318,6 +1320,39 @@ type Repository interface {
 	FindByID(ctx context.Context, id string) (*{{ .Pascal }}, error)
 	List(ctx context.Context, offset int, limit int) ([]*{{ .Pascal }}, int64, error)
 	Delete(ctx context.Context, id string) error
+}
+`
+
+const servicePersistenceModelTemplate = `package model
+
+import "time"
+
+// {{ .Pascal }}Model is the Gorm persistence model for the {{ .TableName }} table.
+type {{ .Pascal }}Model struct {
+	ID          string ` + "`gorm:\"primaryKey;size:64\"`" + `
+	Name        string ` + "`gorm:\"size:128;not null\"`" + `
+	Description string ` + "`gorm:\"type:text\"`" + `
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+func ({{ .Pascal }}Model) TableName() string {
+	return "{{ .TableName }}"
+}
+
+const {{ .GoIdent }}MongoCollectionName = "{{ .TableName }}"
+
+// {{ .Pascal }}Document is the MongoDB document model for the {{ .TableName }} collection.
+type {{ .Pascal }}Document struct {
+	ID          string    ` + "`bson:\"_id\"`" + `
+	Name        string    ` + "`bson:\"name\"`" + `
+	Description string    ` + "`bson:\"description\"`" + `
+	CreatedAt   time.Time ` + "`bson:\"created_at\"`" + `
+	UpdatedAt   time.Time ` + "`bson:\"updated_at\"`" + `
+}
+
+func ({{ .Pascal }}Document) MongoCollectionName() string {
+	return {{ .GoIdent }}MongoCollectionName
 }
 `
 
@@ -1348,7 +1383,7 @@ const serviceDTOTemplate = `package dto
 import (
 	"time"
 
-	"{{ .Module }}/internal/{{ .Dir }}/model"
+	"{{ .Module }}/internal/{{ .Dir }}/entity"
 )
 
 // {{ .Pascal }}DTO is returned by use cases and converted by handlers.
@@ -1367,7 +1402,7 @@ type List{{ .Pascal }}DTO struct {
 }
 
 // From{{ .Pascal }} converts a {{ .Dir }} aggregate into the service response DTO.
-func From{{ .Pascal }}(item *model.{{ .Pascal }}) *{{ .Pascal }}DTO {
+func From{{ .Pascal }}(item *entity.{{ .Pascal }}) *{{ .Pascal }}DTO {
 	return &{{ .Pascal }}DTO{
 		ID:          item.ID,
 		Name:        item.Name,
@@ -1394,17 +1429,17 @@ import (
 	"go.uber.org/zap"
 
 	"{{ .Module }}/internal/{{ .Dir }}/dto"
-	"{{ .Module }}/internal/{{ .Dir }}/model"
+	"{{ .Module }}/internal/{{ .Dir }}/entity"
 )
 
 // Service orchestrates {{ .Dir }} use cases.
 type Service struct {
-	repo model.Repository
+	repo entity.Repository
 	log  *zap.Logger
 }
 
 // NewService constructs the {{ .Dir }} use-case service.
-func NewService(repo model.Repository, log *zap.Logger) *Service {
+func NewService(repo entity.Repository, log *zap.Logger) *Service {
 	if log == nil {
 		log = zap.NewNop()
 	}
@@ -1413,7 +1448,7 @@ func NewService(repo model.Repository, log *zap.Logger) *Service {
 
 // Create creates a {{ .Dir }} record.
 func (s *Service) Create(ctx context.Context, cmd dto.CreateCommand) (*dto.{{ .Pascal }}DTO, error) {
-	item, err := model.New{{ .Pascal }}(cmd.Name, cmd.Description)
+	item, err := entity.New{{ .Pascal }}(cmd.Name, cmd.Description)
 	if err != nil {
 		return nil, err
 	}
@@ -1493,7 +1528,7 @@ import (
 	"testing"
 
 	"{{ .Module }}/internal/{{ .Dir }}/dto"
-	"{{ .Module }}/internal/{{ .Dir }}/model"
+	"{{ .Module }}/internal/{{ .Dir }}/entity"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
@@ -1529,34 +1564,34 @@ func TestServiceCRUD(t *testing.T) {
 
 	require.NoError(t, svc.Delete(ctx, created.ID))
 	_, err = svc.Get(ctx, created.ID)
-	require.ErrorIs(t, err, model.Err{{ .Pascal }}NotFound)
+	require.ErrorIs(t, err, entity.Err{{ .Pascal }}NotFound)
 }
 
 type fakeRepository struct {
-	items map[string]*model.{{ .Pascal }}
+	items map[string]*entity.{{ .Pascal }}
 }
 
 func newFakeRepository() *fakeRepository {
-	return &fakeRepository{items: make(map[string]*model.{{ .Pascal }})}
+	return &fakeRepository{items: make(map[string]*entity.{{ .Pascal }})}
 }
 
-func (r *fakeRepository) Save(ctx context.Context, item *model.{{ .Pascal }}) error {
+func (r *fakeRepository) Save(ctx context.Context, item *entity.{{ .Pascal }}) error {
 	copy := *item
 	r.items[item.ID] = &copy
 	return nil
 }
 
-func (r *fakeRepository) FindByID(ctx context.Context, id string) (*model.{{ .Pascal }}, error) {
+func (r *fakeRepository) FindByID(ctx context.Context, id string) (*entity.{{ .Pascal }}, error) {
 	item, ok := r.items[id]
 	if !ok {
-		return nil, model.Err{{ .Pascal }}NotFound
+		return nil, entity.Err{{ .Pascal }}NotFound
 	}
 	copy := *item
 	return &copy, nil
 }
 
-func (r *fakeRepository) List(ctx context.Context, offset int, limit int) ([]*model.{{ .Pascal }}, int64, error) {
-	items := make([]*model.{{ .Pascal }}, 0, len(r.items))
+func (r *fakeRepository) List(ctx context.Context, offset int, limit int) ([]*entity.{{ .Pascal }}, int64, error) {
+	items := make([]*entity.{{ .Pascal }}, 0, len(r.items))
 	for _, item := range r.items {
 		copy := *item
 		items = append(items, &copy)
@@ -1573,13 +1608,13 @@ func (r *fakeRepository) List(ctx context.Context, offset int, limit int) ([]*mo
 
 func (r *fakeRepository) Delete(ctx context.Context, id string) error {
 	if _, ok := r.items[id]; !ok {
-		return model.Err{{ .Pascal }}NotFound
+		return entity.Err{{ .Pascal }}NotFound
 	}
 	delete(r.items, id)
 	return nil
 }
 
-var _ model.Repository = (*fakeRepository)(nil)
+var _ entity.Repository = (*fakeRepository)(nil)
 `
 
 const serviceGormRepoTemplate = `package repo
@@ -1592,21 +1627,9 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"{{ .Module }}/internal/{{ .Dir }}/model"
+	"{{ .Module }}/internal/{{ .Dir }}/entity"
+	dbmodel "{{ .Module }}/internal/{{ .Dir }}/model"
 )
-
-// {{ .Pascal }}Model is the Gorm persistence model for the {{ .TableName }} table.
-type {{ .Pascal }}Model struct {
-	ID          string ` + "`gorm:\"primaryKey;size:64\"`" + `
-	Name        string ` + "`gorm:\"size:128;not null\"`" + `
-	Description string ` + "`gorm:\"type:text\"`" + `
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-}
-
-func ({{ .Pascal }}Model) TableName() string {
-	return "{{ .TableName }}"
-}
 
 // GormRepository persists {{ .Dir }} aggregates with Gorm.
 type GormRepository struct {
@@ -1625,11 +1648,11 @@ func NewGormRepository(db *gorm.DB, loggers ...*zap.Logger) *GormRepository {
 
 // AutoMigrate creates or updates the {{ .TableName }} table schema.
 func AutoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(&{{ .Pascal }}Model{})
+	return db.AutoMigrate(&dbmodel.{{ .Pascal }}Model{})
 }
 
 // Save inserts or updates a {{ .Dir }} aggregate.
-func (r *GormRepository) Save(ctx context.Context, item *model.{{ .Pascal }}) error {
+func (r *GormRepository) Save(ctx context.Context, item *entity.{{ .Pascal }}) error {
 	start := time.Now()
 	tx := r.db.WithContext(ctx).Save(toRecord(item))
 	r.logOperation("Save", tx.RowsAffected, start, tx.Error)
@@ -1637,13 +1660,13 @@ func (r *GormRepository) Save(ctx context.Context, item *model.{{ .Pascal }}) er
 }
 
 // FindByID loads a {{ .Dir }} aggregate by id.
-func (r *GormRepository) FindByID(ctx context.Context, id string) (*model.{{ .Pascal }}, error) {
+func (r *GormRepository) FindByID(ctx context.Context, id string) (*entity.{{ .Pascal }}, error) {
 	start := time.Now()
-	var record {{ .Pascal }}Model
+	var record dbmodel.{{ .Pascal }}Model
 	tx := r.db.WithContext(ctx).Where("id = ?", id).First(&record)
 	err := tx.Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		err = model.Err{{ .Pascal }}NotFound
+		err = entity.Err{{ .Pascal }}NotFound
 	}
 	if err != nil {
 		r.logOperation("FindByID", tx.RowsAffected, start, err)
@@ -1654,15 +1677,15 @@ func (r *GormRepository) FindByID(ctx context.Context, id string) (*model.{{ .Pa
 }
 
 // List loads paginated {{ .Dir }} aggregates.
-func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*model.{{ .Pascal }}, int64, error) {
+func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*entity.{{ .Pascal }}, int64, error) {
 	start := time.Now()
 	var total int64
-	countTx := r.db.WithContext(ctx).Model(&{{ .Pascal }}Model{}).Count(&total)
+	countTx := r.db.WithContext(ctx).Model(&dbmodel.{{ .Pascal }}Model{}).Count(&total)
 	if countTx.Error != nil {
 		r.logOperation("Count", countTx.RowsAffected, start, countTx.Error)
 		return nil, 0, countTx.Error
 	}
-	var records []{{ .Pascal }}Model
+	var records []dbmodel.{{ .Pascal }}Model
 	tx := r.db.WithContext(ctx).
 		Order("created_at desc").
 		Offset(offset).
@@ -1672,7 +1695,7 @@ func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*mo
 		r.logOperation("List", tx.RowsAffected, start, tx.Error)
 		return nil, 0, tx.Error
 	}
-	items := make([]*model.{{ .Pascal }}, 0, len(records))
+	items := make([]*entity.{{ .Pascal }}, 0, len(records))
 	for i := range records {
 		items = append(items, toDomain(&records[i]))
 	}
@@ -1683,10 +1706,10 @@ func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*mo
 // Delete removes a {{ .Dir }} aggregate by id.
 func (r *GormRepository) Delete(ctx context.Context, id string) error {
 	start := time.Now()
-	tx := r.db.WithContext(ctx).Where("id = ?", id).Delete(&{{ .Pascal }}Model{})
+	tx := r.db.WithContext(ctx).Where("id = ?", id).Delete(&dbmodel.{{ .Pascal }}Model{})
 	err := tx.Error
 	if err == nil && tx.RowsAffected == 0 {
-		err = model.Err{{ .Pascal }}NotFound
+		err = entity.Err{{ .Pascal }}NotFound
 	}
 	r.logOperation("Delete", tx.RowsAffected, start, err)
 	return err
@@ -1707,8 +1730,8 @@ func (r *GormRepository) logOperation(operation string, rows int64, start time.T
 	r.log.Info("repository operation completed", fields...)
 }
 
-func toRecord(item *model.{{ .Pascal }}) *{{ .Pascal }}Model {
-	return &{{ .Pascal }}Model{
+func toRecord(item *entity.{{ .Pascal }}) *dbmodel.{{ .Pascal }}Model {
+	return &dbmodel.{{ .Pascal }}Model{
 		ID:          item.ID,
 		Name:        item.Name,
 		Description: item.Description,
@@ -1717,8 +1740,8 @@ func toRecord(item *model.{{ .Pascal }}) *{{ .Pascal }}Model {
 	}
 }
 
-func toDomain(record *{{ .Pascal }}Model) *model.{{ .Pascal }} {
-	return &model.{{ .Pascal }}{
+func toDomain(record *dbmodel.{{ .Pascal }}Model) *entity.{{ .Pascal }} {
+	return &entity.{{ .Pascal }}{
 		ID:          record.ID,
 		Name:        record.Name,
 		Description: record.Description,
@@ -1727,7 +1750,7 @@ func toDomain(record *{{ .Pascal }}Model) *model.{{ .Pascal }} {
 	}
 }
 
-var _ model.Repository = (*GormRepository)(nil)
+var _ entity.Repository = (*GormRepository)(nil)
 `
 
 const serviceMongoRepoTemplate = `package repo
@@ -1742,33 +1765,15 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.uber.org/zap"
 
-	"{{ .Module }}/internal/{{ .Dir }}/model"
+	"{{ .Module }}/internal/{{ .Dir }}/entity"
+	dbmodel "{{ .Module }}/internal/{{ .Dir }}/model"
 	"{{ .Module }}/pkg/mongox"
 )
 
-const {{ .GoIdent }}MongoCollectionName = "{{ .TableName }}"
-
-// {{ .Pascal }}Document is the MongoDB document for the {{ .Dir }} aggregate.
-// Keep BSON tags in repo layer only, so the domain model stays storage-agnostic.
-type {{ .Pascal }}Document struct {
-	ID          string    ` + "`bson:\"_id\"`" + `
-	Name        string    ` + "`bson:\"name\"`" + `
-	Description string    ` + "`bson:\"description\"`" + `
-	CreatedAt   time.Time ` + "`bson:\"created_at\"`" + `
-	UpdatedAt   time.Time ` + "`bson:\"updated_at\"`" + `
-}
-
-// MongoCollectionName declares the MongoDB collection for {{ .Pascal }}Document.
-// mongox.NewDocumentStore reads this value, so business repositories do not need
-// to repeat NewCollection boilerplate for every service.
-func ({{ .Pascal }}Document) MongoCollectionName() string {
-	return {{ .GoIdent }}MongoCollectionName
-}
-
 // MongoRepository persists {{ .Dir }} aggregates with the shared mongox DocumentStore.
-// It implements model.Repository and can replace GormRepository without changing service code.
+// It implements entity.Repository and can replace GormRepository without changing service code.
 type MongoRepository struct {
-	documents *mongox.DocumentStore[{{ .Pascal }}Document]
+	documents *mongox.DocumentStore[dbmodel.{{ .Pascal }}Document]
 	log       *zap.Logger
 }
 
@@ -1779,13 +1784,13 @@ func NewMongoRepository(db *mongo.Database, loggers ...*zap.Logger) *MongoReposi
 		log = loggers[0]
 	}
 	return &MongoRepository{
-		documents: mongox.NewDocumentStore[{{ .Pascal }}Document](db, log),
+		documents: mongox.NewDocumentStore[dbmodel.{{ .Pascal }}Document](db, log),
 		log:       log,
 	}
 }
 
 // Save inserts or updates a {{ .Dir }} aggregate by MongoDB _id.
-func (r *MongoRepository) Save(ctx context.Context, item *model.{{ .Pascal }}) error {
+func (r *MongoRepository) Save(ctx context.Context, item *entity.{{ .Pascal }}) error {
 	start := time.Now()
 	_, err := r.documents.UpsertByID(ctx, item.ID, toDocument(item))
 	r.logOperation("Save", item.ID, 0, start, err)
@@ -1793,11 +1798,11 @@ func (r *MongoRepository) Save(ctx context.Context, item *model.{{ .Pascal }}) e
 }
 
 // FindByID loads a {{ .Dir }} aggregate by MongoDB _id.
-func (r *MongoRepository) FindByID(ctx context.Context, id string) (*model.{{ .Pascal }}, error) {
+func (r *MongoRepository) FindByID(ctx context.Context, id string) (*entity.{{ .Pascal }}, error) {
 	start := time.Now()
 	document, err := r.documents.FindByID(ctx, id)
 	if errors.Is(err, mongox.ErrNotFound) {
-		err = model.Err{{ .Pascal }}NotFound
+		err = entity.Err{{ .Pascal }}NotFound
 	}
 	r.logOperation("FindByID", id, 0, start, err)
 	if err != nil {
@@ -1807,7 +1812,7 @@ func (r *MongoRepository) FindByID(ctx context.Context, id string) (*model.{{ .P
 }
 
 // List loads paginated {{ .Dir }} aggregates ordered by creation time.
-func (r *MongoRepository) List(ctx context.Context, offset int, limit int) ([]*model.{{ .Pascal }}, int64, error) {
+func (r *MongoRepository) List(ctx context.Context, offset int, limit int) ([]*entity.{{ .Pascal }}, int64, error) {
 	start := time.Now()
 	filter := bson.M{}
 	total, err := r.documents.Count(ctx, filter)
@@ -1827,7 +1832,7 @@ func (r *MongoRepository) List(ctx context.Context, offset int, limit int) ([]*m
 		return nil, 0, err
 	}
 
-	items := make([]*model.{{ .Pascal }}, 0, len(documents))
+	items := make([]*entity.{{ .Pascal }}, 0, len(documents))
 	for i := range documents {
 		items = append(items, toDomainFromDocument(&documents[i]))
 	}
@@ -1840,7 +1845,7 @@ func (r *MongoRepository) Delete(ctx context.Context, id string) error {
 	start := time.Now()
 	result, err := r.documents.DeleteByID(ctx, id)
 	if err == nil && result != nil && result.DeletedCount == 0 {
-		err = model.Err{{ .Pascal }}NotFound
+		err = entity.Err{{ .Pascal }}NotFound
 	}
 	r.logOperation("Delete", id, 0, start, err)
 	return err
@@ -1862,8 +1867,8 @@ func (r *MongoRepository) logOperation(operation string, id string, total int64,
 	r.log.Info("mongodb repository operation completed", fields...)
 }
 
-func toDocument(item *model.{{ .Pascal }}) *{{ .Pascal }}Document {
-	return &{{ .Pascal }}Document{
+func toDocument(item *entity.{{ .Pascal }}) *dbmodel.{{ .Pascal }}Document {
+	return &dbmodel.{{ .Pascal }}Document{
 		ID:          item.ID,
 		Name:        item.Name,
 		Description: item.Description,
@@ -1872,8 +1877,8 @@ func toDocument(item *model.{{ .Pascal }}) *{{ .Pascal }}Document {
 	}
 }
 
-func toDomainFromDocument(document *{{ .Pascal }}Document) *model.{{ .Pascal }} {
-	return &model.{{ .Pascal }}{
+func toDomainFromDocument(document *dbmodel.{{ .Pascal }}Document) *entity.{{ .Pascal }} {
+	return &entity.{{ .Pascal }}{
 		ID:          document.ID,
 		Name:        document.Name,
 		Description: document.Description,
@@ -1882,7 +1887,7 @@ func toDomainFromDocument(document *{{ .Pascal }}Document) *model.{{ .Pascal }} 
 	}
 }
 
-var _ model.Repository = (*MongoRepository)(nil)
+var _ entity.Repository = (*MongoRepository)(nil)
 `
 
 const serviceHandlerTemplate = `package handler
@@ -1895,7 +1900,7 @@ import (
 
 	{{ .GoPackage }} "{{ .Module }}/api/gen/{{ .Dir }}/v1"
 	"{{ .Module }}/internal/{{ .Dir }}/dto"
-	"{{ .Module }}/internal/{{ .Dir }}/model"
+	"{{ .Module }}/internal/{{ .Dir }}/entity"
 	"{{ .Module }}/internal/{{ .Dir }}/service"
 	apperrors "{{ .Module }}/pkg/errors"
 )
@@ -1988,9 +1993,9 @@ func toProto(item *dto.{{ .Pascal }}DTO) *{{ .GoPackage }}.{{ .Pascal }}Response
 
 func map{{ .Pascal }}Error(err error) error {
 	switch {
-	case stderrors.Is(err, model.ErrInvalid{{ .Pascal }}):
+	case stderrors.Is(err, entity.ErrInvalid{{ .Pascal }}):
 		return apperrors.InvalidArgument("invalid_{{ .Dir }}", "invalid {{ .Dir }} input")
-	case stderrors.Is(err, model.Err{{ .Pascal }}NotFound):
+	case stderrors.Is(err, entity.Err{{ .Pascal }}NotFound):
 		return apperrors.NotFound("{{ .Dir }}_not_found", "{{ .Dir }} not found")
 	default:
 		return apperrors.Wrap(apperrors.KindInternal, "{{ .Dir }}_service_error", "{{ .Dir }} service error", err)
@@ -2244,7 +2249,8 @@ bw-cli service {{ .InputName }} --port {{ .Port }}
 api/proto/{{ .Dir }}/v1/{{ .ProtoFile }}       # gRPC 协议定义
 api/gen/{{ .Dir }}/v1                          # make proto 生成代码
 cmd/{{ .Dir }}/main.go                         # gRPC 服务启动入口
-internal/{{ .Dir }}/model                      # 领域实体和仓储接口
+internal/{{ .Dir }}/entity                     # 业务实体、业务错误、Repository 接口
+internal/{{ .Dir }}/model                      # 数据库表结构和文档结构
 internal/{{ .Dir }}/dto/command.go             # 业务用例入参命令
 internal/{{ .Dir }}/dto/{{ .Dir }}.go          # 业务用例出参 DTO 和转换
 internal/{{ .Dir }}/service/service.go         # 业务流程编排
@@ -2276,10 +2282,10 @@ services:
 生成后的服务已经提供 Create/Get/List/Update/Delete 的基础调用链：
 
 ~~~text
-proto RPC -> handler -> service -> model.Repository -> repo(Gorm) -> database
+proto RPC -> handler -> service -> entity.Repository -> repo(Gorm) -> database
 ~~~
 
-默认启动使用 ` + "`repo/gorm_repository.go`" + `，无需改配置即可运行。命令同时生成 ` + "`repo/mongo_repository.go`" + `，MongoDB 仓储已通过 ` + "`mongox.NewDocumentStore[{{ .Pascal }}Document]`" + ` 接好基础 CRUD；需要切换 MongoDB 时，只替换 ` + "`cmd/{{ .Dir }}/main.go`" + ` 中注入的 repository。
+默认启动使用 ` + "`repo/gorm_repository.go`" + `，无需改配置即可运行。命令同时生成 ` + "`repo/mongo_repository.go`" + `，MongoDB 仓储已通过 ` + "`mongox.NewDocumentStore[dbmodel.{{ .Pascal }}Document]`" + ` 接好基础 CRUD；需要切换 MongoDB 时，只替换 ` + "`cmd/{{ .Dir }}/main.go`" + ` 中注入的 repository。
 
 用户可以直接把示例字段 ` + "`Name`" + `、` + "`Description`" + ` 替换成真实业务字段，或者在此基础上新增业务方法。
 
@@ -2299,11 +2305,12 @@ gateway client 默认调用 ` + "`services.{{ .Dir }}.target`" + `。如需调�
 
 1. 在 ` + "`api/proto/{{ .Dir }}/v1/{{ .ProtoFile }}`" + ` 中定义 RPC、Request、Response。
 2. 执行 ` + "`make proto`" + ` 生成 ` + "`api/gen/{{ .Dir }}/v1`" + `。
-3. 在 ` + "`internal/{{ .Dir }}/model`" + ` 补充领域实体、业务错误和仓储接口。
-4. 在 ` + "`internal/{{ .Dir }}/dto/command.go`" + ` 写入参，在 ` + "`dto/{{ .Dir }}.go`" + ` 写出参和转换，在 ` + "`service/service.go`" + ` 编排业务用例。
-5. 在 ` + "`internal/{{ .Dir }}/repo`" + ` 实现数据库访问。
-6. 在 ` + "`internal/{{ .Dir }}/handler`" + ` 将 gRPC 请求转成业务命令。
-7. 在 ` + "`internal/gateway/request`" + `、` + "`handler`" + `、` + "`router`" + ` 调整 HTTP 入参、控制器和路由。
+3. 在 ` + "`internal/{{ .Dir }}/entity`" + ` 补充业务实体、业务错误和 Repository 接口。
+4. 在 ` + "`internal/{{ .Dir }}/model`" + ` 补充 Gorm 表结构、MongoDB 文档结构、` + "`TableName()`" + ` 和 ` + "`MongoCollectionName()`" + `。
+5. 在 ` + "`internal/{{ .Dir }}/dto/command.go`" + ` 写入参，在 ` + "`dto/{{ .Dir }}.go`" + ` 写出参和转换，在 ` + "`service/service.go`" + ` 编排业务用例。
+6. 在 ` + "`internal/{{ .Dir }}/repo`" + ` 实现数据库访问和 entity/model 映射。
+7. 在 ` + "`internal/{{ .Dir }}/handler`" + ` 将 gRPC 请求转成业务命令。
+8. 在 ` + "`internal/gateway/request`" + `、` + "`handler`" + `、` + "`router`" + ` 调整 HTTP 入参、控制器和路由。
 
 ## 每一层怎么写，为什么这么写
 
@@ -2312,22 +2319,23 @@ gateway client 默认调用 ` + "`services.{{ .Dir }}.target`" + `。如需调�
 | ` + "`api/proto/{{ .Dir }}/v1`" + ` | RPC、Request、Response、` + "`go_package`" + ` | 先稳定外部契约，避免内部模型直接暴露 |
 | ` + "`api/gen/{{ .Dir }}/v1`" + ` | ` + "`make proto`" + ` 生成代码 | 保持 proto 与 Go 类型一致，不手写 |
 | ` + "`cmd/{{ .Dir }}`" + ` | 配置、日志、数据库、gRPC server 组装 | main 只负责依赖装配，不写业务 |
-| ` + "`internal/{{ .Dir }}/model`" + ` | 领域实体、业务错误、Repository 接口 | 业务核心不依赖 Gin、gRPC、Gorm |
+| ` + "`internal/{{ .Dir }}/entity`" + ` | 业务实体、业务错误、Repository 接口 | 业务核心不依赖 Gin、gRPC、Gorm |
+| ` + "`internal/{{ .Dir }}/model`" + ` | Gorm 表结构、MongoDB 文档结构、表名和集合名 | 数据库结构单独维护，不混入查询逻辑 |
 | ` + "`internal/{{ .Dir }}/dto/command.go`" + ` | 业务用例入参，例如 ` + "`CreateCommand`" + `、` + "`UpdateCommand`" + ` | handler 只负责组装命令，入参与流程分开 |
-| ` + "`internal/{{ .Dir }}/dto/{{ .Dir }}.go`" + ` | 业务用例出参和领域模型转换 | 对外不暴露领域模型和数据库模型 |
+| ` + "`internal/{{ .Dir }}/dto/{{ .Dir }}.go`" + ` | 业务用例出参和业务实体转换 | 对外不暴露业务实体和数据库模型 |
 | ` + "`internal/{{ .Dir }}/service/service.go`" + ` | 用例编排、事务意图、调用仓储接口 | 表达业务流程，依赖接口而不是数据库实现 |
-| ` + "`internal/{{ .Dir }}/repo`" + ` | Gorm/MongoDB/Redis 等实现 | 数据库访问集中管理，方便替换和测试 |
+| ` + "`internal/{{ .Dir }}/repo`" + ` | Gorm/MongoDB/Redis 等实现，entity/model 映射 | 数据库访问集中管理，方便替换和测试 |
 | ` + "`internal/{{ .Dir }}/handler`" + ` | gRPC request/response 适配 | 协议转换和错误映射，不写数据库逻辑 |
 | ` + "`internal/gateway/request`" + ` | HTTP 入参 DTO | 控制器不堆字段，入参校验更清楚 |
 | ` + "`internal/gateway/handler`" + ` | HTTP 控制器 | 只做绑定、调用 gRPC client 和统一响应 |
 | ` + "`internal/gateway/router`" + ` | HTTP 路由 | 按版本/业务拆分，避免路由堆在一个文件 |
 
-## model 层
+## entity 层
 
-` + "`model`" + ` 放业务核心，不引入 Gorm、Gin、gRPC SDK。
+` + "`entity`" + ` 放业务核心，不引入 Gorm、Gin、gRPC SDK，也不写数据库 tag。
 
 ~~~go
-package model
+package entity
 
 import (
 	"errors"
@@ -2361,10 +2369,10 @@ func New{{ .Pascal }}(name string, description string) (*{{ .Pascal }}, error) {
 }
 ~~~
 
-仓储接口也放在 ` + "`model`" + `：
+仓储接口也放在 ` + "`entity`" + `：
 
 ~~~go
-package model
+package entity
 
 import "context"
 
@@ -2378,6 +2386,40 @@ type Repository interface {
 
 这样写的原因是：` + "`service`" + ` 只关心业务需要的能力，不关心底层用 MySQL、PostgreSQL、MongoDB 还是测试 fake。
 
+## model 层：数据库结构
+
+` + "`model`" + ` 只维护数据库结构。Gorm 结构写 ` + "`gorm`" + ` tag 和 ` + "`TableName()`" + `，MongoDB 文档结构写 ` + "`bson`" + ` tag 和 ` + "`MongoCollectionName()`" + `，不写查询逻辑、不放业务错误。
+
+~~~go
+package model
+
+import "time"
+
+type {{ .Pascal }}Model struct {
+	ID          string ` + "`gorm:\"primaryKey;size:64\"`" + `
+	Name        string ` + "`gorm:\"size:128;not null\"`" + `
+	Description string ` + "`gorm:\"type:text\"`" + `
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+func ({{ .Pascal }}Model) TableName() string {
+	return "{{ .TableName }}"
+}
+
+type {{ .Pascal }}Document struct {
+	ID          string    ` + "`bson:\"_id\"`" + `
+	Name        string    ` + "`bson:\"name\"`" + `
+	Description string    ` + "`bson:\"description\"`" + `
+	CreatedAt   time.Time ` + "`bson:\"created_at\"`" + `
+	UpdatedAt   time.Time ` + "`bson:\"updated_at\"`" + `
+}
+
+func ({{ .Pascal }}Document) MongoCollectionName() string {
+	return "{{ .TableName }}"
+}
+~~~
+
 ## service 层
 
 ` + "`dto`" + ` 和 ` + "`service`" + ` 按职责拆开，避免一个文件同时承担入参、出参和流程编排：
@@ -2388,7 +2430,7 @@ internal/{{ .Dir }}/dto/{{ .Dir }}.go   # {{ .Pascal }}DTO、List{{ .Pascal }}DT
 internal/{{ .Dir }}/service/service.go  # Service、NewService、Create/Get/List/Update/Delete
 ~~~
 
-` + "`service.go`" + ` 只编排业务流程，只依赖 ` + "`model.Repository`" + `。
+` + "`service.go`" + ` 只编排业务流程，只依赖 ` + "`entity.Repository`" + `。
 
 ~~~go
 package service
@@ -2396,15 +2438,15 @@ package service
 import (
 	"go.uber.org/zap"
 
-	"{{ .Module }}/internal/{{ .Dir }}/model"
+	"{{ .Module }}/internal/{{ .Dir }}/entity"
 )
 
 type Service struct {
-	repo model.Repository
+	repo entity.Repository
 	log  *zap.Logger
 }
 
-func NewService(repo model.Repository, log *zap.Logger) *Service {
+func NewService(repo entity.Repository, log *zap.Logger) *Service {
 	if log == nil {
 		log = zap.NewNop()
 	}
@@ -2412,7 +2454,7 @@ func NewService(repo model.Repository, log *zap.Logger) *Service {
 }
 ~~~
 
-新增业务时先在 ` + "`dto/command.go`" + ` 定义命令对象，例如 ` + "`CreateCommand`" + `，再在 ` + "`service/service.go`" + ` 调用领域模型和仓储接口，最后在 ` + "`dto/{{ .Dir }}.go`" + ` 做出参转换。这样 handler 不会堆业务判断，service 也更容易写单元测试。
+新增业务时先在 ` + "`dto/command.go`" + ` 定义命令对象，例如 ` + "`CreateCommand`" + `，再在 ` + "`service/service.go`" + ` 调用业务实体和仓储接口，最后在 ` + "`dto/{{ .Dir }}.go`" + ` 做出参转换。这样 handler 不会堆业务判断，service 也更容易写单元测试。
 
 ## repo 层：数据库在哪里操作，如何操作
 
@@ -2434,50 +2476,26 @@ svc := {{ .GoIdent }}service.NewService(repo, log)
 Gorm 仓储示例：
 
 ~~~go
-type {{ .Pascal }}Model struct {
-	ID          string ` + "`gorm:\"primaryKey;size:64\"`" + `
-	Name        string ` + "`gorm:\"size:128;not null\"`" + `
-	Description string ` + "`gorm:\"type:text\"`" + `
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-}
-
-func ({{ .Pascal }}Model) TableName() string {
-	return "{{ .TableName }}"
-}
-
 type GormRepository struct {
 	db  *gorm.DB
 	log *zap.Logger
 }
 
 func AutoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(&{{ .Pascal }}Model{})
+	return db.AutoMigrate(&dbmodel.{{ .Pascal }}Model{})
 }
 ~~~
 
 MongoDB 仓储也已经生成，核心是文档结构体自己声明 collection 名称，然后直接创建公共 ` + "`DocumentStore`" + `：
 
 ~~~go
-type {{ .Pascal }}Document struct {
-	ID          string    ` + "`bson:\"_id\"`" + `
-	Name        string    ` + "`bson:\"name\"`" + `
-	Description string    ` + "`bson:\"description\"`" + `
-	CreatedAt   time.Time ` + "`bson:\"created_at\"`" + `
-	UpdatedAt   time.Time ` + "`bson:\"updated_at\"`" + `
-}
-
-func ({{ .Pascal }}Document) MongoCollectionName() string {
-	return "{{ .TableName }}"
-}
-
 type MongoRepository struct {
-	documents *mongox.DocumentStore[{{ .Pascal }}Document]
+	documents *mongox.DocumentStore[dbmodel.{{ .Pascal }}Document]
 }
 
 func NewMongoRepository(db *mongo.Database, log *zap.Logger) *MongoRepository {
 	return &MongoRepository{
-		documents: mongox.NewDocumentStore[{{ .Pascal }}Document](db, log),
+		documents: mongox.NewDocumentStore[dbmodel.{{ .Pascal }}Document](db, log),
 	}
 }
 ~~~
@@ -2500,10 +2518,11 @@ svc := {{ .GoIdent }}service.NewService(repo, log)
 
 - ` + "`handler`" + ` 不直接操作数据库。
 - ` + "`service`" + ` 不直接使用 ` + "`*gorm.DB`" + `。
-- ` + "`model`" + ` 不写 Gorm tag，避免领域模型和数据库实现耦合。
+- ` + "`entity`" + ` 不写 Gorm/BSON tag，避免业务模型和数据库实现耦合。
+- ` + "`model`" + ` 只写数据库结构、tag、` + "`TableName()`" + ` 和 ` + "`MongoCollectionName()`" + `，不写查询逻辑。
 - 查询、分页、事务、锁、索引相关实现都放在 ` + "`repo`" + `。
 - 需要事务时，在 repo 层内部使用 ` + "`db.Transaction(func(tx *gorm.DB) error { ... })`" + `。
-- 多数据源时保持接口不变，例如 ` + "`GormRepository`" + `、` + "`MongoRepository`" + ` 都实现 ` + "`model.Repository`" + `。
+- 多数据源时保持接口不变，例如 ` + "`GormRepository`" + `、` + "`MongoRepository`" + ` 都实现 ` + "`entity.Repository`" + `。
 
 ## handler 层
 
