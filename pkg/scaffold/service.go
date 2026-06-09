@@ -52,8 +52,12 @@ type DeleteServiceOptions struct {
 }
 
 type tableColumn struct {
-	Name       string
-	PrimaryKey bool
+	Name          string
+	DBType        string
+	Nullable      bool
+	PrimaryKey    bool
+	AutoIncrement bool
+	HasDefault    bool
 }
 
 type serviceTemplateData struct {
@@ -71,6 +75,14 @@ type serviceTemplateData struct {
 	SkipAutoMigrate bool
 	SelectedTables  []string
 	Relationships   []relationshipTemplateData
+	Fields          []serviceField
+	CreateFields    []serviceField
+	UpdateFields    []serviceField
+	ResponseFields  []serviceField
+	PrimaryField    serviceField
+	SortColumn      string
+	HasTableFields  bool
+	HasTimeFields   bool
 }
 
 type relationshipTemplateData struct {
@@ -82,6 +94,29 @@ type relationshipTemplateData struct {
 	JoinTable  string
 	MethodName string
 	JoinSQL    string
+}
+
+type serviceField struct {
+	DBName        string
+	GoName        string
+	VarName       string
+	GoType        string
+	DTOType       string
+	ProtoName     string
+	ProtoGoName   string
+	ProtoType     string
+	JSONName      string
+	GormTag       string
+	BSONTag       string
+	PrimaryKey    bool
+	AutoIncrement bool
+	CreateInput   bool
+	UpdateInput   bool
+	ResponseIndex int
+	CreateIndex   int
+	UpdateIndex   int
+	Getter        string
+	FormatTime    bool
 }
 
 // AddService 在已有 bw-cli 项目中创建完整 gRPC 服务骨架。
@@ -243,10 +278,194 @@ func applyTableOption(root string, opts ServiceOptions, data *serviceTemplateDat
 	if !tableNamePattern.MatchString(table) {
 		return fmt.Errorf("table name %q must contain only letters, digits and underscore, and cannot start with a digit", table)
 	}
+	columns, err := loadTableColumns(root, table, opts.SchemaName)
+	if err != nil {
+		return err
+	}
+	applyTableColumns(data, columns)
 	data.TableName = table
 	data.SelectedTables = []string{table}
 	data.SkipAutoMigrate = true
 	return nil
+}
+
+func applyTableColumns(data *serviceTemplateData, columns []tableColumn) {
+	fields := buildServiceFields(columns)
+	if len(fields) == 0 {
+		return
+	}
+	data.Fields = fields
+	data.ResponseFields = append([]serviceField(nil), fields...)
+	data.PrimaryField = choosePrimaryField(fields)
+	data.SortColumn = chooseSortColumn(fields, data.PrimaryField)
+	data.HasTableFields = true
+	createFields := []serviceField{}
+	updateFields := []serviceField{}
+	for _, field := range fields {
+		if field.FormatTime {
+			data.HasTimeFields = true
+		}
+		if field.CreateInput {
+			field.CreateIndex = len(createFields) + 1
+			createFields = append(createFields, field)
+		}
+		if field.UpdateInput {
+			field.UpdateIndex = len(updateFields) + 2
+			updateFields = append(updateFields, field)
+		}
+	}
+	for i := range data.ResponseFields {
+		data.ResponseFields[i].ResponseIndex = i + 1
+	}
+	data.CreateFields = createFields
+	data.UpdateFields = updateFields
+}
+
+func buildServiceFields(columns []tableColumn) []serviceField {
+	fields := make([]serviceField, 0, len(columns))
+	used := map[string]int{}
+	for _, column := range columns {
+		goName := uniqueGoFieldName(column.Name, used)
+		protoGoName := protoFieldGoName(column.Name)
+		goType, protoType, formatTime := mapColumnTypes(column.DBType)
+		field := serviceField{
+			DBName:        column.Name,
+			GoName:        goName,
+			VarName:       fieldVarName(goName),
+			GoType:        goType,
+			DTOType:       goType,
+			ProtoName:     column.Name,
+			ProtoGoName:   protoGoName,
+			ProtoType:     protoType,
+			JSONName:      column.Name,
+			GormTag:       gormTag(column),
+			BSONTag:       bsonTag(column.Name),
+			PrimaryKey:    column.PrimaryKey,
+			AutoIncrement: column.AutoIncrement,
+			CreateInput:   isCreateInput(column),
+			UpdateInput:   isUpdateInput(column),
+			Getter:        "Get" + protoGoName,
+			FormatTime:    formatTime,
+		}
+		if formatTime {
+			field.DTOType = "string"
+		}
+		fields = append(fields, field)
+	}
+	return fields
+}
+
+func protoFieldGoName(columnName string) string {
+	parts := strings.FieldsFunc(columnName, func(r rune) bool {
+		return r == '_' || r == '-'
+	})
+	for i := range parts {
+		parts[i] = strings.ToLower(strings.TrimSpace(parts[i]))
+	}
+	return toPascal(parts)
+}
+
+func fieldVarName(goName string) string {
+	if goName == strings.ToUpper(goName) {
+		return strings.ToLower(goName)
+	}
+	return lowerFirst(goName)
+}
+
+func uniqueGoFieldName(columnName string, used map[string]int) string {
+	name := tableNameToPascal(columnName)
+	if name == "" {
+		name = "Field"
+	}
+	if count := used[name]; count > 0 {
+		used[name] = count + 1
+		return fmt.Sprintf("%s%d", name, count+1)
+	}
+	used[name] = 1
+	return name
+}
+
+func choosePrimaryField(fields []serviceField) serviceField {
+	for _, field := range fields {
+		if field.PrimaryKey {
+			return field
+		}
+	}
+	for _, field := range fields {
+		if strings.EqualFold(field.DBName, "id") {
+			return field
+		}
+	}
+	return fields[0]
+}
+
+func chooseSortColumn(fields []serviceField, primary serviceField) string {
+	for _, field := range fields {
+		if strings.EqualFold(field.DBName, "created_at") {
+			return field.DBName
+		}
+	}
+	return primary.DBName
+}
+
+func isCreateInput(column tableColumn) bool {
+	name := strings.ToLower(column.Name)
+	if name == "created_at" || name == "updated_at" || name == "deleted_at" {
+		return false
+	}
+	if column.PrimaryKey && (column.AutoIncrement || column.HasDefault) {
+		return false
+	}
+	return true
+}
+
+func isUpdateInput(column tableColumn) bool {
+	name := strings.ToLower(column.Name)
+	if name == "created_at" || name == "updated_at" || name == "deleted_at" {
+		return false
+	}
+	return !column.PrimaryKey
+}
+
+func mapColumnTypes(dbType string) (string, string, bool) {
+	typ := strings.ToLower(dbType)
+	switch {
+	case strings.Contains(typ, "bool"):
+		return "bool", "bool", false
+	case strings.Contains(typ, "bigint"):
+		return "int64", "int64", false
+	case strings.Contains(typ, "int"):
+		return "int64", "int64", false
+	case strings.Contains(typ, "decimal"), strings.Contains(typ, "numeric"), strings.Contains(typ, "float"), strings.Contains(typ, "double"), strings.Contains(typ, "real"):
+		return "float64", "double", false
+	case strings.Contains(typ, "date"), strings.Contains(typ, "time"):
+		return "time.Time", "string", true
+	case strings.Contains(typ, "blob"), strings.Contains(typ, "binary"), strings.Contains(typ, "bytea"):
+		return "[]byte", "bytes", false
+	default:
+		return "string", "string", false
+	}
+}
+
+func gormTag(column tableColumn) string {
+	parts := []string{"column:" + column.Name}
+	if column.PrimaryKey {
+		parts = append(parts, "primaryKey")
+	}
+	if column.AutoIncrement {
+		parts = append(parts, "autoIncrement")
+	}
+	if !column.Nullable {
+		parts = append(parts, "not null")
+	}
+	return `gorm:"` + strings.Join(parts, ";") + `"`
+}
+
+func bsonTag(columnName string) string {
+	if strings.EqualFold(columnName, "id") {
+		return `bson:"_id"`
+	}
+	return `bson:"` + columnName + `"`
 }
 
 func applyGenerationPlan(root string, opts ServiceOptions, data *serviceTemplateData) error {
@@ -303,10 +522,30 @@ func tableNameToPascal(table string) string {
 	parts := strings.FieldsFunc(table, func(r rune) bool {
 		return r == '_' || r == '-'
 	})
-	for i := range parts {
-		parts[i] = strings.ToLower(parts[i])
+	var b strings.Builder
+	for _, part := range parts {
+		part = strings.ToLower(strings.TrimSpace(part))
+		if part == "" {
+			continue
+		}
+		if isCommonInitialism(part) {
+			b.WriteString(strings.ToUpper(part))
+			continue
+		}
+		runes := []rune(part)
+		runes[0] = unicode.ToUpper(runes[0])
+		b.WriteString(string(runes))
 	}
-	return toPascal(parts)
+	return b.String()
+}
+
+func isCommonInitialism(value string) bool {
+	switch strings.ToLower(value) {
+	case "id", "api", "http", "https", "url", "uri", "ip", "uuid":
+		return true
+	default:
+		return false
+	}
 }
 
 func loadTableColumns(root string, table string, schema string) ([]tableColumn, error) {
@@ -363,8 +602,12 @@ func inspectSQLiteColumns(db *gorm.DB, table string) ([]tableColumn, error) {
 			return nil, err
 		}
 		columns = append(columns, tableColumn{
-			Name:       name,
-			PrimaryKey: pk > 0,
+			Name:          name,
+			DBType:        typ,
+			Nullable:      notNull == 0,
+			PrimaryKey:    pk > 0,
+			AutoIncrement: pk > 0 && strings.Contains(strings.ToLower(typ), "int"),
+			HasDefault:    defaultValue != nil,
 		})
 	}
 	if err := rows.Err(); err != nil {
@@ -426,8 +669,12 @@ func scanInformationSchemaColumns(rows *sql.Rows, table string) ([]tableColumn, 
 			return nil, err
 		}
 		columns = append(columns, tableColumn{
-			Name:       name,
-			PrimaryKey: key == "PRI",
+			Name:          name,
+			DBType:        typ,
+			Nullable:      strings.EqualFold(nullable, "YES"),
+			PrimaryKey:    key == "PRI",
+			AutoIncrement: strings.Contains(strings.ToLower(extra), "auto_increment"),
+			HasDefault:    defaultValue != nil,
 		})
 	}
 	if err := rows.Err(); err != nil {
@@ -1182,10 +1429,16 @@ service {{ .Pascal }}Service {
   rpc Delete{{ .Pascal }}(Delete{{ .Pascal }}Request) returns (Delete{{ .Pascal }}Response);
 }
 
-message Create{{ .Pascal }}Request {
+{{ if .HasTableFields }}message Create{{ .Pascal }}Request {
+{{- range .CreateFields }}
+  {{ .ProtoType }} {{ .ProtoName }} = {{ .CreateIndex }};
+{{- end }}
+}
+{{ else }}message Create{{ .Pascal }}Request {
   string name = 1;
   string description = 2;
 }
+{{ end }}
 
 message Get{{ .Pascal }}Request {
   string id = 1;
@@ -1196,23 +1449,36 @@ message List{{ .Pascal }}sRequest {
   int32 page_size = 2;
 }
 
-message Update{{ .Pascal }}Request {
+{{ if .HasTableFields }}message Update{{ .Pascal }}Request {
+  string id = 1;
+{{- range .UpdateFields }}
+  {{ .ProtoType }} {{ .ProtoName }} = {{ .UpdateIndex }};
+{{- end }}
+}
+{{ else }}message Update{{ .Pascal }}Request {
   string id = 1;
   string name = 2;
   string description = 3;
 }
+{{ end }}
 
 message Delete{{ .Pascal }}Request {
   string id = 1;
 }
 
-message {{ .Pascal }}Response {
+{{ if .HasTableFields }}message {{ .Pascal }}Response {
+{{- range .ResponseFields }}
+  {{ .ProtoType }} {{ .ProtoName }} = {{ .ResponseIndex }};
+{{- end }}
+}
+{{ else }}message {{ .Pascal }}Response {
   string id = 1;
   string name = 2;
   string description = 3;
   string created_at = 4;
   string updated_at = 5;
 }
+{{ end }}
 
 message List{{ .Pascal }}sResponse {
   repeated {{ .Pascal }}Response items = 1;
@@ -1322,10 +1588,14 @@ const serviceEntityTemplate = `package entity
 
 import (
 	"errors"
+{{ if .HasTableFields }}{{ if .HasTimeFields }}
+	"time"
+{{ end }}{{ else }}
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+{{ end }}
 )
 
 var (
@@ -1333,6 +1603,53 @@ var (
 	ErrInvalid{{ .Pascal }} = errors.New("invalid {{ .Dir }}")
 )
 
+{{ if .HasTableFields }}
+// {{ .Pascal }} 是 {{ .TableName }} 表对应的业务实体。
+type {{ .Pascal }} struct {
+{{- range .Fields }}
+	{{ .GoName }} {{ .GoType }}
+{{- end }}
+}
+
+// New{{ .Pascal }} 创建 {{ .Dir }} 实体，字段来自 {{ .TableName }} 表。
+func New{{ .Pascal }}({{ range $index, $field := .CreateFields }}{{ if $index }}, {{ end }}{{ .VarName }} {{ .GoType }}{{ end }}) (*{{ .Pascal }}, error) {
+	item := &{{ .Pascal }}{
+{{- range .CreateFields }}
+		{{ .GoName }}: {{ .VarName }},
+{{- end }}
+	}
+{{- if .HasTimeFields }}
+	now := time.Now().UTC()
+{{- range .Fields }}
+{{- if eq .GoName "CreatedAt" }}
+	item.CreatedAt = now
+{{- end }}
+{{- if eq .GoName "UpdatedAt" }}
+	item.UpdatedAt = now
+{{- end }}
+{{- end }}
+{{- end }}
+	return item, nil
+}
+
+// Update 修改 {{ .TableName }} 表中可更新字段。
+func (item *{{ .Pascal }}) Update({{ range $index, $field := .UpdateFields }}{{ if $index }}, {{ end }}{{ .VarName }} {{ .GoType }}{{ end }}) error {
+	if item == nil {
+		return ErrInvalid{{ .Pascal }}
+	}
+{{- range .UpdateFields }}
+	item.{{ .GoName }} = {{ .VarName }}
+{{- end }}
+{{- if .HasTimeFields }}
+{{- range .Fields }}
+{{- if eq .GoName "UpdatedAt" }}
+	item.UpdatedAt = time.Now().UTC()
+{{- end }}
+{{- end }}
+{{- end }}
+	return nil
+}
+{{ else }}
 // {{ .Pascal }} 是 {{ .Dir }} 业务服务的聚合根。
 // 业务明确后，请将 Name 和 Description 替换为真实业务字段。
 type {{ .Pascal }} struct {
@@ -1372,6 +1689,7 @@ func (item *{{ .Pascal }}) Update(name string, description string) error {
 	item.UpdatedAt = time.Now().UTC()
 	return nil
 }
+{{ end }}
 `
 
 const serviceRepositoryTemplate = `package entity
@@ -1389,15 +1707,23 @@ type Repository interface {
 
 const servicePersistenceModelTemplate = `package model
 
+{{ if or .HasTimeFields (not .HasTableFields) }}
 import "time"
+{{ end }}
 
 // {{ .Pascal }}Model 是 {{ .TableName }} 表的 Gorm 持久化模型。
 type {{ .Pascal }}Model struct {
+{{- if .HasTableFields }}
+{{- range .Fields }}
+	{{ .GoName }} {{ .GoType }} ` + "`{{ .GormTag }}`" + `
+{{- end }}
+{{- else }}
 	ID          string ` + "`gorm:\"primaryKey;size:64\"`" + `
 	Name        string ` + "`gorm:\"size:128;not null\"`" + `
 	Description string ` + "`gorm:\"type:text\"`" + `
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+{{- end }}
 }
 
 func ({{ .Pascal }}Model) TableName() string {
@@ -1408,11 +1734,17 @@ const {{ .GoIdent }}MongoCollectionName = "{{ .TableName }}"
 
 // {{ .Pascal }}Document 是 {{ .TableName }} 集合的 MongoDB 文档模型。
 type {{ .Pascal }}Document struct {
+{{- if .HasTableFields }}
+{{- range .Fields }}
+	{{ .GoName }} {{ .GoType }} ` + "`{{ .BSONTag }}`" + `
+{{- end }}
+{{- else }}
 	ID          string    ` + "`bson:\"_id\"`" + `
 	Name        string    ` + "`bson:\"name\"`" + `
 	Description string    ` + "`bson:\"description\"`" + `
 	CreatedAt   time.Time ` + "`bson:\"created_at\"`" + `
 	UpdatedAt   time.Time ` + "`bson:\"updated_at\"`" + `
+{{- end }}
 }
 
 func ({{ .Pascal }}Document) MongoCollectionName() string {
@@ -1424,15 +1756,27 @@ const serviceCommandTemplate = `package dto
 
 // CreateCommand 包含创建 {{ .Dir }} 记录的入参。
 type CreateCommand struct {
+{{- if .HasTableFields }}
+{{- range .CreateFields }}
+	{{ .GoName }} {{ .GoType }}
+{{- end }}
+{{- else }}
 	Name        string
 	Description string
+{{- end }}
 }
 
 // UpdateCommand 包含更新 {{ .Dir }} 记录的入参。
 type UpdateCommand struct {
 	ID          string
+{{- if .HasTableFields }}
+{{- range .UpdateFields }}
+	{{ .GoName }} {{ .GoType }}
+{{- end }}
+{{- else }}
 	Name        string
 	Description string
+{{- end }}
 }
 
 // ListCommand 包含查询 {{ .Dir }} 记录列表的分页入参。
@@ -1445,18 +1789,26 @@ type ListCommand struct {
 const serviceDTOTemplate = `package dto
 
 import (
+{{- if or .HasTimeFields (not .HasTableFields) }}
 	"time"
+{{- end }}
 
 	"{{ .Module }}/internal/{{ .Dir }}/entity"
 )
 
 // {{ .Pascal }}DTO 由用例返回，并由 handler 转换。
 type {{ .Pascal }}DTO struct {
+{{- if .HasTableFields }}
+{{- range .ResponseFields }}
+	{{ .GoName }} {{ .DTOType }}
+{{- end }}
+{{- else }}
 	ID          string
 	Name        string
 	Description string
 	CreatedAt   string
 	UpdatedAt   string
+{{- end }}
 }
 
 // List{{ .Pascal }}DTO 包含分页列表出参。
@@ -1468,14 +1820,25 @@ type List{{ .Pascal }}DTO struct {
 // From{{ .Pascal }} 将 {{ .Dir }} 聚合转换为 service 响应 DTO。
 func From{{ .Pascal }}(item *entity.{{ .Pascal }}) *{{ .Pascal }}DTO {
 	return &{{ .Pascal }}DTO{
+{{- if .HasTableFields }}
+{{- range .ResponseFields }}
+{{- if .FormatTime }}
+		{{ .GoName }}: formatTime(item.{{ .GoName }}),
+{{- else }}
+		{{ .GoName }}: item.{{ .GoName }},
+{{- end }}
+{{- end }}
+{{- else }}
 		ID:          item.ID,
 		Name:        item.Name,
 		Description: item.Description,
 		CreatedAt:   formatTime(item.CreatedAt),
 		UpdatedAt:   formatTime(item.UpdatedAt),
+{{- end }}
 	}
 }
 
+{{ if or .HasTimeFields (not .HasTableFields) }}
 // formatTime 让零值时间保持为空，并用稳定 API 格式序列化真实时间。
 func formatTime(value time.Time) string {
 	if value.IsZero() {
@@ -1483,6 +1846,7 @@ func formatTime(value time.Time) string {
 	}
 	return value.Format(time.RFC3339Nano)
 }
+{{ end }}
 `
 
 const serviceUseCaseTemplate = `package service
@@ -1512,14 +1876,22 @@ func NewService(repo entity.Repository, log *zap.Logger) *Service {
 
 // Create 创建 {{ .Dir }} 记录。
 func (s *Service) Create(ctx context.Context, cmd dto.CreateCommand) (*dto.{{ .Pascal }}DTO, error) {
+{{- if .HasTableFields }}
+	item, err := entity.New{{ .Pascal }}({{ range $index, $field := .CreateFields }}{{ if $index }}, {{ end }}cmd.{{ .GoName }}{{ end }})
+{{- else }}
 	item, err := entity.New{{ .Pascal }}(cmd.Name, cmd.Description)
+{{- end }}
 	if err != nil {
 		return nil, err
 	}
 	if err := s.repo.Save(ctx, item); err != nil {
 		return nil, err
 	}
+{{- if .HasTableFields }}
+	s.log.Info("{{ .Dir }} created", zap.String("use_case", "Create{{ .Pascal }}"))
+{{- else }}
 	s.log.Info("{{ .Dir }} created", zap.String("aggregate_id", item.ID), zap.String("use_case", "Create{{ .Pascal }}"))
+{{- end }}
 	return dto.From{{ .Pascal }}(item), nil
 }
 
@@ -1552,13 +1924,17 @@ func (s *Service) Update(ctx context.Context, cmd dto.UpdateCommand) (*dto.{{ .P
 	if err != nil {
 		return nil, err
 	}
+{{- if .HasTableFields }}
+	if err := item.Update({{ range $index, $field := .UpdateFields }}{{ if $index }}, {{ end }}cmd.{{ .GoName }}{{ end }}); err != nil {
+{{- else }}
 	if err := item.Update(cmd.Name, cmd.Description); err != nil {
+{{- end }}
 		return nil, err
 	}
 	if err := s.repo.Save(ctx, item); err != nil {
 		return nil, err
 	}
-	s.log.Info("{{ .Dir }} updated", zap.String("aggregate_id", item.ID), zap.String("use_case", "Update{{ .Pascal }}"))
+	s.log.Info("{{ .Dir }} updated", zap.String("aggregate_id", cmd.ID), zap.String("use_case", "Update{{ .Pascal }}"))
 	return dto.From{{ .Pascal }}(item), nil
 }
 
@@ -1588,11 +1964,15 @@ func normalizePagination(page int32, pageSize int32) (int, int) {
 const serviceUseCaseTestTemplate = `package service
 
 import (
+{{- if not .HasTableFields }}
 	"context"
+{{- end }}
 	"testing"
 
+{{- if not .HasTableFields }}
 	"{{ .Module }}/internal/{{ .Dir }}/dto"
 	"{{ .Module }}/internal/{{ .Dir }}/entity"
+{{- end }}
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
@@ -1603,6 +1983,7 @@ func TestNewService(t *testing.T) {
 	require.NotNil(t, svc)
 }
 
+{{ if not .HasTableFields }}
 func TestServiceCRUD(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeRepository()
@@ -1679,6 +2060,7 @@ func (r *fakeRepository) Delete(ctx context.Context, id string) error {
 }
 
 var _ entity.Repository = (*fakeRepository)(nil)
+{{ end }}
 `
 
 const serviceGormRepoTemplate = `package repo
@@ -1727,7 +2109,11 @@ func (r *GormRepository) Save(ctx context.Context, item *entity.{{ .Pascal }}) e
 func (r *GormRepository) FindByID(ctx context.Context, id string) (*entity.{{ .Pascal }}, error) {
 	start := time.Now()
 	var record dbmodel.{{ .Pascal }}Model
+{{- if .HasTableFields }}
+	tx := r.db.WithContext(ctx).Where("{{ .PrimaryField.DBName }} = ?", id).First(&record)
+{{- else }}
 	tx := r.db.WithContext(ctx).Where("id = ?", id).First(&record)
+{{- end }}
 	err := tx.Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err = entity.Err{{ .Pascal }}NotFound
@@ -1751,7 +2137,11 @@ func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*en
 	}
 	var records []dbmodel.{{ .Pascal }}Model
 	tx := r.db.WithContext(ctx).
+{{- if .HasTableFields }}
+		Order("{{ .SortColumn }} desc").
+{{- else }}
 		Order("created_at desc").
+{{- end }}
 		Offset(offset).
 		Limit(limit).
 		Find(&records)
@@ -1770,7 +2160,11 @@ func (r *GormRepository) List(ctx context.Context, offset int, limit int) ([]*en
 // Delete 根据 ID 删除 {{ .Dir }} 聚合。
 func (r *GormRepository) Delete(ctx context.Context, id string) error {
 	start := time.Now()
+{{- if .HasTableFields }}
+	tx := r.db.WithContext(ctx).Where("{{ .PrimaryField.DBName }} = ?", id).Delete(&dbmodel.{{ .Pascal }}Model{})
+{{- else }}
 	tx := r.db.WithContext(ctx).Where("id = ?", id).Delete(&dbmodel.{{ .Pascal }}Model{})
+{{- end }}
 	err := tx.Error
 	if err == nil && tx.RowsAffected == 0 {
 		err = entity.Err{{ .Pascal }}NotFound
@@ -1796,21 +2190,33 @@ func (r *GormRepository) logOperation(operation string, rows int64, start time.T
 
 func toRecord(item *entity.{{ .Pascal }}) *dbmodel.{{ .Pascal }}Model {
 	return &dbmodel.{{ .Pascal }}Model{
+{{- if .HasTableFields }}
+{{- range .Fields }}
+		{{ .GoName }}: item.{{ .GoName }},
+{{- end }}
+{{- else }}
 		ID:          item.ID,
 		Name:        item.Name,
 		Description: item.Description,
 		CreatedAt:   item.CreatedAt,
 		UpdatedAt:   item.UpdatedAt,
+{{- end }}
 	}
 }
 
 func toDomain(record *dbmodel.{{ .Pascal }}Model) *entity.{{ .Pascal }} {
 	return &entity.{{ .Pascal }}{
+{{- if .HasTableFields }}
+{{- range .Fields }}
+		{{ .GoName }}: record.{{ .GoName }},
+{{- end }}
+{{- else }}
 		ID:          record.ID,
 		Name:        record.Name,
 		Description: record.Description,
 		CreatedAt:   record.CreatedAt,
 		UpdatedAt:   record.UpdatedAt,
+{{- end }}
 	}
 }
 
@@ -1911,8 +2317,13 @@ func NewMongoRepository(db *mongo.Database, loggers ...*zap.Logger) *MongoReposi
 // Save 按 MongoDB _id 新增或更新 {{ .Dir }} 聚合。
 func (r *MongoRepository) Save(ctx context.Context, item *entity.{{ .Pascal }}) error {
 	start := time.Now()
+{{- if .HasTableFields }}
+	_, err := r.documents.UpsertByID(ctx, item.{{ .PrimaryField.GoName }}, toDocument(item))
+	r.logOperation("Save", "", 0, start, err)
+{{- else }}
 	_, err := r.documents.UpsertByID(ctx, item.ID, toDocument(item))
 	r.logOperation("Save", item.ID, 0, start, err)
+{{- end }}
 	return err
 }
 
@@ -1988,21 +2399,33 @@ func (r *MongoRepository) logOperation(operation string, id string, total int64,
 
 func toDocument(item *entity.{{ .Pascal }}) *dbmodel.{{ .Pascal }}Document {
 	return &dbmodel.{{ .Pascal }}Document{
+{{- if .HasTableFields }}
+{{- range .Fields }}
+		{{ .GoName }}: item.{{ .GoName }},
+{{- end }}
+{{- else }}
 		ID:          item.ID,
 		Name:        item.Name,
 		Description: item.Description,
 		CreatedAt:   item.CreatedAt,
 		UpdatedAt:   item.UpdatedAt,
+{{- end }}
 	}
 }
 
 func toDomainFromDocument(document *dbmodel.{{ .Pascal }}Document) *entity.{{ .Pascal }} {
 	return &entity.{{ .Pascal }}{
+{{- if .HasTableFields }}
+{{- range .Fields }}
+		{{ .GoName }}: document.{{ .GoName }},
+{{- end }}
+{{- else }}
 		ID:          document.ID,
 		Name:        document.Name,
 		Description: document.Description,
 		CreatedAt:   document.CreatedAt,
 		UpdatedAt:   document.UpdatedAt,
+{{- end }}
 	}
 }
 
@@ -2042,8 +2465,14 @@ func NewServer(svc *service.Service, log *zap.Logger) *Server {
 // Create{{ .Pascal }} 处理创建 RPC。
 func (s *Server) Create{{ .Pascal }}(ctx context.Context, req *{{ .GoPackage }}.Create{{ .Pascal }}Request) (*{{ .GoPackage }}.{{ .Pascal }}Response, error) {
 	item, err := s.svc.Create(ctx, dto.CreateCommand{
+{{- if .HasTableFields }}
+{{- range .CreateFields }}
+		{{ .GoName }}: req.{{ .Getter }}(),
+{{- end }}
+{{- else }}
 		Name:        req.GetName(),
 		Description: req.GetDescription(),
+{{- end }}
 	})
 	if err != nil {
 		return nil, map{{ .Pascal }}Error(err)
@@ -2083,8 +2512,14 @@ func (s *Server) List{{ .Pascal }}s(ctx context.Context, req *{{ .GoPackage }}.L
 func (s *Server) Update{{ .Pascal }}(ctx context.Context, req *{{ .GoPackage }}.Update{{ .Pascal }}Request) (*{{ .GoPackage }}.{{ .Pascal }}Response, error) {
 	item, err := s.svc.Update(ctx, dto.UpdateCommand{
 		ID:          req.GetId(),
+{{- if .HasTableFields }}
+{{- range .UpdateFields }}
+		{{ .GoName }}: req.{{ .Getter }}(),
+{{- end }}
+{{- else }}
 		Name:        req.GetName(),
 		Description: req.GetDescription(),
+{{- end }}
 	})
 	if err != nil {
 		return nil, map{{ .Pascal }}Error(err)
@@ -2102,11 +2537,17 @@ func (s *Server) Delete{{ .Pascal }}(ctx context.Context, req *{{ .GoPackage }}.
 
 func toProto(item *dto.{{ .Pascal }}DTO) *{{ .GoPackage }}.{{ .Pascal }}Response {
 	return &{{ .GoPackage }}.{{ .Pascal }}Response{
+{{- if .HasTableFields }}
+{{- range .ResponseFields }}
+		{{ .ProtoGoName }}: item.{{ .GoName }},
+{{- end }}
+{{- else }}
 		Id:          item.ID,
 		Name:        item.Name,
 		Description: item.Description,
 		CreatedAt:   item.CreatedAt,
 		UpdatedAt:   item.UpdatedAt,
+{{- end }}
 	}
 }
 
@@ -2191,14 +2632,26 @@ const gatewayRequestTemplate = `package request
 
 // Create{{ .Pascal }}Request 是 POST /api/v1/{{ .TableName }} 使用的 JSON 载荷。
 type Create{{ .Pascal }}Request struct {
+{{- if .HasTableFields }}
+{{- range .CreateFields }}
+	{{ .GoName }} {{ .GoType }} ` + "`json:\"{{ .JSONName }}\"`" + `
+{{- end }}
+{{- else }}
 	Name        string ` + "`json:\"name\" binding:\"required\"`" + `
 	Description string ` + "`json:\"description\"`" + `
+{{- end }}
 }
 
 // Update{{ .Pascal }}Request 是 PUT /api/v1/{{ .TableName }}/:id 使用的 JSON 载荷。
 type Update{{ .Pascal }}Request struct {
+{{- if .HasTableFields }}
+{{- range .UpdateFields }}
+	{{ .GoName }} {{ .GoType }} ` + "`json:\"{{ .JSONName }}\"`" + `
+{{- end }}
+{{- else }}
 	Name        string ` + "`json:\"name\" binding:\"required\"`" + `
 	Description string ` + "`json:\"description\"`" + `
+{{- end }}
 }
 
 // List{{ .Pascal }}Request 是 GET /api/v1/{{ .TableName }} 使用的查询参数载荷。
@@ -2245,8 +2698,14 @@ func (h *{{ .Pascal }}Handler) Create(c *gin.Context) {
 		return
 	}
 	resp, err := h.client.Create{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Create{{ .Pascal }}Request{
+{{- if .HasTableFields }}
+{{- range .CreateFields }}
+		{{ .ProtoGoName }}: req.{{ .GoName }},
+{{- end }}
+{{- else }}
 		Name:        req.Name,
 		Description: req.Description,
+{{- end }}
 	})
 	if err != nil {
 		httpx.Error(c, apperrors.FromGRPC(err))
@@ -2293,8 +2752,14 @@ func (h *{{ .Pascal }}Handler) Update(c *gin.Context) {
 	}
 	resp, err := h.client.Update{{ .Pascal }}(outgoingContext(c), &{{ .GoPackage }}.Update{{ .Pascal }}Request{
 		Id:          c.Param("id"),
+{{- if .HasTableFields }}
+{{- range .UpdateFields }}
+		{{ .ProtoGoName }}: req.{{ .GoName }},
+{{- end }}
+{{- else }}
 		Name:        req.Name,
 		Description: req.Description,
+{{- end }}
 	})
 	if err != nil {
 		httpx.Error(c, apperrors.FromGRPC(err))
@@ -2406,7 +2871,9 @@ proto RPC -> handler -> service -> entity.Repository -> repo(Gorm) -> database
 
 默认启动使用 ` + "`repo/gorm_repository.go`" + `，无需改配置即可运行。命令同时生成 ` + "`repo/mongo_repository.go`" + `，MongoDB 仓储已通过 ` + "`mongox.NewDocumentStore[dbmodel.{{ .Pascal }}Document]`" + ` 接好基础 CRUD；需要切换 MongoDB 时，只替换 ` + "`cmd/{{ .Dir }}/main.go`" + ` 中注入的 repository。
 
-用户可以直接把示例字段 ` + "`Name`" + `、` + "`Description`" + ` 替换成真实业务字段，或者在此基础上新增业务方法。
+{{ if .HasTableFields }}本服务已根据 ` + "`{{ .TableName }}`" + ` 表字段生成实体、数据库模型、DTO、proto request/response、repo 映射和 gateway 入参。后续可以在此基础上补充业务校验、组合查询和专用接口。
+{{ else }}用户可以直接把示例字段 ` + "`Name`" + `、` + "`Description`" + ` 替换成真实业务字段，或者在此基础上新增业务方法。
+{{ end }}
 
 如果项目包含 Gin gateway，命令也会生成 HTTP 入口：
 

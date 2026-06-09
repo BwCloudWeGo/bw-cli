@@ -354,7 +354,7 @@ services:
 bw-cli service order --table orders --tidy
 ```
 
-当前 `--table` 会连接 `configs/config.yaml` 中配置的数据库并读取指定表字段，不再要求表包含默认示例字段，例如 `description`。生成后的服务会跳过 `AutoMigrate`，避免脚手架修改既有表结构。MySQL 或 PostgreSQL 需要指定 schema 时，可以传 `--schema`。
+当前 `--table` 会连接 `configs/config.yaml` 中配置的数据库并读取指定表字段，不再要求表包含默认示例字段，例如 `description`。生成后的 entity、model、DTO、proto、repo 映射和 gateway 入参会使用真实表字段，同时服务会跳过 `AutoMigrate`，避免脚手架修改既有表结构。MySQL 或 PostgreSQL 需要指定 schema 时，可以传 `--schema`。
 
 如果要通过界面配置单表或多表关联，启动本地设计器：
 

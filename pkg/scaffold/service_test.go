@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 func TestNextServicePortUsesMaxConfiguredServicePortPlusOne(t *testing.T) {
@@ -209,4 +211,67 @@ func TestAddServiceWithGenerationPlanWritesRelationshipHelpers(t *testing.T) {
 	require.Contains(t, text, `"product_sku"`)
 	require.Contains(t, text, "func (r *GormRepository) JoinProductSkuToProductSpu(ctx context.Context) *gorm.DB")
 	require.Contains(t, text, `LEFT JOIN product_sku ON product_sku.spu_id = product_spu.id`)
+}
+
+func TestAddServiceWithTableGeneratesModelFromDatabaseColumns(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/app\n\ngo 1.25\n"), 0o644))
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "configs"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "data"), 0o755))
+	dbPath := filepath.Join(root, "data", "shop.db")
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, db.Exec(`create table product_spu (
+		id text primary key,
+		spu_no text not null,
+		title text not null,
+		sale_price decimal(10,2),
+		stock_count integer,
+		is_online boolean,
+		created_at datetime,
+		updated_at datetime
+	)`).Error)
+	require.NoError(t, os.WriteFile(filepath.Join(root, "configs", "config.yaml"), []byte(`
+database:
+  driver: sqlite
+  dsn: data/shop.db
+`), 0o644))
+
+	err = AddService(ServiceOptions{
+		RootDir:   root,
+		Name:      "product",
+		TableName: "product_spu",
+		RunProto:  false,
+	})
+
+	require.NoError(t, err)
+	modelContent, err := os.ReadFile(filepath.Join(root, "internal", "product", "model", "product.go"))
+	require.NoError(t, err)
+	modelText := string(modelContent)
+	require.Contains(t, modelText, "SpuNo")
+	require.Contains(t, modelText, "`gorm:\"column:spu_no;not null\"`")
+	require.Contains(t, modelText, "SalePrice")
+	require.Contains(t, modelText, "`gorm:\"column:sale_price\"`")
+	require.Contains(t, modelText, "StockCount")
+	require.Contains(t, modelText, "`gorm:\"column:stock_count\"`")
+	require.Contains(t, modelText, "IsOnline")
+	require.Contains(t, modelText, "`gorm:\"column:is_online\"`")
+	require.NotContains(t, modelText, "Description string")
+
+	repoContent, err := os.ReadFile(filepath.Join(root, "internal", "product", "repo", "gorm_repository.go"))
+	require.NoError(t, err)
+	repoText := string(repoContent)
+	require.Contains(t, repoText, "SpuNo:")
+	require.Contains(t, repoText, "item.SpuNo")
+	require.Contains(t, repoText, "SalePrice:")
+	require.Contains(t, repoText, "item.SalePrice")
+	require.NotContains(t, repoText, "Description: item.Description")
+
+	protoContent, err := os.ReadFile(filepath.Join(root, "api", "proto", "product", "v1", "product.proto"))
+	require.NoError(t, err)
+	protoText := string(protoContent)
+	require.Contains(t, protoText, "string id = 1;")
+	require.Contains(t, protoText, "string spu_no = 2;")
+	require.Contains(t, protoText, "double sale_price = 4;")
+	require.NotContains(t, protoText, "description")
 }
