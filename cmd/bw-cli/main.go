@@ -28,6 +28,8 @@ func main() {
 		runGenerate(os.Args[2:], true)
 	case "service", "add-service":
 		runService(os.Args[2:])
+	case "designer":
+		runDesigner(os.Args[2:])
 	case "delete-service", "remove-service":
 		runDeleteService(os.Args[2:])
 	default:
@@ -70,6 +72,23 @@ func runService(args []string) {
 		os.Exit(1)
 	}
 	fmt.Printf("service %s initialized at %s\n", opts.Name, opts.RootDir)
+}
+
+func runDesigner(args []string) {
+	opts, err := parseDesignerOptions(args)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			usage()
+			os.Exit(0)
+		}
+		fmt.Fprintln(os.Stderr, err)
+		usage()
+		os.Exit(2)
+	}
+	if err := scaffold.StartDesigner(opts); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }
 
 func runDeleteService(args []string) {
@@ -143,6 +162,7 @@ func parseServiceOptions(args []string) (scaffold.ServiceOptions, error) {
 	port := fs.Int("port", 0, "default gRPC port for the generated service; 0 means auto-increment from configs/config.yaml")
 	tableName := fs.String("table", "", "existing table name used by generated Gorm repository")
 	schemaName := fs.String("schema", "", "database schema name used with --table for MySQL/PostgreSQL")
+	planPath := fs.String("plan", "", "generation plan json created by bw-cli designer")
 	skipProto := fs.Bool("skip-proto", false, "skip proto code generation after writing files")
 	tidy := fs.Bool("tidy", false, "run go mod tidy after generating service")
 
@@ -166,8 +186,27 @@ func parseServiceOptions(args []string) (scaffold.ServiceOptions, error) {
 		Port:       *port,
 		TableName:  *tableName,
 		SchemaName: *schemaName,
+		PlanPath:   *planPath,
 		RunProto:   !*skipProto,
 		RunTidy:    *tidy,
+	}, nil
+}
+
+func parseDesignerOptions(args []string) (scaffold.DesignerOptions, error) {
+	fs := flag.NewFlagSet("designer", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	rootDir := fs.String("dir", ".", "project root directory, defaults to current directory")
+	addr := fs.String("addr", "127.0.0.1:6060", "local designer listen address")
+	if err := fs.Parse(args); err != nil {
+		return scaffold.DesignerOptions{}, err
+	}
+	root, err := filepath.Abs(*rootDir)
+	if err != nil {
+		return scaffold.DesignerOptions{}, err
+	}
+	return scaffold.DesignerOptions{
+		RootDir: root,
+		Addr:    *addr,
 	}, nil
 }
 
@@ -212,6 +251,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  bw-cli new <target-dir> --module github.com/acme/demo [--tidy]")
 	fmt.Fprintln(os.Stderr, "  bw-cli demo <target-dir> --module github.com/acme/demo [--tidy]")
 	fmt.Fprintln(os.Stderr, "  bw-cli new <target-dir> --module github.com/acme/demo --source . [--tidy]")
-	fmt.Fprintln(os.Stderr, "  bw-cli service <service-name> [--dir .] [--port 9100] [--table table_name] [--schema schema_name] [--tidy]")
+	fmt.Fprintln(os.Stderr, "  bw-cli service <service-name> [--dir .] [--port 9100] [--table table_name] [--schema schema_name] [--plan scaffold-plans/service.json] [--tidy]")
+	fmt.Fprintln(os.Stderr, "  bw-cli designer [--dir .] [--addr 127.0.0.1:6060]")
 	fmt.Fprintln(os.Stderr, "  bw-cli delete-service <service-name> [--dir .] [--tidy]")
 }

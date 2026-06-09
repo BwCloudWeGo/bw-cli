@@ -36,6 +36,7 @@ type ServiceOptions struct {
 	Port              int
 	TableName         string
 	SchemaName        string
+	PlanPath          string
 	RunProto          bool
 	RunTidy           bool
 	NacosSyncRequired bool
@@ -68,6 +69,19 @@ type serviceTemplateData struct {
 	Port            int
 	TableName       string
 	SkipAutoMigrate bool
+	SelectedTables  []string
+	Relationships   []relationshipTemplateData
+}
+
+type relationshipTemplateData struct {
+	Type       string
+	FromTable  string
+	FromColumn string
+	ToTable    string
+	ToColumn   string
+	JoinTable  string
+	MethodName string
+	JoinSQL    string
 }
 
 // AddService 在已有 bw-cli 项目中创建完整 gRPC 服务骨架。
@@ -219,6 +233,9 @@ func buildServiceTemplateData(module string, rawName string, port int) (serviceT
 }
 
 func applyTableOption(root string, opts ServiceOptions, data *serviceTemplateData) error {
+	if strings.TrimSpace(opts.PlanPath) != "" {
+		return applyGenerationPlan(root, opts, data)
+	}
 	table := strings.TrimSpace(opts.TableName)
 	if table == "" {
 		return nil
@@ -226,16 +243,70 @@ func applyTableOption(root string, opts ServiceOptions, data *serviceTemplateDat
 	if !tableNamePattern.MatchString(table) {
 		return fmt.Errorf("table name %q must contain only letters, digits and underscore, and cannot start with a digit", table)
 	}
-	columns, err := loadTableColumns(root, table, opts.SchemaName)
+	data.TableName = table
+	data.SelectedTables = []string{table}
+	data.SkipAutoMigrate = true
+	return nil
+}
+
+func applyGenerationPlan(root string, opts ServiceOptions, data *serviceTemplateData) error {
+	path := resolvePlanPath(root, opts.PlanPath)
+	plan, err := LoadGenerationPlan(path)
 	if err != nil {
 		return err
 	}
-	if err := validateDefaultCRUDColumns(table, columns); err != nil {
-		return err
+	if strings.TrimSpace(plan.ServiceName) != strings.TrimSpace(opts.Name) {
+		return fmt.Errorf("generation plan service_name %q does not match service %q", plan.ServiceName, opts.Name)
 	}
-	data.TableName = table
+	data.TableName = plan.RootTable
 	data.SkipAutoMigrate = true
+	data.SelectedTables = append([]string(nil), plan.Tables...)
+	data.Relationships = buildRelationshipTemplateData(plan.Relationships)
 	return nil
+}
+
+func buildRelationshipTemplateData(relations []TableRelationship) []relationshipTemplateData {
+	items := make([]relationshipTemplateData, 0, len(relations))
+	for _, relation := range relations {
+		item := relationshipTemplateData{
+			Type:       string(relation.Type),
+			FromTable:  relation.FromTable,
+			FromColumn: relation.FromColumn,
+			ToTable:    relation.ToTable,
+			ToColumn:   relation.ToColumn,
+			JoinTable:  relation.JoinTable,
+			MethodName: relationMethodName(relation),
+			JoinSQL:    relationJoinSQL(relation),
+		}
+		items = append(items, item)
+	}
+	return items
+}
+
+func relationMethodName(relation TableRelationship) string {
+	from := tableNameToPascal(relation.FromTable)
+	to := tableNameToPascal(relation.ToTable)
+	if from == "" || to == "" {
+		return "JoinRelatedTables"
+	}
+	return "Join" + from + "To" + to
+}
+
+func relationJoinSQL(relation TableRelationship) string {
+	if relation.Type == RelationshipManyToMany {
+		return ""
+	}
+	return fmt.Sprintf("LEFT JOIN %s ON %s.%s = %s.%s", relation.FromTable, relation.FromTable, relation.FromColumn, relation.ToTable, relation.ToColumn)
+}
+
+func tableNameToPascal(table string) string {
+	parts := strings.FieldsFunc(table, func(r rune) bool {
+		return r == '_' || r == '-'
+	})
+	for i := range parts {
+		parts[i] = strings.ToLower(parts[i])
+	}
+	return toPascal(parts)
 }
 
 func loadTableColumns(root string, table string, schema string) ([]tableColumn, error) {
@@ -459,6 +530,9 @@ func writeServiceFiles(root string, data serviceTemplateData) error {
 		filepath.Join("internal", data.Dir, "repo", "mongo_repository.go"): renderServiceTemplate(serviceMongoRepoTemplate, data),
 		filepath.Join("internal", data.Dir, "handler", "server.go"):        renderServiceTemplate(serviceHandlerTemplate, data),
 		filepath.Join("docs", "services", data.Dir+".md"):                  renderServiceTemplate(serviceDocTemplate, data),
+	}
+	if len(data.SelectedTables) > 1 || len(data.Relationships) > 0 {
+		files[filepath.Join("internal", data.Dir, "repo", "relationships.go")] = renderServiceTemplate(serviceRelationshipsTemplate, data)
 	}
 	for rel, content := range files {
 		if err := writeNewFile(filepath.Join(root, rel), []byte(content)); err != nil {
@@ -973,6 +1047,7 @@ func gofmtService(root string, serviceDir string) error {
 		filepath.Join("internal", serviceDir, "handler", "server.go"),
 	}
 	for _, rel := range []string{
+		filepath.Join("internal", serviceDir, "repo", "relationships.go"),
 		filepath.Join("internal", "gateway", "handler", "common.go"),
 		filepath.Join("internal", "gateway", "request", serviceDir+"_request.go"),
 		filepath.Join("internal", "gateway", "handler", serviceDir+"_handler.go"),
@@ -1740,6 +1815,61 @@ func toDomain(record *dbmodel.{{ .Pascal }}Model) *entity.{{ .Pascal }} {
 }
 
 var _ entity.Repository = (*GormRepository)(nil)
+`
+
+const serviceRelationshipsTemplate = `package repo
+
+import (
+	"context"
+
+	"gorm.io/gorm"
+)
+
+// TableRelation 描述可视化生成计划中选择的表关联关系。
+type TableRelation struct {
+	Type       string
+	FromTable  string
+	FromColumn string
+	ToTable    string
+	ToColumn   string
+	JoinTable  string
+}
+
+// SelectedTables 返回本服务生成计划选择的全部表。
+func SelectedTables() []string {
+	return []string{
+{{- range .SelectedTables }}
+		"{{ . }}",
+{{- end }}
+	}
+}
+
+// TableRelations 返回本服务生成计划配置的表关系。
+func TableRelations() []TableRelation {
+	return []TableRelation{
+{{- range .Relationships }}
+		{
+			Type:       "{{ .Type }}",
+			FromTable:  "{{ .FromTable }}",
+			FromColumn: "{{ .FromColumn }}",
+			ToTable:    "{{ .ToTable }}",
+			ToColumn:   "{{ .ToColumn }}",
+			JoinTable:  "{{ .JoinTable }}",
+		},
+{{- end }}
+	}
+}
+
+// NewRelationQuery 从主表开始构建多表查询，业务可在此基础上追加 Select、Where、Order 和 Scan。
+func (r *GormRepository) NewRelationQuery(ctx context.Context) *gorm.DB {
+	return r.db.WithContext(ctx).Table("{{ .TableName }}")
+}
+{{ range .Relationships }}{{ if .JoinSQL }}
+// {{ .MethodName }} 按 {{ .FromTable }}.{{ .FromColumn }} -> {{ .ToTable }}.{{ .ToColumn }} 追加关联查询。
+func (r *GormRepository) {{ .MethodName }}(ctx context.Context) *gorm.DB {
+	return r.NewRelationQuery(ctx).Joins("{{ .JoinSQL }}")
+}
+{{ end }}{{ end }}
 `
 
 const serviceMongoRepoTemplate = `package repo

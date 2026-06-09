@@ -175,3 +175,38 @@ func TestPatchGatewayRouterWiresGeneratedClient(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, string(v1Content), "registerCommentRoutes(v1, handler.NewCommentHandler(clients.Comment, log))")
 }
+
+func TestAddServiceWithGenerationPlanWritesRelationshipHelpers(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/app\n\ngo 1.25\n"), 0o644))
+	planPath := filepath.Join(root, "scaffold-plans", "product.json")
+	require.NoError(t, SaveGenerationPlan(planPath, GenerationPlan{
+		ServiceName: "product",
+		RootTable:   "product_spu",
+		Tables:      []string{"product_spu", "product_sku"},
+		Relationships: []TableRelationship{{
+			Type:       RelationshipOneToMany,
+			FromTable:  "product_sku",
+			FromColumn: "spu_id",
+			ToTable:    "product_spu",
+			ToColumn:   "id",
+		}},
+	}))
+
+	err := AddService(ServiceOptions{
+		RootDir:  root,
+		Name:     "product",
+		PlanPath: planPath,
+		RunProto: false,
+	})
+
+	require.NoError(t, err)
+	content, err := os.ReadFile(filepath.Join(root, "internal", "product", "repo", "relationships.go"))
+	require.NoError(t, err)
+	text := string(content)
+	require.Contains(t, text, "func SelectedTables() []string")
+	require.Contains(t, text, `"product_spu"`)
+	require.Contains(t, text, `"product_sku"`)
+	require.Contains(t, text, "func (r *GormRepository) JoinProductSkuToProductSpu(ctx context.Context) *gorm.DB")
+	require.Contains(t, text, `LEFT JOIN product_sku ON product_sku.spu_id = product_spu.id`)
+}

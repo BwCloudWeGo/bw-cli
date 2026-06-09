@@ -49,3 +49,20 @@ func TestParseServiceOptionsSupportsSkipProto(t *testing.T) {
 	require.Equal(t, "comment", opts.Name)
 	require.False(t, opts.RunProto)
 }
+
+func TestParseServiceOptionsSupportsPlan(t *testing.T) {
+	opts, err := parseServiceOptions([]string{"product", "--plan", filepath.Join("scaffold-plans", "product.json"), "--skip-proto"})
+
+	require.NoError(t, err)
+	require.Equal(t, "product", opts.Name)
+	require.Equal(t, filepath.Join("scaffold-plans", "product.json"), opts.PlanPath)
+	require.False(t, opts.RunProto)
+}
+
+func TestParseDesignerOptionsDefaultsToLocalhost(t *testing.T) {
+	opts, err := parseDesignerOptions([]string{"--dir", "."})
+
+	require.NoError(t, err)
+	require.NotEmpty(t, opts.RootDir)
+	require.Equal(t, "127.0.0.1:6060", opts.Addr)
+}

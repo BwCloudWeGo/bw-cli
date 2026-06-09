@@ -8,6 +8,7 @@
 - `bw-cli new <项目名> --module <module>` 一条命令生成干净框架。
 - `bw-cli demo <项目名> --module <module>` 单独生成带示例业务的演示项目。
 - `bw-cli service <服务名> --tidy` 在现有项目中生成可启动的基础 CRUD 服务。
+- `bw-cli designer --dir .` 打开本地可视化界面，按数据库表和表关系生成单表或多表服务计划。
 - 使用清晰的 DDD 分层：`model`、`service`、`repo`、`handler`。
 - 默认支持 Gorm，并内置 SQLite、MySQL、PostgreSQL。
 - 内置 MongoDB、Redis、Elasticsearch、Kafka 客户端封装。
@@ -354,6 +355,26 @@ bw-cli service order --table orders --tidy
 ```
 
 当前 `--table` 会连接 `configs/config.yaml` 中配置的数据库并读取指定表字段，不再要求表包含默认示例字段，例如 `description`。生成后的服务会跳过 `AutoMigrate`，避免脚手架修改既有表结构。MySQL 或 PostgreSQL 需要指定 schema 时，可以传 `--schema`。
+
+如果要通过界面配置单表或多表关联，启动本地设计器：
+
+```bash
+bw-cli designer --dir . --addr 127.0.0.1:6060
+```
+
+设计器默认使用 `mysql`，DSN 输入框会填入：
+
+```text
+账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local
+```
+
+在界面中连接数据库、选择主表和关联表、配置表关系后，可以保存到 `scaffold-plans/<service>.json`，也可以直接生成代码。命令行生成同一份计划：
+
+```bash
+bw-cli service product --plan scaffold-plans/product.json --tidy
+```
+
+单表计划只选择一张表即可；多表计划会额外生成 `internal/<service>/repo/relationships.go`，其中包含 `SelectedTables()`、`TableRelations()`、`NewRelationQuery()` 和按关系生成的 Join 查询入口，方便继续补充多表查询 DTO 与业务方法。
 
 删除脚手架生成的服务：
 

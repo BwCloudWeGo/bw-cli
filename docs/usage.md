@@ -909,6 +909,40 @@ bw-cli service comment --table comments --tidy
 
 当前 `--table` 会先连接 `configs/config.yaml` 中配置的数据库并读取指定表的真实字段，再按这些字段生成服务结构。它不再要求表中包含默认示例字段，例如 `description`；生成后的服务会跳过 `AutoMigrate`，避免修改既有表结构。MySQL 或 PostgreSQL 需要指定 schema 时，增加 `--schema <schema_name>`。
 
+如果需要配置单表或多表关联，可以启动本地可视化设计器：
+
+```bash
+bw-cli designer --dir . --addr 127.0.0.1:6060
+```
+
+设计器只监听本机地址。打开控制台输出的地址后，按顺序操作：
+
+1. 选择数据库驱动，默认是 `mysql`。
+2. 填写 DSN，默认内容是 `账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local`。
+3. 读取表结构，选择主表和参与生成的表。
+4. 配置表关系，例如 `product_sku.spu_id -> product_spu.id`。
+5. 保存计划或直接生成代码。
+
+计划会保存到：
+
+```text
+scaffold-plans/<service>.json
+```
+
+也可以用命令行基于计划生成：
+
+```bash
+bw-cli service product --plan scaffold-plans/product.json --tidy
+```
+
+单表计划只选择一张表即可。多表计划会额外生成：
+
+```text
+internal/<service>/repo/relationships.go
+```
+
+该文件包含 `SelectedTables()`、`TableRelations()`、`NewRelationQuery()` 和按关系生成的 Join 查询入口，后续在 repo/service/dto 中扩展组合查询和返回结构即可。
+
 生成后命令会自动追加 `configs/config.yaml`：
 
 - 服务名、gRPC 端口和 gateway target 会写入 `services.comment`。

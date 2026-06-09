@@ -838,6 +838,32 @@ bw-cli service order --port 9103 --tidy
 
 启动后控制台会输出服务名、环境、监听地址、gRPC 地址和配置项。
 
+绑定已有单表时使用：
+
+`+"```bash"+`
+bw-cli service order --table orders --tidy
+`+"```"+`
+
+配置单表或多表关联时，可以打开本地可视化设计器：
+
+`+"```bash"+`
+bw-cli designer --dir . --addr 127.0.0.1:6060
+`+"```"+`
+
+设计器默认使用 `+"`mysql`"+`，DSN 默认示例为：
+
+`+"```text"+`
+账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local
+`+"```"+`
+
+界面保存的计划位于 `+"`scaffold-plans/<service>.json`"+`，也可以通过命令行生成：
+
+`+"```bash"+`
+bw-cli service product --plan scaffold-plans/product.json --tidy
+`+"```"+`
+
+单表计划只选择一张表即可。多表计划会额外生成 `+"`internal/<service>/repo/relationships.go`"+`，包含所选表、表关系和 Gorm Join 查询入口。
+
 如果项目包含 gateway，HTTP CRUD 路由也会自动挂载：
 
 `+"```text"+`
@@ -954,6 +980,32 @@ bw-cli service comment --table comments --tidy
 `+"```"+`
 
 当前 `+"`--table`"+` 会连接 `+"`configs/config.yaml`"+` 中配置的数据库并读取指定表的真实字段，再按这些字段生成服务结构。它不再要求表中包含默认示例字段，例如 `+"`description`"+`；生成后的服务会跳过 `+"`AutoMigrate`"+`，避免修改既有表结构。MySQL 或 PostgreSQL 需要指定 schema 时，可以传 `+"`--schema`"+`。
+
+如果要通过界面配置单表或多表关联，启动本地可视化设计器：
+
+`+"```bash"+`
+bw-cli designer --dir . --addr 127.0.0.1:6060
+`+"```"+`
+
+设计器只监听本机地址，默认驱动是 `+"`mysql`"+`，DSN 默认内容是：
+
+`+"```text"+`
+账号:密码@tcp(服务器IP:3306)/数据库?charset=utf8mb4&parseTime=True&loc=Local
+`+"```"+`
+
+在界面中读取表结构、选择主表和参与生成的表、配置表关系后，计划会保存到：
+
+`+"```text"+`
+scaffold-plans/<service>.json
+`+"```"+`
+
+也可以用命令行基于计划生成：
+
+`+"```bash"+`
+bw-cli service product --plan scaffold-plans/product.json --tidy
+`+"```"+`
+
+单表计划只选择一张表即可。多表计划会额外生成 `+"`internal/<service>/repo/relationships.go`"+`，其中包含 `+"`SelectedTables()`"+`、`+"`TableRelations()`"+`、`+"`NewRelationQuery()`"+` 和按关系生成的 Join 查询入口。
 
 生成后的服务会自动追加 `+"`configs/config.yaml`"+`：
 
