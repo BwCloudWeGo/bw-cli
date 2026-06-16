@@ -764,6 +764,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/mongox
 go get github.com/BwCloudWeGo/bw-cli/pkg/redisx
 go get github.com/BwCloudWeGo/bw-cli/pkg/esx
 go get github.com/BwCloudWeGo/bw-cli/pkg/kafkax
+go get github.com/BwCloudWeGo/bw-cli/pkg/rocketmqx
 go get github.com/BwCloudWeGo/bw-cli/pkg/middleware
 go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 ```
@@ -784,6 +785,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 | `pkg/redisx` | Redis 客户端初始化 |
 | `pkg/esx` | Elasticsearch 客户端初始化 |
 | `pkg/kafkax` | Kafka reader/writer 初始化 |
+| `pkg/rocketmqx` | RocketMQ 普通消息、事务消息、延时消息和 push 消费封装 |
 | `pkg/filex` | 文件上传校验和 MinIO/OSS/Qiniu/COS 存储适配 |
 | `pkg/timex` | 周岁计算、中文相对时间和日期时间格式化 |
 | `pkg/scaffold` | 脚手架生成逻辑 |

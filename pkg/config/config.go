@@ -22,6 +22,7 @@ import (
 	"github.com/BwCloudWeGo/bw-cli/pkg/nacosx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/postgresx"
 	"github.com/BwCloudWeGo/bw-cli/pkg/redisx"
+	"github.com/BwCloudWeGo/bw-cli/pkg/rocketmqx"
 )
 
 var remoteConfigLoader = nacosx.LoadConfig
@@ -153,6 +154,7 @@ type Config struct {
 	Redis         redisx.Config            `mapstructure:"redis" yaml:"redis"`
 	Elasticsearch esx.Config               `mapstructure:"elasticsearch" yaml:"elasticsearch"`
 	Kafka         kafkax.Config            `mapstructure:"kafka" yaml:"kafka"`
+	RocketMQ      rocketmqx.Config         `mapstructure:"rocketmq" yaml:"rocketmq"`
 	Alipay        alipayx.Config           `mapstructure:"alipay" yaml:"alipay"`
 	Nacos         nacosx.Config            `mapstructure:"nacos" yaml:"nacos"`
 	Middleware    MiddlewareConfig         `mapstructure:"middleware" yaml:"middleware"`
@@ -414,6 +416,15 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("kafka.tls.enable", kafkax.DefaultConfig().TLS.Enable)
 	v.SetDefault("kafka.tls.insecure_skip_verify", kafkax.DefaultConfig().TLS.InsecureSkipVerify)
 	v.SetDefault("kafka.tls.server_name", kafkax.DefaultConfig().TLS.ServerName)
+	v.SetDefault("rocketmq.name_servers", rocketmqx.DefaultConfig().NameServers)
+	v.SetDefault("rocketmq.group_name", rocketmqx.DefaultConfig().GroupName)
+	v.SetDefault("rocketmq.consumer_group", rocketmqx.DefaultConfig().ConsumerGroup)
+	v.SetDefault("rocketmq.namespace", rocketmqx.DefaultConfig().Namespace)
+	v.SetDefault("rocketmq.access_key", rocketmqx.DefaultConfig().AccessKey)
+	v.SetDefault("rocketmq.secret_key", rocketmqx.DefaultConfig().SecretKey)
+	v.SetDefault("rocketmq.retry_times", rocketmqx.DefaultConfig().RetryTimes)
+	v.SetDefault("rocketmq.send_timeout", rocketmqx.DefaultConfig().SendTimeout)
+	v.SetDefault("rocketmq.consume_message_batch_max_size", rocketmqx.DefaultConfig().ConsumeMessageBatchMaxSize)
 	v.SetDefault("alipay.app_id", alipayx.DefaultConfig().AppID)
 	v.SetDefault("alipay.private_key", alipayx.DefaultConfig().PrivateKey)
 	v.SetDefault("alipay.alipay_public_key", alipayx.DefaultConfig().AlipayPublicKey)

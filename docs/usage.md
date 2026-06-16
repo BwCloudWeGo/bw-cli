@@ -604,7 +604,25 @@ kafka:
 
 调用示例见 [Kafka：`pkg/kafkax`](toolkit.md#12-kafkapkgkafkax)，包含生产者、消费者和原生 `kafka-go` 入口。
 
-### 6.12 CORS 配置
+### 6.12 RocketMQ 配置
+
+```yaml
+rocketmq:
+  name_servers:
+    - 127.0.0.1:9876
+  group_name: xiaolanshu-producer
+  consumer_group: xiaolanshu-consumer
+  namespace: ""
+  access_key: ""
+  secret_key: ""
+  retry_times: 2
+  send_timeout: 3s
+  consume_message_batch_max_size: 1
+```
+
+调用示例见 [RocketMQ 调用示例](rocketmq.md)，包含普通消息、事务消息、延时消息和消费者订阅。
+
+### 6.13 CORS 配置
 
 ```yaml
 middleware:
@@ -633,7 +651,7 @@ allow_origins:
   - https://console.example.com
 ```
 
-### 6.13 JWT 配置
+### 6.14 JWT 配置
 
 JWT 密钥默认不提供假值，必须在 `configs/config.yaml` 的 `middleware.jwt.secret` 中配置。
 
@@ -1215,6 +1233,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/mongox
 go get github.com/BwCloudWeGo/bw-cli/pkg/redisx
 go get github.com/BwCloudWeGo/bw-cli/pkg/esx
 go get github.com/BwCloudWeGo/bw-cli/pkg/kafkax
+go get github.com/BwCloudWeGo/bw-cli/pkg/rocketmqx
 go get github.com/BwCloudWeGo/bw-cli/pkg/middleware
 go get github.com/BwCloudWeGo/bw-cli/pkg/filex
 ```

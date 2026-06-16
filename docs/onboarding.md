@@ -19,7 +19,7 @@
 | ORM | Gorm | `pkg/database`、`internal/*/repo` |
 | 关系型数据库 | SQLite、MySQL、PostgreSQL | `pkg/database`、`pkg/mysqlx`、`pkg/postgresx` |
 | 文档数据库 | MongoDB 官方 Go Driver | `pkg/mongox` |
-| 缓存与消息 | Redis、Kafka | `pkg/redisx`、`pkg/kafkax` |
+| 缓存与消息 | Redis、Kafka、RocketMQ | `pkg/redisx`、`pkg/kafkax`、`pkg/rocketmqx` |
 | 搜索 | Elasticsearch v7 client | `pkg/esx` |
 | 对象存储 | MinIO、OSS、七牛、腾讯 COS | `pkg/filex` |
 | 支付 | Alipay SDK | `pkg/alipayx` |

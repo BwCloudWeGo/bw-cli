@@ -191,6 +191,18 @@ kafka:
     insecure_skip_verify: false
     server_name: ""
 
+rocketmq:
+  name_servers:
+    - 127.0.0.1:9876
+  group_name: xiaolanshu-producer
+  consumer_group: xiaolanshu-consumer
+  namespace: ""
+  access_key: ""
+  secret_key: ""
+  retry_times: 2
+  send_timeout: 3s
+  consume_message_batch_max_size: 1
+
 alipay:
   app_id: ""
   private_key: ""

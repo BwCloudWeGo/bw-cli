@@ -19,6 +19,7 @@
 | `pkg/redisx` | Redis client 初始化和 Ping | 缓存、分布式锁、限流 |
 | `pkg/esx` | Elasticsearch client 初始化 | 搜索、索引同步 |
 | `pkg/kafkax` | Kafka reader/writer 初始化 | 事件发布和消费 |
+| `pkg/rocketmqx` | RocketMQ 普通消息、事务消息、延时消息和 push 消费封装 | 事件发布和消费 |
 | `pkg/filex` | 文件上传校验、对象 key 生成、MinIO/OSS/Qiniu/COS 上传 | `service` 或 `handler` |
 | `pkg/alipayx` | 支付宝支付、同步回调验签、异步通知解析、退款封装 | `service` 或支付 handler |
 | `pkg/timex` | 周岁计算、中文相对时间、统一日期时间格式化 | DTO 转换、用户资料、动态时间展示 |
@@ -42,6 +43,7 @@ go get github.com/BwCloudWeGo/bw-cli/pkg/logger
 go get github.com/BwCloudWeGo/bw-cli/pkg/database
 go get github.com/BwCloudWeGo/bw-cli/pkg/mongox
 go get github.com/BwCloudWeGo/bw-cli/pkg/filex
+go get github.com/BwCloudWeGo/bw-cli/pkg/rocketmqx
 go get github.com/BwCloudWeGo/bw-cli/pkg/alipayx
 go get github.com/BwCloudWeGo/bw-cli/pkg/timex
 ```
@@ -548,7 +550,142 @@ writer := kafkax.NewWriter(cfg.Kafka)
 reader := kafkax.NewReader(cfg.Kafka)
 ```
 
-## 13. 文件上传：`pkg/filex`
+## 13. RocketMQ：`pkg/rocketmqx`
+
+`pkg/rocketmqx` 基于 `github.com/apache/rocketmq-client-go/v2` 封装普通消息、延时消息、事务消息和 push 消费。业务层只依赖 `pkg/rocketmqx` 暴露的接口，不直接依赖 RocketMQ SDK。
+
+### 13.1 配置
+
+```yaml
+rocketmq:
+  name_servers:
+    - 127.0.0.1:9876
+  group_name: xiaolanshu-producer
+  consumer_group: xiaolanshu-consumer
+  namespace: ""
+  access_key: ""
+  secret_key: ""
+  retry_times: 2
+  send_timeout: 3s
+  consume_message_batch_max_size: 1
+```
+
+### 13.2 普通消息
+
+进程入口初始化一次生产者，然后注入业务 service：
+
+```go
+producer, err := rocketmqx.NewSimpleProducer(cfg.RocketMQ)
+if err != nil {
+    return err
+}
+defer producer.Close()
+
+noteSvc := noteservice.NewService(repo, producer, log)
+```
+
+业务 service 直接发布消息：
+
+```go
+func (s *Service) PublishNoteCreated(ctx context.Context, noteID string, authorID string) error {
+    payload, err := json.Marshal(map[string]string{
+        "event":     "note.created",
+        "note_id":   noteID,
+        "author_id": authorID,
+    })
+    if err != nil {
+        return err
+    }
+
+    _, err = s.producer.Publish(ctx, rocketmqx.Message{
+        Topic: "note-events",
+        Tag:   "note.created",
+        Key:   noteID,
+        Body:  payload,
+        Properties: map[string]string{
+            "source": "note-service",
+        },
+    })
+    return err
+}
+```
+
+### 13.3 延时消息
+
+```go
+delayProducer, err := rocketmqx.NewDelayProducer(cfg.RocketMQ)
+if err != nil {
+    return err
+}
+defer delayProducer.Close()
+
+_, err = delayProducer.PublishDelay(ctx, rocketmqx.DelayMessage{
+    Message: rocketmqx.Message{
+        Topic: "order-events",
+        Tag:   "order.timeout",
+        Key:   orderID,
+        Body:  payload,
+    },
+    Level: 3,
+})
+```
+
+`Level` 是 RocketMQ 4.x 延时等级，具体含义由 broker 的 `messageDelayLevel` 配置决定。
+
+### 13.4 事务消息
+
+```go
+txProducer, err := rocketmqx.NewTransactionProducer(cfg.RocketMQ, rocketmqx.TransactionCallbacks{
+    ExecuteLocal: func(ctx context.Context, msg rocketmqx.Message) (rocketmqx.TransactionState, error) {
+        if err := orderRepo.MarkPaid(ctx, orderID); err != nil {
+            return rocketmqx.RollbackTransaction, err
+        }
+        return rocketmqx.CommitTransaction, nil
+    },
+    CheckLocal: func(ctx context.Context, msg rocketmqx.MessageExt) rocketmqx.TransactionState {
+        if orderRepo.IsPaid(ctx, orderID) {
+            return rocketmqx.CommitTransaction
+        }
+        return rocketmqx.RollbackTransaction
+    },
+})
+if err != nil {
+    return err
+}
+defer txProducer.Close()
+
+_, err = txProducer.PublishTransaction(ctx, rocketmqx.TransactionMessage{
+    Message: rocketmqx.Message{
+        Topic: "payment-events",
+        Tag:   "payment.paid",
+        Key:   orderID,
+        Body:  payload,
+    },
+})
+```
+
+### 13.5 消费者
+
+handler 返回 `nil` 表示消费成功，返回 error 会让 RocketMQ 稍后重试。
+
+```go
+consumer, err := rocketmqx.NewPushConsumer(cfg.RocketMQ)
+if err != nil {
+    return err
+}
+defer consumer.Close()
+
+err = consumer.Subscribe(ctx, rocketmqx.Subscription{
+    Topic: "note-events",
+    Tags:  []string{"note.created", "note.updated"},
+}, func(ctx context.Context, msg rocketmqx.MessageExt) error {
+    return noteSvc.HandleNoteEvent(ctx, msg.Tag, msg.Body)
+})
+```
+
+更完整的实际调用示例见 [RocketMQ 调用示例](rocketmq.md)。
+
+## 14. 文件上传：`pkg/filex`
 
 `pkg/filex` 提供统一上传接口，业务代码不直接依赖具体云厂商 SDK。当前支持：
 
@@ -573,7 +710,7 @@ cos
 100 MB
 ```
 
-### 13.1 通用配置
+### 14.1 通用配置
 
 ```yaml
 file_storage:
@@ -606,7 +743,7 @@ file_storage:
 ```
 
 
-### 13.2 MinIO 配置
+### 14.2 MinIO 配置
 
 ```yaml
 file_storage:
@@ -621,7 +758,7 @@ file_storage:
 ```
 
 
-### 13.3 阿里云 OSS 配置
+### 14.3 阿里云 OSS 配置
 
 ```yaml
 file_storage:
@@ -634,7 +771,7 @@ file_storage:
 ```
 
 
-### 13.4 七牛云 Kodo 配置
+### 14.4 七牛云 Kodo 配置
 
 ```yaml
 file_storage:
@@ -649,7 +786,7 @@ file_storage:
 ```
 
 
-### 13.5 腾讯云 COS 配置
+### 14.5 腾讯云 COS 配置
 
 ```yaml
 file_storage:
@@ -666,7 +803,7 @@ file_storage:
 如果使用自定义 bucket 域名：
 
 
-### 13.6 直接调用上传接口
+### 14.6 直接调用上传接口
 
 初始化：
 
@@ -740,7 +877,7 @@ func UploadFile(uploader filex.Uploader) gin.HandlerFunc {
 7. 根据 `provider` 调用对应云存储 SDK。
 8. 如果配置了 `public_base_url`，返回可访问 URL。
 
-### 13.7 业务层推荐放置方式
+### 14.7 业务层推荐放置方式
 
 对于正式业务，建议把 `filex.Uploader` 注入到 `service`：
 
@@ -750,7 +887,7 @@ handler -> service -> filex.Uploader
 
 这样 handler 只处理协议入参，service 负责“用户是否允许上传、上传后是否入库、是否发布事件”等业务编排。
 
-## 14. 支付宝支付：`pkg/alipayx`
+## 15. 支付宝支付：`pkg/alipayx`
 
 `pkg/alipayx` 基于 `github.com/smartwalle/alipay/v3` 封装常见支付链路：
 
@@ -763,7 +900,7 @@ DecodeNotification -> 异步 notify_url 验签并解析
 Refund   -> 同步退款
 ```
 
-### 14.1 配置
+### 15.1 配置
 
 普通公钥模式：
 
@@ -795,7 +932,7 @@ alipay:
 
 普通公钥模式和证书模式二选一，不要同时配置 `alipay_public_key` 和证书路径。
 
-### 14.2 初始化
+### 15.2 初始化
 
 ```go
 if err := config.InitGlobal("configs/config.yaml"); err != nil {
@@ -817,7 +954,7 @@ orderSvc := orderservice.NewService(repo, payClient, log)
 handler -> service -> alipayx.Client
 ```
 
-### 14.3 创建支付
+### 15.3 创建支付
 
 实际业务 service 中直接调用 `pkg/alipayx`，不要在业务项目里再复制一层支付宝工具类。
 
@@ -877,7 +1014,7 @@ func CreateAlipayPagePayment(svc *orderservice.Service) gin.HandlerFunc {
 }
 ```
 
-### 14.4 同步回调验签
+### 15.4 同步回调验签
 
 同步回调来自 `return_url`，适合展示支付结果页。它不能作为最终到账依据，最终状态以异步通知或主动查询为准。
 
@@ -901,7 +1038,7 @@ func AlipayReturn(payClient *alipayx.Client) gin.HandlerFunc {
 }
 ```
 
-### 14.5 异步通知回调
+### 15.5 异步通知回调
 
 支付宝异步通知需要验签、校验订单号和金额、幂等更新订单状态，处理成功后返回纯文本 `success`。
 
@@ -943,7 +1080,7 @@ func AlipayNotify(payClient *alipayx.Client, svc *orderservice.Service) gin.Hand
 3. `TradeStatus` 只在 `TRADE_SUCCESS` 或 `TRADE_FINISHED` 时标记已支付。
 4. 已处理过的通知直接返回成功，避免支付宝重试造成重复入账。
 
-### 14.6 退款
+### 15.6 退款
 
 ```go
 func (s *Service) RefundAlipayOrder(ctx context.Context, orderID string, reason string) error {
@@ -966,7 +1103,7 @@ func (s *Service) RefundAlipayOrder(ctx context.Context, orderID string, reason 
 
 多次部分退款时，`OutRequestNo` 必须为每次退款请求生成唯一值。
 
-## 15. Validator：`pkg/validator`
+## 16. Validator：`pkg/validator`
 
 当前提供轻量的通用函数：
 
@@ -978,7 +1115,7 @@ if !validator.Required(req.Email, req.Password) {
 
 复杂参数校验建议在 request DTO 上结合 `gin.ShouldBindJSON` 和 `binding` tag，业务规则仍放在 `model/service`。
 
-## 16. 脚手架生成：`pkg/scaffold`
+## 17. 脚手架生成：`pkg/scaffold`
 
 CLI 调用：
 
@@ -1012,7 +1149,7 @@ err := scaffold.Init(scaffold.InitOptions{
 })
 ```
 
-## 17. 时间处理：`pkg/timex`
+## 18. 时间处理：`pkg/timex`
 
 `timex` 提供业务代码中常见的时间展示函数，不读取配置，也不依赖全局状态。
 
@@ -1049,7 +1186,7 @@ N月前
 
 超过一年会返回具体日期时间。需要指定时区时，使用 `RelativeTimeInLocation(value, now, loc)`。
 
-## 18. 推荐启动顺序
+## 19. 推荐启动顺序
 
 在生成项目后，推荐按这个顺序把工具串起来：
 

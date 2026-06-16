@@ -150,6 +150,7 @@ pkg/mongox       MongoDB 官方驱动封装
 pkg/redisx       Redis 封装
 pkg/esx          Elasticsearch 封装
 pkg/kafkax       Kafka 封装
+pkg/rocketmqx    RocketMQ 封装
 pkg/filex        文件上传校验和对象存储封装
 pkg/timex        周岁计算、相对时间和日期时间格式化
 pkg/scaffold     脚手架生成逻辑
